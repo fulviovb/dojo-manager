@@ -1,0 +1,81 @@
+# docker-compose.yml — escola-artes-marciais
+#
+# Uso:
+#   docker compose up                          → sobe tudo
+#   docker compose up mysql                    → só banco
+#   docker compose logs -f backend             → logs do backend
+#   docker compose exec backend sh             → shell no backend
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: escola123
+      MYSQL_DATABASE: escola_db
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - escola-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pescola123"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - backend-modules:/app/node_modules
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      - TZ=America/Sao_Paulo
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - escola-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend-modules:/app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
+    networks:
+      - escola-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - escola-network
+
+networks:
+  escola-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  backend-modules:
+  frontend-modules:

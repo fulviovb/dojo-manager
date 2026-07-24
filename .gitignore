@@ -1,0 +1,23 @@
+node_modules/
+npm-debug.log*
+
+# Env / segredos
+.env
+.env.local
+.env.*.local
+
+# Build
+frontend/build/
+backend/dist/
+
+# Logs
+*.log
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code — configuração local do usuário (não compartilhar)
+.claude/settings.local.json

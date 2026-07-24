@@ -1,0 +1,27 @@
+=== PROGRESS: escola-artes-marciais — Sistema de Gestão de Escola de Artes Marciais ===
+
+[T-01] Setup: subir containers Docker e verificar /api/health .............. [x]
+[T-02] Auth: login JWT + seed admin@escola.com / 123456 .................... [x]
+[T-03] Cadastros base: CRUD Escola, Usuario, ArteMarcial, Faixa, Turma, Sala [x]
+[T-04] Engine de aulas: criar Aula automática a partir do HorarioTurma ...... [x]
+[T-05] Check-in backend: GET+POST /api/checkin/:qr_token (PRIORIDADE #1) .... [x]
+[T-06] Chamada backend: validação professor + fechar chamada ................. [x]
+[T-07] Dashboard backend: frequência, graduação, financeiro, alertas ......... [x]
+[T-08] Financeiro backend: CRUD planos, mensalidades, pagamentos ............. [x]
+[T-09] Frontend: layout, sidebar e login funcional ........................... [x]
+[T-10] Frontend: página pública de check-in (/checkin/:qr_token) ............ [x]
+[T-11] Frontend: tela de chamada para professor .............................. [x]
+[T-12] Frontend: dashboard com semáforo de ausência .......................... [x]
+[T-13] Frontend: cadastros (turmas, horários, salas, alunos) ................. [x]
+[T-14] Frontend: módulo financeiro ........................................... [x]
+[T-15] Frontend: configurações (critérios de graduação, threshold) ........... [x]
+
+Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
+
+=== NOTAS ===
+- Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
+- Branch: feat/escola-artes-marciais
+- Repos: backend/, frontend/
+- Tipo: Produto Novo | Tamanho: G
+- Referência de stack: ~/competicao-manager/
+- Check-in é PRIORIDADE #1 — começar por T-01 → T-02 → T-04 → T-05 → T-10
