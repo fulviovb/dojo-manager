@@ -24,7 +24,7 @@ src/
     ├── Login.js
     ├── Dashboard.js
     ├── Alunos.js / AlunoDetalhe.js
-    ├── Turmas.js
+    ├── Turmas.js / TurmaDetalhe.js
     ├── Chamadas.js
     ├── Financeiro.js
     ├── Configuracoes.js

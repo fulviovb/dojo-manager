@@ -1,0 +1,220 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
+
+const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+const COR_FAIXA = {
+  branca: '#f5f5f5', cinza: '#9e9e9e', azul: '#1565c0', amarela: '#fbc02d',
+  vermelha: '#c62828', laranja: '#ef6c00', verde: '#2e7d32', roxa: '#6a1b9a',
+  marrom: '#5d4037', preta: '#212121',
+};
+
+function corDaFaixa(faixa) {
+  if (!faixa) return '#ccc';
+  if (faixa.cor && faixa.cor.toLowerCase() !== '#808080') return faixa.cor;
+  const chave = Object.keys(COR_FAIXA).find(k => faixa.nome?.toLowerCase().includes(k));
+  return chave ? COR_FAIXA[chave] : '#808080';
+}
+
+function Badge({ faixa }) {
+  if (!faixa) return <span style={{ color: '#aaa', fontSize: 12 }}>—</span>;
+  const cor = corDaFaixa(faixa);
+  const textoEscuro = ['branca', 'amarela'].some(k => faixa.nome?.toLowerCase().includes(k));
+  return (
+    <span style={{
+      display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 12,
+      background: cor, color: textoEscuro ? '#333' : '#fff',
+      border: textoEscuro ? '1px solid #ddd' : 'none',
+    }}>
+      {faixa.nome}
+    </span>
+  );
+}
+
+const cardEstilo = { background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' };
+const cabecalhoCard = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #eee' };
+const thEstilo = { padding: '8px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 };
+
+export default function TurmaDetalhe({ turmaId, onVoltar }) {
+  const [turma, setTurma] = useState(null);
+  const [matriculas, setMatriculas] = useState([]);
+  const [aulas, setAulas] = useState([]);
+  const [alunosAtivos, setAlunosAtivos] = useState([]);
+  const [faixasArte, setFaixasArte] = useState([]);
+  const [buscaAluno, setBuscaAluno] = useState('');
+  const [modalNovo, setModalNovo] = useState(false);
+  const [alunoEscolhido, setAlunoEscolhido] = useState('');
+  const [faixaEscolhida, setFaixaEscolhida] = useState('');
+  const [erro, setErro] = useState('');
+
+  const carregar = () => {
+    axios.get(`/turmas/${turmaId}`).then(r => setTurma(r.data));
+    axios.get(`/matriculas?turma_id=${turmaId}`).then(r => setMatriculas(r.data));
+    axios.get(`/aulas?turma_id=${turmaId}`).then(r => setAulas(r.data));
+  };
+  useEffect(carregar, [turmaId]);
+  useEffect(() => { axios.get('/usuarios?role=aluno').then(r => setAlunosAtivos(r.data)); }, []);
+  useEffect(() => {
+    if (turma?.arte_marcial_id) axios.get(`/faixas?arte_marcial_id=${turma.arte_marcial_id}`).then(r => setFaixasArte(r.data));
+  }, [turma?.arte_marcial_id]);
+
+  const idsMatriculados = useMemo(() => new Set(matriculas.map(m => m.aluno_id)), [matriculas]);
+  const disponiveis = alunosAtivos.filter(a => !idsMatriculados.has(a.id));
+  const disponiveisFiltrados = disponiveis.filter(a => a.nome.toLowerCase().includes(buscaAluno.toLowerCase()));
+
+  const abrirModalNovo = () => {
+    setAlunoEscolhido('');
+    setFaixaEscolhida('');
+    setBuscaAluno('');
+    setErro('');
+    setModalNovo(true);
+  };
+
+  const matricular = async () => {
+    if (!alunoEscolhido) return setErro('Selecione um aluno');
+    try {
+      await axios.post('/matriculas', {
+        aluno_id: alunoEscolhido,
+        turma_id: turmaId,
+        graduacao_atual_faixa_id: faixaEscolhida || null,
+      });
+      setModalNovo(false);
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao matricular'); }
+  };
+
+  const desmatricular = async (matriculaId) => {
+    await axios.delete(`/matriculas/${matriculaId}`);
+    carregar();
+  };
+
+  if (!turma) return <p style={{ color: '#888' }}>Carregando...</p>;
+
+  const [tituloTurma, ...restoNome] = turma.nome.split('\n');
+  const subtituloTurma = restoNome.join(' ').trim();
+  const primeiroHorario = turma.HorarioTurmas?.[0];
+
+  return (
+    <div>
+      <button onClick={onVoltar} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 13, padding: 0, marginBottom: 10 }}>
+        ← Voltar para Turmas
+      </button>
+      <h2 style={{ margin: '0 0 2px', fontSize: 20 }}>{tituloTurma}</h2>
+      {subtituloTurma && <div style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>{subtituloTurma}</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16, alignItems: 'start' }}>
+        {/* Alunos matriculados */}
+        <div style={cardEstilo}>
+          <div style={cabecalhoCard}>
+            <strong style={{ fontSize: 14 }}>Alunos Matriculados na Turma</strong>
+            <button onClick={abrirModalNovo} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+              + Novo
+            </button>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#fafafa' }}>
+                <th style={thEstilo}>Aluno</th>
+                <th style={thEstilo}>Graduação</th>
+                <th style={thEstilo}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {matriculas.length === 0 && (
+                <tr><td colSpan={3} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>Nenhum aluno matriculado.</td></tr>
+              )}
+              {matriculas.map(m => (
+                <tr key={m.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                  <td style={{ padding: '10px 16px', fontSize: 13 }}>{m.Aluno?.nome}</td>
+                  <td style={{ padding: '10px 16px' }}><Badge faixa={m.FaixaAtual} /></td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <button onClick={() => desmatricular(m.id)}
+                      style={{ background: '#c62828', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                      Desmatricular
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Coluna direita */}
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div style={{ ...cardEstilo, padding: 16 }}>
+            <strong style={{ fontSize: 14, display: 'block', marginBottom: 10 }}>Informações Gerais</strong>
+            <div style={{ fontSize: 13, color: '#555', lineHeight: 1.9 }}>
+              {turma.HorarioTurmas?.length > 0 && (
+                <div>Dias: {turma.HorarioTurmas.map(h => `${DIAS[h.dia_semana]} ${h.hora_inicio.slice(0, 5)}–${h.hora_fim.slice(0, 5)}`).join(' · ')}</div>
+              )}
+              <div>Professor: {turma.Professor?.nome || '—'}</div>
+              {primeiroHorario?.Sala && <div>Local: {primeiroHorario.Sala.nome}</div>}
+              <div>Arte marcial: {turma.ArteMarcial?.nome || '—'}</div>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 12, color: '#888' }}>
+              {matriculas.length} aluno{matriculas.length !== 1 ? 's' : ''} matriculado{matriculas.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+
+          <div style={cardEstilo}>
+            <div style={cabecalhoCard}>
+              <strong style={{ fontSize: 14 }}>Aulas</strong>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#fafafa' }}>
+                  <th style={thEstilo}>Data</th>
+                  <th style={thEstilo}>Frequência</th>
+                </tr>
+              </thead>
+              <tbody>
+                {aulas.length === 0 && (
+                  <tr><td colSpan={2} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>Nenhuma aula registrada ainda.</td></tr>
+                )}
+                {aulas.map(a => (
+                  <tr key={a.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '10px 16px', fontSize: 13 }}>{a.data.split('-').reverse().join('/')}</td>
+                    <td style={{ padding: '10px 16px', fontSize: 13 }}>
+                      <span style={{ color: '#2e7d32' }}>{a.presentes} presentes</span>{' · '}
+                      <span style={{ color: '#c62828' }}>{a.ausentes} ausentes</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal: matricular aluno */}
+      {modalNovo && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: 8, padding: 24, width: 420, maxWidth: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16 }}>Matricular aluno</h3>
+              <button onClick={() => setModalNovo(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>×</button>
+            </div>
+            <input placeholder="Buscar aluno..." value={buscaAluno} onChange={e => setBuscaAluno(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, marginBottom: 10, boxSizing: 'border-box' }} />
+            <select size={6} value={alunoEscolhido} onChange={e => setAlunoEscolhido(e.target.value)}
+              style={{ width: '100%', marginBottom: 12 }}>
+              {disponiveisFiltrados.length === 0 && <option disabled>Nenhum aluno disponível</option>}
+              {disponiveisFiltrados.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+            <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Graduação atual (opcional)</label>
+            <select value={faixaEscolhida} onChange={e => setFaixaEscolhida(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, marginBottom: 16, boxSizing: 'border-box' }}>
+              <option value="">—</option>
+              {faixasArte.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
+            </select>
+            {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModalNovo(false)} style={{ padding: '8px 16px', borderRadius: 4, border: '1px solid #ddd', cursor: 'pointer', background: '#fff' }}>Cancelar</button>
+              <button onClick={matricular} style={{ background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }}>Matricular</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

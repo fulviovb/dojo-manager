@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { Escola, Usuario, Turma, Aula, Chamada, MatriculaAluno, Mensalidade, Pagamento, CriterioGraduacao, Faixa } = require('../models');
+const { dataLocalISO } = require('../utils/data');
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 
@@ -12,8 +13,8 @@ const resumo = async (req, res) => {
     const hoje = new Date();
     const trintaDiasAtras = new Date(hoje);
     trintaDiasAtras.setDate(hoje.getDate() - 30);
-    const dataInicio = trintaDiasAtras.toISOString().split('T')[0];
-    const dataFim = hoje.toISOString().split('T')[0];
+    const dataInicio = dataLocalISO(trintaDiasAtras);
+    const dataFim = dataLocalISO(hoje);
 
     const [totalAlunos, totalTurmas, aulasPeriodo] = await Promise.all([
       Usuario.count({ where: { escola_id, role: 'aluno', ativo: true } }),
@@ -29,7 +30,7 @@ const resumo = async (req, res) => {
     const mediaPresenca = totalAulas > 0 ? (totalPresencas / totalAulas).toFixed(1) : 0;
 
     // Financeiro do mês atual
-    const mesAtual = hoje.toISOString().slice(0, 7) + '-01';
+    const mesAtual = dataLocalISO(hoje).slice(0, 7) + '-01';
     const mensalidadesDoMes = await Mensalidade.findAll({
       where: { mes_referencia: { [Op.gte]: mesAtual } },
       include: [

@@ -25,10 +25,12 @@ src/
 ├── models/          # uma entidade por arquivo + associações centralizadas em models/index.js
 ├── controllers/      # regra de negócio por recurso (um arquivo por recurso, ~espelha routes/)
 ├── routes/           # Router do Express por recurso, aplica autenticar/autorizarRole
-└── middleware/
-    ├── autenticacao.js   # valida JWT, popula req.usuario = { id, role, escola_id }
-    └── autorizacao.js    # autorizarRole (por role), autorizarEscola (por escola_id),
-                           # ehDonoDaTurma (professor só acessa turma onde é professor_id)
+├── middleware/
+│   ├── autenticacao.js   # valida JWT, popula req.usuario = { id, role, escola_id }
+│   └── autorizacao.js    # autorizarRole (por role), autorizarEscola (por escola_id),
+│                          # ehDonoDaTurma (professor só acessa turma onde é professor_id)
+└── utils/
+    └── data.js       # dataLocalISO() — data de "hoje" em fuso local (nunca toISOString())
 ```
 
 ## Convenções
@@ -40,6 +42,9 @@ src/
 - Autorização por dono de turma (`professor_id`) é feita explicitamente nos
   controllers com o helper `ehDonoDaTurma`, não pelo middleware de rota — porque
   a checagem depende do recurso já carregado (aula → turma, chamada → aula → turma).
+- **Nunca calcule "hoje" com `toISOString()`** — sempre use `dataLocalISO()`
+  (`src/utils/data.js`). `toISOString()` converte para UTC e quebra silenciosamente
+  entre 21h e 23h59 no horário de Brasília (ver README raiz, seção "Datas e fuso horário").
 
 ## Verificação rápida
 

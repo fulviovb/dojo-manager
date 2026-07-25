@@ -1,12 +1,13 @@
 const { Op } = require('sequelize');
-const { Aula, HorarioTurma, Turma, Sala } = require('../models');
+const { Aula, HorarioTurma, Turma, Sala, Chamada, MatriculaAluno } = require('../models');
 const { ehDonoDaTurma } = require('../middleware/autorizacao');
+const { dataLocalISO } = require('../utils/data');
 
 // Gera Aulas para uma data baseando-se nos HorarioTurma do dia da semana.
 // Retorna array com { aula, criada }.
 const gerarAulasPorData = async (data) => {
   const date = data ? new Date(data + 'T00:00:00') : new Date();
-  const dataStr = date.toISOString().split('T')[0];
+  const dataStr = dataLocalISO(date);
   const diaSemana = date.getDay(); // 0=Dom ... 6=Sab
 
   const horarios = await HorarioTurma.findAll({ where: { dia_semana: diaSemana } });
@@ -60,10 +61,27 @@ const listar = async (req, res) => {
       include: [
         turmaInclude,
         { model: Sala, attributes: ['id', 'nome', 'qr_token'] },
+        { model: Chamada, attributes: ['id'] },
       ],
       order: [['data', 'DESC'], ['hora_inicio', 'ASC']],
     });
-    res.json(aulas);
+
+    const totalMatriculados = turma_id
+      ? await MatriculaAluno.count({ where: { turma_id, ativa: true } })
+      : null;
+
+    const resultado = aulas.map((a) => {
+      const json = a.toJSON();
+      const presentes = json.Chamadas?.length || 0;
+      delete json.Chamadas;
+      return {
+        ...json,
+        presentes,
+        ausentes: totalMatriculados !== null ? Math.max(totalMatriculados - presentes, 0) : null,
+      };
+    });
+
+    res.json(resultado);
   } catch (erro) {
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }

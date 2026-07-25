@@ -1,12 +1,13 @@
 const { Op } = require('sequelize');
 const { Sala, Aula, Turma, HorarioTurma, MatriculaAluno, Chamada, Usuario } = require('../models');
 const { gerarAulasPorData } = require('./aulasController');
+const { dataLocalISO } = require('../utils/data');
 
 const TOLERANCIA_MINUTOS = 20;
 
 const getAulaAtiva = async (sala) => {
   const agora = new Date();
-  const dataHoje = agora.toISOString().split('T')[0];
+  const dataHoje = dataLocalISO(agora);
   const horaAgora = agora.toTimeString().split(' ')[0]; // HH:MM:SS
 
   const minutos = (h) => {

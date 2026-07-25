@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Alunos from './pages/Alunos';
 import AlunoDetalhe from './pages/AlunoDetalhe';
 import Turmas from './pages/Turmas';
+import TurmaDetalhe from './pages/TurmaDetalhe';
 import Chamadas from './pages/Chamadas';
 import Financeiro from './pages/Financeiro';
 import Configuracoes from './pages/Configuracoes';
@@ -40,9 +41,12 @@ function AppInterna() {
   const [paginaAtiva, setPaginaAtiva] = useState('dashboard');
   const [menuAberto, setMenuAberto] = useState(true);
   const [alunoSelecionadoId, setAlunoSelecionadoId] = useState(null);
+  const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(null);
 
   const navegarParaAluno = (id) => setAlunoSelecionadoId(id);
   const voltarDaAluno = () => setAlunoSelecionadoId(null);
+  const navegarParaTurma = (id) => setTurmaSelecionadaId(id);
+  const voltarDaTurma = () => setTurmaSelecionadaId(null);
 
   const handleLogin = (data) => {
     localStorage.setItem('token', data.token);
@@ -65,6 +69,7 @@ function AppInterna() {
   const mudarPagina = (id) => {
     setPaginaAtiva(id);
     setAlunoSelecionadoId(null);
+    setTurmaSelecionadaId(null);
   };
 
   return (
@@ -97,11 +102,14 @@ function AppInterna() {
         <header style={{ padding: '16px 24px', background: '#fff', borderBottom: '1px solid #e0e0e0', fontWeight: 'bold' }}>
           {MENU.find((m) => m.id === paginaAtiva)?.label}
           {paginaAtiva === 'alunos' && alunoSelecionadoId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Perfil</span>}
+          {paginaAtiva === 'turmas' && turmaSelecionadaId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Turma</span>}
         </header>
         <main style={{ flex: 1, overflow: 'auto', padding: 24, background: '#f5f5f5' }}>
           {paginaAtiva === 'alunos' && alunoSelecionadoId
             ? <AlunoDetalhe alunoId={alunoSelecionadoId} onVoltar={voltarDaAluno} />
-            : <PaginaAtual usuario={usuario} onVerAluno={navegarParaAluno} />
+            : paginaAtiva === 'turmas' && turmaSelecionadaId
+            ? <TurmaDetalhe turmaId={turmaSelecionadaId} onVoltar={voltarDaTurma} />
+            : <PaginaAtual usuario={usuario} onVerAluno={navegarParaAluno} onVerTurma={navegarParaTurma} />
           }
         </main>
       </div>

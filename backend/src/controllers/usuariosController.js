@@ -5,8 +5,9 @@ const { Usuario, MatriculaAluno, Turma, ArteMarcial, Faixa,
 
 const listar = async (req, res) => {
   try {
-    const { role } = req.query;
-    const where = { escola_id: req.usuario.escola_id, ativo: true };
+    const { role, ativo } = req.query;
+    const where = { escola_id: req.usuario.escola_id };
+    if (ativo !== 'todos') where.ativo = ativo === 'false' ? false : true;
     if (role) where.role = role;
     const usuarios = await Usuario.findAll({
       where,

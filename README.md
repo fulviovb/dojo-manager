@@ -27,7 +27,8 @@ escola-artes-marciais/
 │   │   ├── models/           # entidades Sequelize + associações (models/index.js)
 │   │   ├── controllers/      # regras de negócio por recurso
 │   │   ├── routes/           # definição de rotas Express por recurso
-│   │   └── middleware/       # autenticação (JWT) e autorização (roles)
+│   │   ├── middleware/       # autenticação (JWT) e autorização (roles)
+│   │   └── utils/            # helpers puros (ex: data.js — datas em fuso local)
 │   └── Dockerfile
 ├── frontend/                  # SPA React (CRA)
 │   └── src/
@@ -37,7 +38,8 @@ escola-artes-marciais/
 ├── nginx.conf                 # proxy reverso (alias /escola-am, /api, /ws)
 ├── CLAUDE.md                  # instruções e boundaries para agentes de IA
 ├── PRD.md                     # requisitos, user stories (US-01..US-06) e tarefas (T-01..T-15)
-└── Progress.txt                # tracker de progresso das tarefas do PRD
+├── Progress.txt               # tracker de progresso das tarefas do PRD
+└── prints/                    # referências visuais (ex: telas do iDojo legado)
 ```
 
 ## Como rodar
@@ -104,8 +106,8 @@ O JWT carrega `{ id, role, escola_id }` e deve ser enviado como
 
 A autorização por dono de turma é verificada com o helper `ehDonoDaTurma` em
 `backend/src/middleware/autorizacao.js`, usado em `turmasController`,
-`aulasController` e `chamadasController`: admin sempre passa; professor só se
-`turma.professor_id === usuario.id`.
+`aulasController`, `chamadasController` e `matriculasController`: admin sempre
+passa; professor só se `turma.professor_id === usuario.id`.
 
 Todo dado é isolado por `escola_id` — nenhuma query deve vazar dados entre escolas
 diferentes (ver boundaries em `CLAUDE.md`).
@@ -172,6 +174,20 @@ CriterioGraduacao.min_aulas` para a combinação escola + arte marcial + faixa a
 O contador é incrementado em `POST /api/chamadas/fechar/:aula_id` para cada aluno
 presente.
 
+### Datas e fuso horário
+
+**Nunca use `Date.prototype.toISOString()` para calcular "hoje"** — ela converte
+para UTC, e no horário de Brasília (UTC-3) qualquer momento entre 21h e 23h59
+já é o dia seguinte em UTC. Isso já causou um bug real: o check-in parava de
+achar a aula ativa das turmas noturnas nesse intervalo, porque o motor de
+geração de aulas comparava o `dia_semana` de amanhã contra o horário de hoje.
+
+Use sempre `dataLocalISO()` (`backend/src/utils/data.js`), que monta o
+`YYYY-MM-DD` a partir de `getFullYear/getMonth/getDate` (fuso local do
+processo). Já aplicado em `checkinController`, `aulasController`
+(`gerarAulasPorData`), `dashboardController` (período de 30 dias e mês
+atual) e `graduacoesController` (fechamento de graduação anterior).
+
 ## Referência da API
 
 Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exceto
@@ -181,14 +197,14 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 |-----------------------|---------------------------------------------------------------------------------------|-------------------------|
 | Auth                  | `POST /auth/login`, `GET /auth/me`                                                    | público / autenticado   |
 | Escolas               | `GET,POST /escolas`, `GET,PUT /escolas/:id`                                           | autenticado / admin     |
-| Usuários              | `GET /usuarios`, `GET /usuarios/:id`, `GET /usuarios/:id/perfil`, `POST,PUT,DELETE /usuarios/:id` | autenticado / admin |
+| Usuários              | `GET /usuarios` (`?role=`, `?ativo=false\|todos` — padrão só ativos), `GET /usuarios/:id`, `GET /usuarios/:id/perfil`, `POST,PUT,DELETE /usuarios/:id` (`DELETE` = desativar; reativar é `PUT {ativo:true}`) | autenticado / admin |
 | Artes marciais        | `GET /artes-marciais`, `GET/:id`, `POST,PUT,DELETE`                                   | autenticado / admin     |
 | Faixas                | `GET /faixas`, `POST,PUT,DELETE`                                                       | autenticado / admin     |
 | Critérios de graduação| `GET /criterios-graduacao`, `POST,PUT,DELETE`                                         | autenticado / admin     |
 | Turmas                | `GET /turmas`, `GET /turmas/:id`, `POST /turmas` (admin), `PUT /turmas/:id` (admin ou professor dono) | ver `ehDonoDaTurma` |
 | Salas                 | `GET /salas`, `GET/:id`, `POST,PUT,DELETE`                                            | autenticado / admin     |
 | Horários (HorarioTurma)| `GET /horarios`, `POST,PUT,DELETE`                                                    | autenticado / admin     |
-| Aulas                 | `GET /aulas`, `GET/:id`, `POST /aulas/gerar-hoje` (admin), `POST,PUT` (admin/professor dono), `DELETE` (admin) | ver `ehDonoDaTurma` |
+| Aulas                 | `GET /aulas` (`?turma_id=` traz `presentes`/`ausentes` por aula), `GET/:id`, `POST /aulas/gerar-hoje` (admin), `POST,PUT` (admin/professor dono), `DELETE` (admin) | ver `ehDonoDaTurma` |
 | Check-in              | `GET,POST /checkin/:qr_token`                                                          | público (sem JWT)       |
 | Chamadas              | `GET,POST /chamadas`, `PUT /chamadas/:id/validar`, `POST /chamadas/fechar/:aula_id`, `DELETE /chamadas/:id` (admin) | admin/professor dono |
 | Matrículas            | `GET /matriculas`, `POST,PUT` (admin/professor), `DELETE` (admin)                     | autenticado             |
@@ -208,10 +224,34 @@ por `window.location.pathname` e renderizada **fora** do app autenticado (págin
 pública, sem `AuthGuard`).
 
 Páginas (`frontend/src/pages/`): `Login`, `Dashboard`, `Alunos` / `AlunoDetalhe`,
-`Turmas`, `Chamadas`, `Financeiro`, `Configuracoes`, `CheckinPublico`.
+`Turmas` / `TurmaDetalhe`, `Chamadas`, `Financeiro`, `Configuracoes`, `CheckinPublico`.
 
 O token JWT é guardado em `localStorage` e injetado em toda requisição via
 interceptor do axios (`App.js`).
+
+### Alunos
+
+- Lista alterna entre **Ativos / Inativos / Todos** (botão de filtro); por padrão
+  mostra só ativos, inclusive no dashboard (contagens e relatórios já filtram
+  `ativo: true`).
+- Desativar/ativar um aluno é uma ação imediata, sem diálogo de confirmação —
+  reativar é trivial pela aba "Inativos", então não há necessidade de fricção.
+- Cabeçalhos da tabela (Nome, Apelido, Matrícula, Artes Marciais) são clicáveis
+  para ordenar. A coluna **Artes Marciais** concatena os nomes distintos das
+  artes em que o aluno tem algum registro em `GraduacaoAluno`.
+
+### Turmas
+
+Clicar no nome de uma turma abre `TurmaDetalhe`, com:
+- **Alunos matriculados**: nome + badge da graduação atual (`FaixaAtual`),
+  botão "Desmatricular" e um modal "+ Novo" para matricular um aluno ativo
+  ainda não matriculado (com seleção opcional da faixa atual, filtrada por
+  `arte_marcial_id` da turma).
+- **Informações gerais**: dias/horário, professor, sala e arte marcial.
+- **Aulas**: histórico com presentes/ausentes por aula (via `GET /aulas?turma_id=`).
+
+Matricular um aluno numa turma é o que habilita a chamada/check-in daquela
+turma a contar presença para ele.
 
 ## Documentos do projeto
 

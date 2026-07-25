@@ -19,7 +19,7 @@ function Modal({ titulo, onFechar, children }) {
   );
 }
 
-export default function Turmas() {
+export default function Turmas({ onVerTurma }) {
   const [turmas, setTurmas] = useState([]);
   const [artes, setArtes] = useState([]);
   const [professores, setProfessores] = useState([]);
@@ -70,7 +70,10 @@ export default function Turmas() {
           <div key={t.id} style={{ background: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <strong style={{ fontSize: 16 }}>{t.nome}</strong>
+                <button onClick={() => onVerTurma?.(t.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#1565c0' }}>
+                  {t.nome}
+                </button>
                 <div style={{ color: '#555', fontSize: 13, marginTop: 4 }}>
                   {t.ArteMarcial?.nome} · Prof. {t.Professor?.nome}
                 </div>

@@ -1,4 +1,5 @@
 const { MatriculaAluno, Usuario, Turma, Faixa } = require('../models');
+const { ehDonoDaTurma } = require('../middleware/autorizacao');
 
 const listar = async (req, res) => {
   try {
@@ -22,6 +23,10 @@ const listar = async (req, res) => {
 const criar = async (req, res) => {
   try {
     const { aluno_id, turma_id, graduacao_atual_faixa_id } = req.body;
+    const turma = await Turma.findByPk(turma_id);
+    if (!turma) return res.status(404).json({ erro: 'Turma não encontrada' });
+    if (!ehDonoDaTurma(req.usuario, turma)) return res.status(403).json({ erro: 'Acesso negado a esta turma' });
+
     const [matricula, criada] = await MatriculaAluno.findOrCreate({
       where: { aluno_id, turma_id },
       defaults: {
@@ -38,8 +43,9 @@ const criar = async (req, res) => {
 
 const atualizar = async (req, res) => {
   try {
-    const matricula = await MatriculaAluno.findByPk(req.params.id);
+    const matricula = await MatriculaAluno.findByPk(req.params.id, { include: [{ model: Turma }] });
     if (!matricula) return res.status(404).json({ erro: 'Matrícula não encontrada' });
+    if (!ehDonoDaTurma(req.usuario, matricula.Turma)) return res.status(403).json({ erro: 'Acesso negado a esta turma' });
     await matricula.update(req.body);
     res.json(matricula);
   } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }

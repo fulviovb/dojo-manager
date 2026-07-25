@@ -1,5 +1,6 @@
 const { GraduacaoAluno, Faixa, ArteMarcial, Usuario } = require('../models');
 const { Op } = require('sequelize');
+const { dataLocalISO } = require('../utils/data');
 
 const listar = async (req, res) => {
   try {
@@ -25,7 +26,7 @@ const criar = async (req, res) => {
     if (atual) {
       // Desmarca a graduação atual anterior nessa arte
       await GraduacaoAluno.update(
-        { atual: false, data_fim: data_inicio || new Date().toISOString().slice(0, 10) },
+        { atual: false, data_fim: data_inicio || dataLocalISO() },
         { where: { aluno_id, arte_marcial_id, atual: true, escola_id: req.usuario.escola_id } }
       );
     }

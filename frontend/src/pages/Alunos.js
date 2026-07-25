@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
@@ -115,10 +115,34 @@ export default function Alunos({ onVerAluno }) {
   const [form, setForm] = useState(FORM_VAZIO);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
-  const [confirmExcluir, setConfirmExcluir] = useState(null);
+  const [filtro, setFiltro] = useState('ativos'); // 'ativos' | 'inativos' | 'todos'
+  const [graduacoes, setGraduacoes] = useState([]);
+  const [sortCol, setSortCol] = useState('nome');
+  const [sortDir, setSortDir] = useState('asc');
 
-  const carregar = () => { axios.get('/usuarios?role=aluno').then(r => setAlunos(r.data)); };
-  useEffect(carregar, []);
+  const carregar = () => {
+    const ativoParam = filtro === 'inativos' ? '&ativo=false' : filtro === 'todos' ? '&ativo=todos' : '';
+    axios.get(`/usuarios?role=aluno${ativoParam}`).then(r => setAlunos(r.data));
+  };
+  useEffect(carregar, [filtro]);
+  useEffect(() => { axios.get('/graduacoes').then(r => setGraduacoes(r.data)); }, []);
+
+  const artesPorAluno = useMemo(() => {
+    const mapa = {};
+    graduacoes.forEach(g => {
+      const nomeArte = g.ArteMarcial?.nome;
+      if (!nomeArte) return;
+      (mapa[g.aluno_id] ??= new Set()).add(nomeArte);
+    });
+    const resultado = {};
+    Object.keys(mapa).forEach(id => { resultado[id] = [...mapa[id]].sort().join(', '); });
+    return resultado;
+  }, [graduacoes]);
+
+  const handleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  };
 
   const abrirNovo = () => {
     setForm(FORM_VAZIO);
@@ -158,27 +182,62 @@ export default function Alunos({ onVerAluno }) {
     } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
   };
 
-  const confirmarExcluir = async () => {
-    await axios.delete(`/usuarios/${confirmExcluir.id}`);
-    setConfirmExcluir(null);
+  const handleDesativar = async (aluno) => {
+    await axios.delete(`/usuarios/${aluno.id}`);
     carregar();
   };
 
-  const filtrados = alunos.filter(a =>
-    a.nome.toLowerCase().includes(busca.toLowerCase()) ||
-    (a.email || '').toLowerCase().includes(busca.toLowerCase()) ||
-    (a.matricula || '').toLowerCase().includes(busca.toLowerCase()) ||
-    (a.apelido || '').toLowerCase().includes(busca.toLowerCase())
-  );
+  const handleAtivar = async (aluno) => {
+    await axios.put(`/usuarios/${aluno.id}`, { ativo: true });
+    carregar();
+  };
+
+  const filtrados = alunos
+    .filter(a =>
+      a.nome.toLowerCase().includes(busca.toLowerCase()) ||
+      (a.email || '').toLowerCase().includes(busca.toLowerCase()) ||
+      (a.matricula || '').toLowerCase().includes(busca.toLowerCase()) ||
+      (a.apelido || '').toLowerCase().includes(busca.toLowerCase())
+    )
+    .map(a => ({ ...a, artes: artesPorAluno[a.id] || '' }));
+
+  const ordenados = [...filtrados].sort((a, b) => {
+    const va = (a[sortCol] || '').toString().toLowerCase();
+    const vb = (b[sortCol] || '').toString().toLowerCase();
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const COLUNAS = [
+    { key: 'nome', label: 'Nome' },
+    { key: 'apelido', label: 'Apelido' },
+    { key: 'matricula', label: 'Matrícula' },
+    { key: 'artes', label: 'Artes Marciais' },
+    { key: null, label: '' },
+  ];
 
   return (
     <div>
       {/* Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
-        <input placeholder="Buscar por nome, apelido, email ou matrícula..." value={busca}
-          onChange={e => setBusca(e.target.value)} style={{ ...estiloInput, maxWidth: 340 }} />
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <input placeholder="Buscar por nome, apelido, email ou matrícula..." value={busca}
+            onChange={e => setBusca(e.target.value)} style={{ ...estiloInput, maxWidth: 340 }} />
+          <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+            {[['ativos', 'Ativos'], ['inativos', 'Inativos'], ['todos', 'Todos']].map(([valor, rotulo]) => (
+              <button key={valor} onClick={() => setFiltro(valor)}
+                style={{
+                  padding: '7px 14px', border: 'none', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap',
+                  background: filtro === valor ? '#1e2a38' : '#fff', color: filtro === valor ? '#fff' : '#555',
+                }}>
+                {rotulo}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#888' }}>{filtrados.length} aluno{filtrados.length !== 1 ? 's' : ''}</span>
+          <span style={{ fontSize: 13, color: '#888', whiteSpace: 'nowrap' }}>{filtrados.length} aluno{filtrados.length !== 1 ? 's' : ''}</span>
           <button style={btnPrimario} onClick={abrirNovo}>+ Novo Aluno</button>
         </div>
       </div>
@@ -188,16 +247,23 @@ export default function Alunos({ onVerAluno }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f5f5f5' }}>
-              {['Nome', 'Apelido', 'Matrícula', 'Telefone', 'Ingresso', ''].map(h => (
-                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+              {COLUNAS.map(c => (
+                <th key={c.label} onClick={() => c.key && handleSort(c.key)}
+                  style={{
+                    padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#555',
+                    textTransform: 'uppercase', letterSpacing: 0.5,
+                    cursor: c.key ? 'pointer' : 'default', userSelect: 'none',
+                  }}>
+                  {c.label}{c.key && sortCol === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filtrados.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum aluno encontrado.</td></tr>
+            {ordenados.length === 0 && (
+              <tr><td colSpan={COLUNAS.length} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum aluno encontrado.</td></tr>
             )}
-            {filtrados.map(a => (
+            {ordenados.map(a => (
               <tr key={a.id} style={{ borderTop: '1px solid #f0f0f0' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
                 onMouseLeave={e => e.currentTarget.style.background = ''}>
@@ -209,15 +275,16 @@ export default function Alunos({ onVerAluno }) {
                 </td>
                 <td style={{ padding: '10px 16px', color: '#666', fontSize: 13 }}>{a.apelido || '—'}</td>
                 <td style={{ padding: '10px 16px', color: '#666', fontSize: 13 }}>{a.matricula || '—'}</td>
-                <td style={{ padding: '10px 16px', color: '#666', fontSize: 13 }}>{a.telefone || '—'}</td>
-                <td style={{ padding: '10px 16px', color: '#666', fontSize: 13 }}>
-                  {a.data_ingresso ? a.data_ingresso.split('-').reverse().join('/') : '—'}
-                </td>
+                <td style={{ padding: '10px 16px', color: '#666', fontSize: 13 }}>{a.artes || '—'}</td>
                 <td style={{ padding: '10px 16px' }}>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button onClick={() => onVerAluno?.(a.id)} style={btnAzul} title="Ver perfil">Ver</button>
                     <button onClick={() => abrirEditar(a)} style={btnSecundario} title="Editar">✎</button>
-                    <button onClick={() => setConfirmExcluir(a)} style={btnPerigo} title="Excluir">✕</button>
+                    {a.ativo ? (
+                      <button onClick={() => handleDesativar(a)} style={btnPerigo} title="Desativar">Desativar</button>
+                    ) : (
+                      <button onClick={() => handleAtivar(a)} style={btnAzul} title="Ativar">Ativar</button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -240,22 +307,6 @@ export default function Alunos({ onVerAluno }) {
           <FormularioAluno form={form} setForm={setForm} erro={erro}
             onSubmit={handleAtualizar} onCancelar={() => setAlunoEditando(null)} isEdicao={true} />
         </Modal>
-      )}
-
-      {/* Diálogo: Confirmar exclusão */}
-      {confirmExcluir && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: 8, padding: 28, maxWidth: 380, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ margin: '0 0 10px', color: '#c62828' }}>Confirmar exclusão</h3>
-            <p style={{ margin: '0 0 20px', color: '#444' }}>
-              Deseja desativar o aluno <strong>{confirmExcluir.nome}</strong>? Esta ação pode ser revertida por um administrador.
-            </p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setConfirmExcluir(null)} style={btnSecundario}>Cancelar</button>
-              <button onClick={confirmarExcluir} style={btnPerigo}>Sim, excluir</button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
