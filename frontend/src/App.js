@@ -10,6 +10,9 @@ import Chamadas from './pages/Chamadas';
 import Financeiro from './pages/Financeiro';
 import Configuracoes from './pages/Configuracoes';
 import CheckinPublico from './pages/CheckinPublico';
+import ReciboPage from './pages/ReciboPage';
+import Relatorios from './pages/Relatorios';
+import RelatorioPage from './pages/RelatorioPage';
 
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 axios.interceptors.request.use((config) => {
@@ -24,14 +27,19 @@ const MENU = [
   { id: 'turmas', label: 'Turmas', icon: '🥋' },
   { id: 'chamadas', label: 'Chamadas', icon: '✅' },
   { id: 'financeiro', label: 'Financeiro', icon: '💰' },
+  { id: 'relatorios', label: 'Relatórios', icon: '📄' },
   { id: 'configuracoes', label: 'Configurações', icon: '⚙️' },
 ];
 
-const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, configuracoes: Configuracoes };
+const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, relatorios: Relatorios, configuracoes: Configuracoes };
 
 export default function App() {
   const checkinMatch = window.location.pathname.match(/^\/checkin\/([^/]+)/);
   if (checkinMatch) return <CheckinPublico qrToken={checkinMatch[1]} />;
+  const reciboMatch = window.location.pathname.match(/^\/recibo\/([^/]+)/);
+  if (reciboMatch) return <ReciboPage mensalidadeId={reciboMatch[1]} />;
+  const relatorioMatch = window.location.pathname.match(/^\/relatorio\/([^/]+)/);
+  if (relatorioMatch) return <RelatorioPage tipo={relatorioMatch[1]} />;
   return <AppInterna />;
 }
 

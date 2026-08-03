@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import GraficoArea from '../components/GraficoArea';
-import assinaturaImg from '../assets/assinatura.png';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const btnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -457,44 +456,8 @@ function ModalPagarFatura({ fatura, onFechar, onPago }) {
   );
 }
 
-function ModalRecibo({ fatura, onFechar }) {
-  const [recibo, setRecibo] = useState(null);
-
-  useEffect(() => { axios.get(`/mensalidades/${fatura.id}/recibo`).then(r => setRecibo(r.data)); }, [fatura.id]);
-
-  return (
-    <Modal titulo="Recibo de Pagamento" onFechar={onFechar} largura={480}>
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .recibo-print, .recibo-print * { visibility: visible; }
-          .recibo-print { position: fixed; top: 0; left: 0; width: 100%; }
-        }
-      `}</style>
-      {!recibo ? <p style={{ color: '#888' }}>Carregando...</p> : (
-        <div className="recibo-print" style={{ border: '1px solid #ddd', borderRadius: 6, padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-            <h3 style={{ margin: 0 }}>Recibo de Pagamento</h3>
-            <span>Valor: <strong>{formatarMoeda(recibo.valor_pago)}</strong></span>
-          </div>
-          <p style={{ lineHeight: 1.7, fontSize: 14 }}>
-            Recebemos de <strong>{recibo.aluno_nome}</strong> a quantia de <strong>{formatarMoeda(recibo.valor_pago)}</strong> referente
-            ao pagamento da fatura <strong>#{recibo.numero}</strong> com data de vencimento em <strong>{formatData(recibo.data_vencimento)}</strong> da
-            assinatura <strong>{PERIODICIDADE_LABEL[recibo.periodicidade] || 'avulsa'}</strong> do <strong>{recibo.plano_nome}</strong>.
-          </p>
-          <p style={{ fontSize: 13, color: '#555' }}>Em {formatData(recibo.data_pagamento)} · {recibo.forma_pagamento?.replace(/_/g, ' ')}</p>
-          <div style={{ marginTop: 24, textAlign: 'right' }}>
-            <img src={assinaturaImg} alt="Assinatura" style={{ height: 60, display: 'inline-block' }} />
-            <div style={{ borderTop: '1px solid #ccc', paddingTop: 4, fontSize: 12, color: '#888' }}>{recibo.escola_nome}</div>
-          </div>
-        </div>
-      )}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-        <button onClick={onFechar} style={btnCinza}>Fechar</button>
-        <button onClick={() => window.print()} style={btnPrimario}>🖨 Imprimir</button>
-      </div>
-    </Modal>
-  );
+function abrirReciboEmNovaAba(fatura) {
+  window.open(`${window.location.origin}/recibo/${fatura.id}`, '_blank');
 }
 
 function ModalGerarAntecipada({ onFechar, onGerada }) {
@@ -538,7 +501,6 @@ function ListaFaturas({ onVerAluno }) {
   const [filtroStatus, setFiltroStatus] = useState('todas');
   const [pagina, setPagina] = useState(1);
   const [modalPagar, setModalPagar] = useState(null);
-  const [modalRecibo, setModalRecibo] = useState(null);
   const [modalGerar, setModalGerar] = useState(false);
   const POR_PAG = 10;
 
@@ -621,7 +583,7 @@ function ListaFaturas({ onVerAluno }) {
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {f.status === 'pendente' && <button onClick={() => setModalPagar(f)} style={btnVerde}>$ Pagar</button>}
                       {f.status === 'pendente' && <button onClick={() => cancelar(f)} style={btnPerigo}>✕ Cancelar</button>}
-                      {f.status === 'pago' && <button onClick={() => setModalRecibo(f)} style={btnAzul}>Recibo</button>}
+                      {f.status === 'pago' && <button onClick={() => abrirReciboEmNovaAba(f)} style={btnAzul}>Recibo</button>}
                       {f.status === 'pago' && <button onClick={() => desfazerPagamento(f)} style={btnPerigo}>↺ Desfazer</button>}
                     </div>
                   </td>
@@ -643,7 +605,6 @@ function ListaFaturas({ onVerAluno }) {
       {modalPagar && (
         <ModalPagarFatura fatura={modalPagar} onFechar={() => setModalPagar(null)} onPago={() => { setModalPagar(null); carregar(); }} />
       )}
-      {modalRecibo && <ModalRecibo fatura={modalRecibo} onFechar={() => setModalRecibo(null)} />}
       {modalGerar && <ModalGerarAntecipada onFechar={() => setModalGerar(false)} onGerada={carregar} />}
     </div>
   );

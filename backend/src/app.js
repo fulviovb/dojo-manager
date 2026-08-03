@@ -47,4 +47,7 @@ app.use('/api/ocorrencias', require('./routes/ocorrencias'));
 // Dashboard
 app.use('/api/dashboard', require('./routes/dashboard'));
 
+// Relatórios
+app.use('/api/relatorios', require('./routes/relatorios'));
+
 module.exports = app;

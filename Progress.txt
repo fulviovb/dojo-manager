@@ -81,6 +81,28 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     projeto não usa migrations, `sync({alter:false})` não altera tabelas
     já existentes sozinho. Backup do banco feito antes (`backup_pre_financeiro.sql`,
     não versionado).
+[x] Recibo passou de modal pra página própria (`ReciboPage.js`, rota
+    `/recibo/:id`), aberta em nova aba a partir do botão "Recibo" —
+    imprime/salva PDF sem o resto da aplicação por perto (mesmo padrão
+    reaproveitado depois pelos Relatórios, ver FASE 4).
+
+=== FASE 4: Relatórios (básicos, inspirados no iDojo) ===
+[x] 7 relatórios básicos: Alunos por Graduação, Alunos por Turma-Horário,
+    Ficha Cadastral Resumida, Aulas & Frequências (Turma, com modos Relação/
+    Quantitativo), Aulas & Frequências (Aluno), Aniversariantes por Mês,
+    Frequência: Presença Mínima. Nenhum modelo de banco novo — leitura pura
+    sobre tabelas já existentes.
+[x] `Relatorios.js`: grid de cards com filtro próprio por relatório (mesmo
+    layout do print de referência do iDojo); "Gerar Relatório" abre o
+    resultado em nova aba (`/relatorio/:tipo?filtros`), página própria
+    imprimível (`RelatorioPage.js`) — mesmo padrão do recibo.
+[x] Corrigido bug real encontrado no caminho: `dashboardController.graduacao`
+    (elegíveis para graduação, usado no Dashboard e agora também no
+    relatório de Presença Mínima) referenciava `grupo.turmaIds`, nunca
+    preenchido — a lista de elegíveis provavelmente vinha sempre vazia.
+    Aproveitado o mesmo endpoint pra ganhar filtro opcional por arte
+    marcial (`?arte_marcial_id=`), evitando duplicar a lógica de
+    elegibilidade só pro relatório.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

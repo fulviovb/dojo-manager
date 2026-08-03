@@ -150,9 +150,10 @@ const graduacao = async (req, res) => {
       if (!m.FaixaAtual) continue;
       const chave = `${m.aluno_id}:${m.FaixaAtual.arte_marcial_id}`;
       if (!porAlunoArte.has(chave)) {
-        porAlunoArte.set(chave, { aluno: m.Aluno, faixaAtual: m.FaixaAtual, turmaNomes: [] });
+        porAlunoArte.set(chave, { aluno: m.Aluno, faixaAtual: m.FaixaAtual, turmaNomes: [], turmaIds: [] });
       }
       porAlunoArte.get(chave).turmaNomes.push(m.Turma.nome);
+      porAlunoArte.get(chave).turmaIds.push(m.turma_id);
     }
 
     // Data de início da graduação atual de cada (aluno, arte) — a contagem de
@@ -165,9 +166,15 @@ const graduacao = async (req, res) => {
       graduacoesAtuais.map((g) => [`${g.aluno_id}:${g.arte_marcial_id}`, g.data_inicio])
     );
 
+    // Filtro opcional usado pelo relatório "Frequência: Presença Mínima"
+    // (Relatórios → filtra por Programa Marcial); sem o parâmetro, comporta-se
+    // como antes (todas as artes marciais).
+    const { arte_marcial_id } = req.query;
+
     const elegiveis = [];
 
     for (const [chave, grupo] of porAlunoArte) {
+      if (arte_marcial_id && grupo.faixaAtual.arte_marcial_id !== arte_marcial_id) continue;
       const criterio = criterios.find(
         (c) => c.arte_marcial_id === grupo.faixaAtual.arte_marcial_id && c.faixa_id === grupo.faixaAtual.id
       );
