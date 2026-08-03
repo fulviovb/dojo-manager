@@ -113,15 +113,23 @@ function NomeAluno({ id, nome, onVerAluno }) {
 function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState('');
+  const [alunosEscola, setAlunosEscola] = useState([]);
+  const [buscaExtra, setBuscaExtra] = useState('');
 
   const carregar = () => {
     axios.get(`/chamadas?aula_id=${aulaId}`).then(r => setDados(r.data));
   };
   useEffect(carregar, [aulaId]);
+  useEffect(() => { axios.get('/usuarios?role=aluno').then(r => setAlunosEscola(r.data)); }, []);
 
   const marcarPresenca = async (alunoId) => {
     await axios.post('/chamadas', { aula_id: aulaId, aluno_id: alunoId });
     carregar();
+  };
+
+  const adicionarExtra = async (alunoId) => {
+    await marcarPresenca(alunoId);
+    setBuscaExtra('');
   };
 
   const marcarTodosPresentes = async () => {
@@ -154,6 +162,15 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
   const pendentesQR = chamadas.filter(c => c.origem === 'qrcode' && !c.validado_por);
   const validadas = chamadas.filter(c => !(c.origem === 'qrcode' && !c.validado_por));
   const aberta = aula.status === 'aberta';
+
+  // Alunos de outras turmas (ex: mesma modalidade em outro horário) que vieram
+  // treinar nesta aula mas não estão matriculados nela — não aparecem em
+  // "Ausentes" porque esse card só lista matriculados. Busca por nome entre
+  // todos os alunos da escola, exceto quem já está presente/ausente aqui.
+  const idsJaNaAula = new Set([...chamadas.map(c => c.aluno_id), ...ausentes.map(a => a.id)]);
+  const resultadosExtra = buscaExtra.trim()
+    ? alunosEscola.filter(a => !idsJaNaAula.has(a.id) && a.nome.toLowerCase().includes(buscaExtra.toLowerCase())).slice(0, 8)
+    : [];
 
   return (
     <div>
@@ -235,6 +252,27 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
             ))}
           </div>
         </div>
+      </div>
+
+      <div style={{ ...cardEstilo, padding: 16, marginTop: 16 }}>
+        <strong style={{ fontSize: 14 }}>🔍 Adicionar aluno de outra turma</strong>
+        <div style={{ fontSize: 12, color: '#888', margin: '4px 0 10px' }}>
+          Para alunos da mesma modalidade (ou de outra turma) que treinaram nesta aula sem estar matriculados nela.
+        </div>
+        <input placeholder="Buscar aluno pelo nome..." value={buscaExtra}
+          onChange={e => setBuscaExtra(e.target.value)}
+          style={{ ...estiloInput, width: '100%', maxWidth: 320 }} />
+        {buscaExtra.trim() && (
+          <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+            {resultadosExtra.length === 0 && <p style={{ color: '#aaa', fontSize: 13 }}>Nenhum aluno encontrado.</p>}
+            {resultadosExtra.map(a => (
+              <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f5f5f5' }}>
+                <span style={{ fontSize: 14 }}>{a.nome}</span>
+                <button onClick={() => adicionarExtra(a.id)} style={btnVerde}>+ Presença</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

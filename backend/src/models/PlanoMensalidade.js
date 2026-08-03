@@ -6,6 +6,7 @@ const PlanoMensalidade = sequelize.define('PlanoMensalidade', {
   escola_id: { type: DataTypes.UUID, allowNull: false },
   nome: { type: DataTypes.STRING, allowNull: false },
   valor: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+  periodicidade: { type: DataTypes.ENUM('mensal', 'trimestral', 'semestral', 'anual'), allowNull: false, defaultValue: 'mensal' },
   descricao: { type: DataTypes.TEXT },
   ativo: { type: DataTypes.BOOLEAN, defaultValue: true },
 }, { tableName: 'planos_mensalidade' });

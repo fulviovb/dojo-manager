@@ -40,6 +40,41 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 [x] Matrícula: ao reativar matrícula existente, sincroniza graduacao_atual_faixa_id.
 [x] Navegação: nome do aluno é clicável em Turmas, Chamadas, Dashboard e
     Financeiro, abrindo o perfil por cima da página atual.
+[x] Chamadas: busca por aluno de outra turma/modalidade na tela de detalhe da
+    aula, para dar presença a quem treina em turma na qual não está
+    matriculado (comum entre alunos buscando carência de graduação).
+
+=== FASE 3: Gestão Financeira completa (planos, assinaturas, faturas) ===
+[x] Modelo `AssinaturaAluno`: vínculo aluno↔plano com dia de vencimento e
+    status (ativa/pausada/finalizada). `PlanoMensalidade` ganhou
+    `periodicidade` (mensal/trimestral/semestral/anual); `Mensalidade`
+    ("Fatura" na UI) ganhou `assinatura_id`, `data_vencimento`, `juros`.
+[x] `faturaService.js`: geração automática e idempotente de fatura na data de
+    vencimento de cada assinatura ativa (mesmo padrão do motor de aulas —
+    sem cron, gera o que falta até hoje ao ler endpoints financeiros); lida
+    com clamp de fim de mês (dia 31 em fevereiro etc). Geração antecipada
+    (`POST /assinaturas/:id/gerar-fatura`) para quem quer pagar antes do
+    vencimento normal — idempotente, reaproveita fatura pendente existente.
+[x] Pausar assinatura: pula o período pausado (não cobra retroativo); ao
+    reativar, recalcula o cursor a partir de hoje só se ele já tiver ficado
+    no passado.
+[x] Endpoints novos: `/api/assinaturas` (CRUD + pausar/reativar/finalizar/
+    gerar-fatura), `/api/mensalidades/:id/cancelar` e `/recibo`,
+    `/api/pagamentos/:id` (DELETE = desfazer pagamento), `/api/financeiro/
+    painel` (indicadores + série mensal ganhos vs a receber).
+[x] Frontend `Financeiro.js` reescrito: abas Painel (dashboard + gráfico) /
+    Planos / Assinaturas / Faturas. Modal de pagamento com juros/desconto e
+    total devido ao vivo; modal de recibo imprimível (`window.print()`).
+[x] `GraficoArea.js`: gráfico de área SVG próprio (sem dependência nova),
+    paleta validada pela skill de dataviz do ambiente.
+[x] `AlunoDetalhe.js`: seção lateral passou a mostrar os planos vinculados do
+    aluno (com pausar/reativar/finalizar) e as últimas faturas, em vez do
+    lançamento manual de mensalidade avulsa de antes.
+[x] Schema aplicado ao banco existente via script one-off
+    (`backend/src/scripts/2026-08-financeiro-schema.js`, já executado) —
+    projeto não usa migrations, `sync({alter:false})` não altera tabelas
+    já existentes sozinho. Backup do banco feito antes (`backup_pre_financeiro.sql`,
+    não versionado).
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

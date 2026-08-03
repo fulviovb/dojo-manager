@@ -35,8 +35,10 @@ app.use('/api/matriculas', require('./routes/matriculas'));
 
 // Financeiro
 app.use('/api/planos', require('./routes/planos'));
+app.use('/api/assinaturas', require('./routes/assinaturas'));
 app.use('/api/mensalidades', require('./routes/mensalidades'));
 app.use('/api/pagamentos', require('./routes/pagamentos'));
+app.use('/api/financeiro', require('./routes/financeiro'));
 
 // Graduações e Ocorrências
 app.use('/api/graduacoes', require('./routes/graduacoes'));

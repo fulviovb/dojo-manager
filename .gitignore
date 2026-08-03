@@ -13,6 +13,9 @@ backend/dist/
 # Logs
 *.log
 
+# Backups de banco (podem conter dados reais de alunos)
+backup_*.sql
+
 # SO / editores
 .DS_Store
 Thumbs.db

@@ -12,6 +12,7 @@ const Aula = require('./Aula');
 const Chamada = require('./Chamada');
 const MatriculaAluno = require('./MatriculaAluno');
 const PlanoMensalidade = require('./PlanoMensalidade');
+const AssinaturaAluno = require('./AssinaturaAluno');
 const Mensalidade = require('./Mensalidade');
 const Pagamento = require('./Pagamento');
 
@@ -107,9 +108,21 @@ Mensalidade.belongsTo(PlanoMensalidade, { foreignKey: 'plano_id', as: 'Plano' })
 Mensalidade.hasMany(Pagamento, { foreignKey: 'mensalidade_id' });
 Pagamento.belongsTo(Mensalidade, { foreignKey: 'mensalidade_id' });
 
+Escola.hasMany(AssinaturaAluno, { foreignKey: 'escola_id' });
+AssinaturaAluno.belongsTo(Escola, { foreignKey: 'escola_id' });
+
+Usuario.hasMany(AssinaturaAluno, { foreignKey: 'aluno_id' });
+AssinaturaAluno.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno' });
+
+PlanoMensalidade.hasMany(AssinaturaAluno, { foreignKey: 'plano_id' });
+AssinaturaAluno.belongsTo(PlanoMensalidade, { foreignKey: 'plano_id', as: 'Plano' });
+
+AssinaturaAluno.hasMany(Mensalidade, { foreignKey: 'assinatura_id' });
+Mensalidade.belongsTo(AssinaturaAluno, { foreignKey: 'assinatura_id', as: 'Assinatura' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
   Turma, Sala, HorarioTurma, Aula, Chamada, MatriculaAluno,
-  PlanoMensalidade, Mensalidade, Pagamento,
+  PlanoMensalidade, AssinaturaAluno, Mensalidade, Pagamento,
 };

@@ -1,7 +1,8 @@
 const bcrypt = require('bcryptjs');
 const { Usuario, MatriculaAluno, Turma, ArteMarcial, Faixa,
         GraduacaoAluno, Ocorrencia, Chamada, Aula,
-        Mensalidade, PlanoMensalidade, CriterioGraduacao } = require('../models');
+        Mensalidade, PlanoMensalidade, AssinaturaAluno, CriterioGraduacao } = require('../models');
+const { gerarFaturasPendentes } = require('../services/faturaService');
 
 const listar = async (req, res) => {
   try {
@@ -81,7 +82,9 @@ const perfil = async (req, res) => {
     });
     if (!aluno) return res.status(404).json({ erro: 'Aluno não encontrado' });
 
-    const [artes, matriculas, graduacoes, chamadas, mensalidades, ocorrencias, criterios] = await Promise.all([
+    await gerarFaturasPendentes(req.usuario.escola_id);
+
+    const [artes, matriculas, graduacoes, chamadas, mensalidades, ocorrencias, criterios, assinaturas] = await Promise.all([
       ArteMarcial.findAll({ where: { escola_id: req.usuario.escola_id }, order: [['nome', 'ASC']] }),
 
       MatriculaAluno.findAll({
@@ -124,6 +127,12 @@ const perfil = async (req, res) => {
       }),
 
       CriterioGraduacao.findAll({ where: { escola_id: req.usuario.escola_id } }),
+
+      AssinaturaAluno.findAll({
+        where: { aluno_id: aluno.id },
+        include: [{ model: PlanoMensalidade, as: 'Plano', attributes: ['id', 'nome', 'valor', 'periodicidade'] }],
+        order: [['status', 'ASC'], ['created_at', 'DESC']],
+      }),
     ]);
 
     // Agrupa graduações por arte marcial. Cada item do histórico (incluindo a
@@ -164,6 +173,7 @@ const perfil = async (req, res) => {
       chamadas: chamadas.map(c => c.toJSON()),
       mensalidades: mensalidades.map(m => m.toJSON()),
       ocorrencias: ocorrencias.map(o => o.toJSON()),
+      assinaturas: assinaturas.map(a => a.toJSON()),
     });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };

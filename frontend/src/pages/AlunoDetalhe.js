@@ -487,34 +487,39 @@ function SecaoDadosPessoais({ aluno, onEditar }) {
   );
 }
 
-// ── Sidebar: Mensalidades ─────────────────────────────────────────────────────
+// ── Sidebar: Planos vinculados (Assinaturas) e Faturas ────────────────────────
 
-function SecaoMensalidades({ mensalidades, alunoId, onRefresh }) {
+const STATUS_ASSINATURA_LABEL = { ativa: 'Ativa', pausada: 'Pausada', finalizada: 'Finalizada' };
+const STATUS_ASSINATURA_COR = { ativa: '#2e7d32', pausada: '#ef6c00', finalizada: '#888' };
+const PERIODICIDADE_LABEL = { mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
+
+function SecaoMensalidades({ assinaturas = [], mensalidades, alunoId, onRefresh }) {
   const [modalAberto, setModalAberto] = useState(false);
   const [planos, setPlanos] = useState([]);
-  const [form, setForm] = useState({ plano_id: '', mes_referencia: '', valor: '', status: 'pendente' });
+  const [form, setForm] = useState({ plano_id: '', dia_vencimento: 5, data_inicio: '' });
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
 
   const abrirModal = () => {
     axios.get('/planos').then(r => setPlanos(r.data));
-    setForm({ plano_id: '', mes_referencia: new Date().toISOString().slice(0, 7), valor: '', status: 'pendente' });
+    setForm({ plano_id: '', dia_vencimento: 5, data_inicio: new Date().toISOString().slice(0, 10) });
+    setErro('');
     setModalAberto(true);
   };
 
   const salvar = async () => {
-    setSalvando(true);
+    setSalvando(true); setErro('');
     try {
-      await axios.post('/mensalidades', {
-        aluno_id: alunoId,
-        plano_id: form.plano_id || null,
-        mes_referencia: form.mes_referencia + '-01',
-        valor: parseFloat(form.valor) || 0,
-        status: form.status,
-      });
+      await axios.post('/assinaturas', { aluno_id: alunoId, ...form });
       setModalAberto(false);
       onRefresh();
-    } finally { setSalvando(false); }
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+    finally { setSalvando(false); }
   };
+
+  const pausar = async (a) => { await axios.put(`/assinaturas/${a.id}/pausar`); onRefresh(); };
+  const reativar = async (a) => { await axios.put(`/assinaturas/${a.id}/reativar`); onRefresh(); };
+  const finalizar = async (a) => { await axios.put(`/assinaturas/${a.id}/finalizar`); onRefresh(); };
 
   const statusCor = { pago: '#2e7d32', pendente: '#e65100', cancelado: '#c62828' };
   const statusBg = { pago: '#e8f5e9', pendente: '#fff3e0', cancelado: '#ffebee' };
@@ -522,18 +527,48 @@ function SecaoMensalidades({ mensalidades, alunoId, onRefresh }) {
   return (
     <div style={card()}>
       <div style={cardHeader}>
-        <span style={cardTitle}>Assinaturas (Mensalidades)</span>
-        <button style={btnVerde} onClick={abrirModal}>+ Novo</button>
+        <span style={cardTitle}>Planos de Pagamento</span>
+        <button style={btnVerde} onClick={abrirModal}>+ Nova Assinatura</button>
       </div>
       <div style={{ padding: '8px 18px 12px' }}>
+        {assinaturas.length === 0 ? (
+          <p style={{ color: '#aaa', fontSize: 13, margin: '6px 0' }}>Sem plano de pagamento vinculado.</p>
+        ) : (
+          assinaturas.map(a => (
+            <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{a.Plano?.nome}</div>
+                  <div style={{ fontSize: 11, color: '#888' }}>
+                    {PERIODICIDADE_LABEL[a.Plano?.periodicidade]} · vence dia {a.dia_vencimento} · R$ {parseFloat(a.Plano?.valor || 0).toFixed(2)}
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: STATUS_ASSINATURA_COR[a.status] }}>
+                  {STATUS_ASSINATURA_LABEL[a.status]}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                {a.status === 'ativa' && <button onClick={() => pausar(a)} style={{ ...btnCinza, color: '#ef6c00', borderColor: '#ef6c00', fontSize: 11, padding: '3px 8px' }}>Pausar</button>}
+                {a.status === 'pausada' && <button onClick={() => reativar(a)} style={{ ...btnVerde, fontSize: 11, padding: '3px 8px' }}>Reativar</button>}
+                {a.status !== 'finalizada' && <button onClick={() => finalizar(a)} style={{ ...btnPerigo, fontSize: 11, padding: '3px 8px' }}>Finalizar</button>}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div style={{ ...cardHeader, borderTop: '1px solid #f0f0f0', borderBottom: 'none' }}>
+        <span style={{ ...cardTitle, fontSize: 13 }}>Últimas Faturas</span>
+      </div>
+      <div style={{ padding: '4px 18px 12px' }}>
         {mensalidades.length === 0 ? (
-          <p style={{ color: '#aaa', fontSize: 13, margin: '6px 0' }}>Sem plano de pagamento.</p>
+          <p style={{ color: '#aaa', fontSize: 13, margin: '6px 0' }}>Nenhuma fatura gerada.</p>
         ) : (
           mensalidades.slice(0, 6).map(m => (
             <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f5f5f5' }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{formatMes(m.mes_referencia)}</div>
-                <div style={{ fontSize: 11, color: '#888' }}>{m.Plano?.nome || 'Sem plano'}</div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{formatMes(m.data_vencimento || m.mes_referencia)}</div>
+                <div style={{ fontSize: 11, color: '#888' }}>{m.Plano?.nome || 'Fatura avulsa'}</div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>R$ {parseFloat(m.valor).toFixed(2)}</span>
@@ -545,41 +580,32 @@ function SecaoMensalidades({ mensalidades, alunoId, onRefresh }) {
           ))
         )}
         {mensalidades.length > 6 && (
-          <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>+ {mensalidades.length - 6} anteriores</div>
+          <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>+ {mensalidades.length - 6} anteriores — veja todas em Financeiro → Faturas</div>
         )}
       </div>
 
       {modalAberto && (
-        <Modal titulo="Nova Mensalidade" onFechar={() => setModalAberto(false)} largura={380}>
+        <Modal titulo="Nova Assinatura" onFechar={() => setModalAberto(false)} largura={380}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Plano</label>
-              <select value={form.plano_id} onChange={e => {
-                const p = planos.find(x => x.id === e.target.value);
-                setForm(f => ({ ...f, plano_id: e.target.value, valor: p?.valor || f.valor }));
-              }} style={estiloInput}>
-                <option value="">Sem plano</option>
-                {planos.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {parseFloat(p.valor).toFixed(2)}</option>)}
+              <select value={form.plano_id} onChange={e => setForm(f => ({ ...f, plano_id: e.target.value }))} style={estiloInput}>
+                <option value="">Selecione...</option>
+                {planos.map(p => <option key={p.id} value={p.id}>{p.nome} — R$ {parseFloat(p.valor).toFixed(2)} ({PERIODICIDADE_LABEL[p.periodicidade]})</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Mês referência</label>
-              <input type="month" value={form.mes_referencia} onChange={e => setForm(f => ({ ...f, mes_referencia: e.target.value }))} style={estiloInput} />
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Dia de vencimento</label>
+              <input type="number" min={1} max={31} value={form.dia_vencimento} onChange={e => setForm(f => ({ ...f, dia_vencimento: e.target.value }))} style={estiloInput} />
             </div>
             <div>
-              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Valor (R$)</label>
-              <input type="number" step="0.01" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} style={estiloInput} />
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Início</label>
+              <input type="date" value={form.data_inicio} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))} style={estiloInput} />
             </div>
-            <div>
-              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} style={estiloInput}>
-                <option value="pendente">Pendente</option>
-                <option value="pago">Pago</option>
-              </select>
-            </div>
+            {erro && <p style={{ color: 'red', fontSize: 12 }}>{erro}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button style={btnCinza} onClick={() => setModalAberto(false)}>Cancelar</button>
-              <button style={btnVerde} disabled={salvando} onClick={salvar}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+              <button style={btnVerde} disabled={salvando || !form.plano_id} onClick={salvar}>{salvando ? 'Salvando...' : 'Salvar'}</button>
             </div>
           </div>
         </Modal>
@@ -756,7 +782,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
     <div style={{ padding: 24, color: '#c00' }}>Erro ao carregar dados do aluno.</div>
   );
 
-  const { aluno, graduacoes, matriculas, chamadas, mensalidades, ocorrencias } = dados;
+  const { aluno, graduacoes, matriculas, chamadas, mensalidades, ocorrencias, assinaturas } = dados;
   // Um aluno pode ter graduação atual em mais de uma arte marcial (ex: Vermelha
   // no Karatê e Branca no Jiu-Jitsu) — mostra uma faixa por arte, não só a primeira.
   const faixasAtuais = graduacoes
@@ -805,7 +831,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
         {/* Sidebar */}
         <div>
           <SecaoDadosPessoais aluno={aluno} onEditar={() => setEditando(true)} />
-          <SecaoMensalidades mensalidades={mensalidades} alunoId={alunoId} onRefresh={carregar} />
+          <SecaoMensalidades assinaturas={assinaturas} mensalidades={mensalidades} alunoId={alunoId} onRefresh={carregar} />
           <SecaoOcorrencias ocorrencias={ocorrencias} alunoId={alunoId} onRefresh={carregar} />
         </div>
       </div>

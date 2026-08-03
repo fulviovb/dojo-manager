@@ -5,5 +5,6 @@ const ctrl = require('../controllers/financeiroController');
 
 router.get('/', autenticar, ctrl.listarPagamentos);
 router.post('/', autenticar, autorizarRole(['admin']), ctrl.registrarPagamento);
+router.delete('/:id', autenticar, autorizarRole(['admin']), ctrl.desfazerPagamento);
 
 module.exports = router;
