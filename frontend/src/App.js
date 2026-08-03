@@ -101,14 +101,17 @@ function AppInterna() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{ padding: '16px 24px', background: '#fff', borderBottom: '1px solid #e0e0e0', fontWeight: 'bold' }}>
           {MENU.find((m) => m.id === paginaAtiva)?.label}
-          {paginaAtiva === 'alunos' && alunoSelecionadoId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Perfil</span>}
-          {paginaAtiva === 'turmas' && turmaSelecionadaId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Turma</span>}
+          {alunoSelecionadoId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Perfil</span>}
+          {!alunoSelecionadoId && paginaAtiva === 'turmas' && turmaSelecionadaId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Turma</span>}
         </header>
         <main style={{ flex: 1, overflow: 'auto', padding: 24, background: '#f5f5f5' }}>
-          {paginaAtiva === 'alunos' && alunoSelecionadoId
+          {/* O perfil do aluno pode ser aberto a partir de qualquer tela (nomes
+              clicáveis em Turmas, Chamadas, Dashboard, Financeiro...), então
+              tem prioridade sobre a página ativa e sobre a turma aberta. */}
+          {alunoSelecionadoId
             ? <AlunoDetalhe alunoId={alunoSelecionadoId} onVoltar={voltarDaAluno} />
             : paginaAtiva === 'turmas' && turmaSelecionadaId
-            ? <TurmaDetalhe turmaId={turmaSelecionadaId} onVoltar={voltarDaTurma} />
+            ? <TurmaDetalhe turmaId={turmaSelecionadaId} onVoltar={voltarDaTurma} onVerAluno={navegarParaAluno} />
             : <PaginaAtual usuario={usuario} onVerAluno={navegarParaAluno} onVerTurma={navegarParaTurma} />
           }
         </main>

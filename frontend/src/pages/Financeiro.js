@@ -19,7 +19,7 @@ function Modal({ titulo, onFechar, children }) {
   );
 }
 
-export default function Financeiro() {
+export default function Financeiro({ onVerAluno }) {
   const [aba, setAba] = useState('mensalidades');
   const [planos, setPlanos] = useState([]);
   const [mensalidades, setMensalidades] = useState([]);
@@ -100,7 +100,12 @@ export default function Financeiro() {
               )}
               {mensalidades.map(m => (
                 <tr key={m.id} style={{ borderTop: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '10px 16px' }}>{m.Aluno?.nome}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <button onClick={() => onVerAluno?.(m.aluno_id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: '#1565c0' }}>
+                      {m.Aluno?.nome}
+                    </button>
+                  </td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>{m.Plano?.nome}</td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>{m.mes_referencia?.slice(0,7)}</td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>R$ {Number(m.valor).toFixed(2)}</td>

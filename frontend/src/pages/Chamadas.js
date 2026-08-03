@@ -1,98 +1,346 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
+const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
-export default function Chamadas() {
-  const [turmas, setTurmas] = useState([]);
-  const [turmaSel, setTurmaSel] = useState('');
-  const [aulas, setAulas] = useState([]);
-  const [aulaSel, setAulaSel] = useState('');
-  const [dados, setDados] = useState(null);
-  const [carregando, setCarregando] = useState(false);
-  const [msg, setMsg] = useState('');
+const estiloInput = { padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
+const btnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
+const btnVerde = { background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12 };
+const btnAzul = { background: '#1565c0', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 };
+const btnPerigo = { background: '#c62828', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 };
+const cardEstilo = { background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' };
+const thEstilo = { padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 };
 
-  useEffect(() => { axios.get('/turmas').then(r => setTurmas(r.data)); }, []);
+function diaSemanaDe(dataStr) {
+  return (new Date(dataStr + 'T00:00:00').getDay());
+}
 
-  useEffect(() => {
-    if (!turmaSel) return;
-    axios.get('/aulas?turma_id=' + turmaSel).then(r => setAulas(r.data));
-    setAulaSel(''); setDados(null);
-  }, [turmaSel]);
+function Modal({ titulo, onFechar, children, largura = 420 }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: '#fff', borderRadius: 8, padding: 24, width: largura, maxWidth: '90%', maxHeight: '90vh', overflow: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>{titulo}</h3>
+          <button onClick={onFechar} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
 
-  const carregarChamada = () => {
-    if (!aulaSel) return;
-    setCarregando(true);
-    axios.get('/chamadas?aula_id=' + aulaSel)
-      .then(r => setDados(r.data))
-      .finally(() => setCarregando(false));
-  };
-  useEffect(carregarChamada, [aulaSel]);
+// ─── Lista geral de aulas ────────────────────────────────────────────────────
 
-  const lancarPresenca = async (alunoId) => {
-    await axios.post('/chamadas', { aula_id: aulaSel, aluno_id: alunoId });
-    carregarChamada();
-  };
+function ListaAulas({ aulas, turmas, busca, setBusca, onAbrir, onExcluir, onNovaAula }) {
+  const [pagina, setPagina] = useState(1);
+  const POR_PAG = 10;
 
-  const fecharAula = async () => {
-    await axios.post('/chamadas/fechar/' + aulaSel);
-    setMsg('Aula fechada com sucesso!');
-    carregarChamada();
-  };
+  const filtradas = aulas.filter(a =>
+    (a.Turma?.nome || '').toLowerCase().includes(busca.toLowerCase()) ||
+    (a.data || '').includes(busca)
+  );
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAG));
+  const slice = filtradas.slice((pagina - 1) * POR_PAG, pagina * POR_PAG);
 
   return (
     <div>
-      <div style={{ background: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <select value={turmaSel} onChange={e => setTurmaSel(e.target.value)}
-            style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, minWidth: 200 }}>
-            <option value="">Selecione a turma...</option>
-            {turmas.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-          </select>
-          <select value={aulaSel} onChange={e => setAulaSel(e.target.value)}
-            style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, minWidth: 240 }}
-            disabled={!turmaSel}>
-            <option value="">Selecione a aula...</option>
-            {aulas.map(a => <option key={a.id} value={a.id}>{a.data} {a.hora_inicio?.slice(0,5)}–{a.hora_fim?.slice(0,5)} [{a.status}]</option>)}
-          </select>
-          {dados?.aula?.status === 'aberta' && (
-            <button style={{ ...estiloBtnPrimario, background: '#c62828' }} onClick={fecharAula}>Fechar Aula</button>
-          )}
-        </div>
-        {msg && <p style={{ color: '#2e7d32', fontSize: 13, marginTop: 8 }}>{msg}</p>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <input placeholder="Pesquisar por turma ou data..." value={busca}
+          onChange={e => { setBusca(e.target.value); setPagina(1); }}
+          style={{ ...estiloInput, maxWidth: 300, flex: 1 }} />
+        <button style={btnVerde} onClick={onNovaAula}>+ Registrar Aula &amp; Frequência</button>
       </div>
 
-      {carregando && <p>Carregando...</p>}
-
-      {dados && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div style={{ background: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-            <h3 style={{ marginTop: 0, color: '#2e7d32' }}>✅ Presentes ({dados.chamadas.length})</h3>
-            {dados.chamadas.length === 0 && <p style={{ color: '#888', fontSize: 13 }}>Nenhuma presença registrada.</p>}
-            {dados.chamadas.map(c => (
-              <div key={c.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0', fontSize: 14 }}>
-                {c.Aluno?.nome}
-                <span style={{ color: '#888', fontSize: 12, marginLeft: 8 }}>{c.origem === 'qrcode' ? '📱 QR' : '👨‍🏫 Prof'}</span>
-              </div>
+      <div style={cardEstilo}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#fafafa' }}>
+              <th style={thEstilo}>Data</th>
+              <th style={thEstilo}>Dia</th>
+              <th style={thEstilo}>Turma</th>
+              <th style={thEstilo}>Frequência</th>
+              <th style={thEstilo}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {slice.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhuma aula encontrada.</td></tr>
+            )}
+            {slice.map(a => (
+              <tr key={a.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{a.data.split('-').reverse().join('/')}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13, color: '#666' }}>{DIAS[diaSemanaDe(a.data)]}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{a.Turma?.nome?.split('\n')[0] || '—'}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>
+                  <span style={{ color: '#2e7d32' }}>{a.presentes} presentes</span>{' · '}
+                  <span style={{ color: '#c62828' }}>{a.ausentes} ausentes</span>
+                  {a.status === 'aberta' && <span style={{ marginLeft: 8, background: '#fff3e0', color: '#ef6c00', fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>ABERTA</span>}
+                </td>
+                <td style={{ padding: '10px 16px' }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => onAbrir(a.id)} style={btnAzul} title="Ver / registrar frequência">Ver</button>
+                    <button onClick={() => onExcluir(a)} style={btnPerigo} title="Excluir">✕</button>
+                  </div>
+                </td>
+              </tr>
             ))}
+          </tbody>
+        </table>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: '1px solid #f0f0f0', fontSize: 12, color: '#888' }}>
+          <span>{filtradas.length} aula{filtradas.length !== 1 ? 's' : ''}</span>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <button disabled={pagina <= 1} onClick={() => setPagina(p => p - 1)} style={{ ...estiloInput, cursor: pagina <= 1 ? 'default' : 'pointer', opacity: pagina <= 1 ? 0.4 : 1 }}>‹</button>
+            <span>{pagina} / {totalPaginas}</span>
+            <button disabled={pagina >= totalPaginas} onClick={() => setPagina(p => p + 1)} style={{ ...estiloInput, cursor: pagina >= totalPaginas ? 'default' : 'pointer', opacity: pagina >= totalPaginas ? 0.4 : 1 }}>›</button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          <div style={{ background: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-            <h3 style={{ marginTop: 0, color: '#c62828' }}>❌ Ausentes ({dados.ausentes.length})</h3>
-            {dados.ausentes.length === 0 && <p style={{ color: '#888', fontSize: 13 }}>Todos presentes!</p>}
-            {dados.ausentes.map(a => (
-              <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0', fontSize: 14 }}>
-                <span>{a.nome}</span>
-                {dados.aula?.status === 'aberta' && (
-                  <button onClick={() => lancarPresenca(a.id)}
-                    style={{ fontSize: 12, padding: '4px 10px', background: '#e8f5e9', border: '1px solid #4caf50', borderRadius: 4, cursor: 'pointer', color: '#2e7d32' }}>
-                    + Presença
-                  </button>
-                )}
+// ─── Detalhe de uma aula: presença/ausência, validação, fechamento ──────────
+
+function NomeAluno({ id, nome, onVerAluno }) {
+  return (
+    <button onClick={() => onVerAluno?.(id)}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1565c0', fontSize: 14, textAlign: 'left' }}>
+      {nome}
+    </button>
+  );
+}
+
+function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
+  const [dados, setDados] = useState(null);
+  const [erro, setErro] = useState('');
+
+  const carregar = () => {
+    axios.get(`/chamadas?aula_id=${aulaId}`).then(r => setDados(r.data));
+  };
+  useEffect(carregar, [aulaId]);
+
+  const marcarPresenca = async (alunoId) => {
+    await axios.post('/chamadas', { aula_id: aulaId, aluno_id: alunoId });
+    carregar();
+  };
+
+  const marcarTodosPresentes = async () => {
+    await Promise.all(dados.ausentes.map(a => axios.post('/chamadas', { aula_id: aulaId, aluno_id: a.id })));
+    carregar();
+  };
+
+  const validar = async (chamadaId) => {
+    await axios.put(`/chamadas/${chamadaId}/validar`);
+    carregar();
+  };
+
+  const remover = async (chamadaId) => {
+    await axios.delete(`/chamadas/${chamadaId}`);
+    carregar();
+  };
+
+  const fecharAula = async () => {
+    setErro('');
+    try {
+      await axios.post(`/chamadas/fechar/${aulaId}`);
+      carregar();
+      onFechada?.();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao fechar a aula'); }
+  };
+
+  if (!dados) return <p style={{ color: '#888' }}>Carregando...</p>;
+
+  const { aula, chamadas, ausentes } = dados;
+  const pendentesQR = chamadas.filter(c => c.origem === 'qrcode' && !c.validado_por);
+  const validadas = chamadas.filter(c => !(c.origem === 'qrcode' && !c.validado_por));
+  const aberta = aula.status === 'aberta';
+
+  return (
+    <div>
+      <button onClick={onVoltar} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 13, padding: 0, marginBottom: 10 }}>
+        ← Voltar para Aulas
+      </button>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <h2 style={{ margin: '0 0 2px', fontSize: 20 }}>{aula.Turma?.nome?.split('\n')[0]}</h2>
+          <div style={{ color: '#888', fontSize: 13 }}>
+            {aula.data.split('-').reverse().join('/')} · {aula.hora_inicio?.slice(0, 5)}–{aula.hora_fim?.slice(0, 5)}
+            {aula.Sala?.qr_token && (
+              <>
+                {' · '}QR Code: <code style={{ background: '#f5f5f5', padding: '1px 6px', borderRadius: 3 }}>{window.location.origin}/checkin/{aula.Sala.qr_token}</code>
+              </>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {aberta
+            ? <span style={{ background: '#fff3e0', color: '#ef6c00', fontSize: 12, padding: '4px 10px', borderRadius: 10, fontWeight: 700 }}>ABERTA</span>
+            : <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 12, padding: '4px 10px', borderRadius: 10, fontWeight: 700 }}>FECHADA</span>}
+          {aberta && <button style={{ ...btnPrimario, background: '#c62828' }} onClick={fecharAula}>Fechar Aula</button>}
+        </div>
+      </div>
+      {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
+
+      {pendentesQR.length > 0 && (
+        <div style={{ ...cardEstilo, padding: 16, marginBottom: 16, border: '1px solid #ffe0b2', background: '#fffaf0' }}>
+          <strong style={{ fontSize: 13, color: '#ef6c00' }}>⏳ Check-ins por QR Code aguardando sua validação</strong>
+          <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+            {pendentesQR.map(c => (
+              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #ffe8c4' }}>
+                <span style={{ fontSize: 14 }}><NomeAluno id={c.aluno_id} nome={c.Aluno?.nome} onVerAluno={onVerAluno} /> <span style={{ fontSize: 11, color: '#ef6c00' }}>📱 QR — pendente</span></span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => validar(c.id)} style={btnVerde}>✓ Validar</button>
+                  <button onClick={() => remover(c.id)} style={btnPerigo}>✕ Remover</button>
+                </div>
               </div>
             ))}
           </div>
         </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={cardEstilo}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>
+            <strong style={{ fontSize: 14, color: '#2e7d32' }}>✅ Presentes ({validadas.length})</strong>
+          </div>
+          <div style={{ padding: '4px 16px' }}>
+            {validadas.length === 0 && <p style={{ color: '#aaa', fontSize: 13, padding: '12px 0' }}>Nenhuma presença confirmada ainda.</p>}
+            {validadas.map(c => (
+              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
+                <span style={{ fontSize: 14 }}>
+                  <NomeAluno id={c.aluno_id} nome={c.Aluno?.nome} onVerAluno={onVerAluno} />
+                  <span style={{ fontSize: 11, color: '#888', marginLeft: 6 }}>{c.origem === 'qrcode' ? '📱 QR' : '✍️ manual'}</span>
+                </span>
+                <button onClick={() => remover(c.id)} style={btnPerigo}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={cardEstilo}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong style={{ fontSize: 14, color: '#c62828' }}>❌ Ausentes ({ausentes.length})</strong>
+            {ausentes.length > 0 && (
+              <button onClick={marcarTodosPresentes} style={btnVerde}>Marcar todos presentes</button>
+            )}
+          </div>
+          <div style={{ padding: '4px 16px' }}>
+            {ausentes.length === 0 && <p style={{ color: '#aaa', fontSize: 13, padding: '12px 0' }}>Todos os matriculados já estão presentes.</p>}
+            {ausentes.map(a => (
+              <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
+                <NomeAluno id={a.id} nome={a.nome} onVerAluno={onVerAluno} />
+                <button onClick={() => marcarPresenca(a.id)} style={btnVerde}>+ Presença</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal: registrar nova aula manualmente ──────────────────────────────────
+
+function ModalNovaAula({ turmas, onFechar, onCriada }) {
+  const [turmaId, setTurmaId] = useState('');
+  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const criar = async () => {
+    if (!turmaId) return setErro('Selecione a turma');
+    setSalvando(true);
+    setErro('');
+    try {
+      const horarios = (await axios.get(`/horarios?turma_id=${turmaId}`)).data;
+      const diaSemana = diaSemanaDe(data);
+      const horario = horarios.find(h => h.dia_semana === diaSemana) || horarios[0];
+      if (!horario) {
+        setErro('Essa turma ainda não tem horário/sala configurados (tela Turmas → + Horário).');
+        setSalvando(false);
+        return;
+      }
+      const r = await axios.post('/aulas', {
+        turma_id: turmaId,
+        sala_id: horario.sala_id,
+        data,
+        hora_inicio: horario.hora_inicio,
+        hora_fim: horario.hora_fim,
+      });
+      onCriada(r.data.id);
+    } catch (ex) {
+      setErro(ex.response?.data?.erro || 'Erro ao registrar aula');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <Modal titulo="Registrar Aula & Frequência" onFechar={onFechar}>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Turma</label>
+        <select value={turmaId} onChange={e => setTurmaId(e.target.value)} style={{ ...estiloInput, width: '100%' }}>
+          <option value="">Selecione...</option>
+          {turmas.map(t => <option key={t.id} value={t.id}>{t.nome.split('\n')[0]}</option>)}
+        </select>
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Data</label>
+        <input type="date" value={data} onChange={e => setData(e.target.value)} style={{ ...estiloInput, width: '100%' }} />
+      </div>
+      {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button onClick={onFechar} style={{ padding: '8px 16px', borderRadius: 4, border: '1px solid #ddd', cursor: 'pointer', background: '#fff' }}>Cancelar</button>
+        <button onClick={criar} disabled={salvando} style={btnPrimario}>{salvando ? 'Registrando...' : 'Registrar e abrir chamada'}</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Página principal ────────────────────────────────────────────────────────
+
+export default function Chamadas({ onVerAluno }) {
+  const [aulas, setAulas] = useState([]);
+  const [turmas, setTurmas] = useState([]);
+  const [busca, setBusca] = useState('');
+  const [aulaAbertaId, setAulaAbertaId] = useState(null);
+  const [modalNova, setModalNova] = useState(false);
+
+  const carregarAulas = () => { axios.get('/aulas').then(r => setAulas(r.data)); };
+  useEffect(carregarAulas, []);
+  useEffect(() => { axios.get('/turmas').then(r => setTurmas(r.data)); }, []);
+
+  const excluirAula = async (aula) => {
+    await axios.delete(`/aulas/${aula.id}`);
+    carregarAulas();
+  };
+
+  const abrirAula = (id) => setAulaAbertaId(id);
+  const voltarLista = () => { setAulaAbertaId(null); carregarAulas(); };
+
+  if (aulaAbertaId) {
+    return <DetalheAula aulaId={aulaAbertaId} onVoltar={voltarLista} onFechada={carregarAulas} onVerAluno={onVerAluno} />;
+  }
+
+  return (
+    <div>
+      <ListaAulas
+        aulas={aulas}
+        turmas={turmas}
+        busca={busca}
+        setBusca={setBusca}
+        onAbrir={abrirAula}
+        onExcluir={excluirAula}
+        onNovaAula={() => setModalNova(true)}
+      />
+
+      {modalNova && (
+        <ModalNovaAula
+          turmas={turmas}
+          onFechar={() => setModalNova(false)}
+          onCriada={(novaAulaId) => { setModalNova(false); carregarAulas(); abrirAula(novaAulaId); }}
+        />
       )}
     </div>
   );

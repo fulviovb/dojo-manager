@@ -4,6 +4,15 @@ import axios from 'axios';
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
 
+const formProfessorVazio = { nome: '', email: '', senha: '' };
+
+const Secao = ({ titulo, children }) => (
+  <div style={{ background: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16 }}>
+    <h3 style={{ marginTop: 0, marginBottom: 16 }}>{titulo}</h3>
+    {children}
+  </div>
+);
+
 export default function Configuracoes() {
   const [escola, setEscola] = useState(null);
   const [threshold, setThreshold] = useState(40);
@@ -11,18 +20,24 @@ export default function Configuracoes() {
   const [faixas, setFaixas] = useState([]);
   const [criterios, setCriterios] = useState([]);
   const [salas, setSalas] = useState([]);
+  const [professores, setProfessores] = useState([]);
   const [msgEscola, setMsgEscola] = useState('');
   const [formArte, setFormArte] = useState('');
   const [formFaixa, setFormFaixa] = useState({ arte_marcial_id: '', nome: '', cor: '#ffffff', ordem: 1 });
   const [formCriterio, setFormCriterio] = useState({ arte_marcial_id: '', faixa_id: '', min_aulas: 30 });
   const [formSala, setFormSala] = useState('');
+  const [formProfessor, setFormProfessor] = useState(formProfessorVazio);
+  const [professorEditandoId, setProfessorEditandoId] = useState(null);
+  const [edicaoProfessor, setEdicaoProfessor] = useState({ nome: '', email: '' });
   const [erro, setErro] = useState('');
+  const [erroProfessor, setErroProfessor] = useState('');
 
   const carregar = () => {
     axios.get('/escolas').then(r => { if (r.data[0]) { setEscola(r.data[0]); setThreshold(r.data[0].threshold_falta_vermelho); } });
     axios.get('/artes-marciais').then(r => setArtes(r.data));
     axios.get('/criterios-graduacao').then(r => setCriterios(r.data));
     axios.get('/salas').then(r => setSalas(r.data));
+    axios.get('/usuarios?role=professor&ativo=todos').then(r => setProfessores(r.data));
   };
   useEffect(carregar, []);
 
@@ -63,12 +78,41 @@ export default function Configuracoes() {
     catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
   };
 
-  const Secao = ({ titulo, children }) => (
-    <div style={{ background: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16 }}>
-      <h3 style={{ marginTop: 0, marginBottom: 16 }}>{titulo}</h3>
-      {children}
-    </div>
-  );
+  const addProfessor = async (e) => {
+    e.preventDefault(); setErroProfessor('');
+    try {
+      await axios.post('/usuarios', { ...formProfessor, role: 'professor' });
+      setFormProfessor(formProfessorVazio);
+      carregar();
+    } catch (ex) { setErroProfessor(ex.response?.data?.erro || 'Erro'); }
+  };
+
+  const desativarProfessor = async (professor) => {
+    await axios.delete(`/usuarios/${professor.id}`);
+    carregar();
+  };
+
+  const ativarProfessor = async (professor) => {
+    await axios.put(`/usuarios/${professor.id}`, { ativo: true });
+    carregar();
+  };
+
+  const iniciarEdicaoProfessor = (professor) => {
+    setProfessorEditandoId(professor.id);
+    setEdicaoProfessor({ nome: professor.nome, email: professor.email });
+    setErroProfessor('');
+  };
+
+  const cancelarEdicaoProfessor = () => setProfessorEditandoId(null);
+
+  const salvarEdicaoProfessor = async (professor) => {
+    setErroProfessor('');
+    try {
+      await axios.put(`/usuarios/${professor.id}`, edicaoProfessor);
+      setProfessorEditandoId(null);
+      carregar();
+    } catch (ex) { setErroProfessor(ex.response?.data?.erro || 'Erro ao salvar'); }
+  };
 
   return (
     <div>
@@ -168,6 +212,69 @@ export default function Configuracoes() {
                 <td style={{ padding: '8px 0', fontSize: 14 }}>{c.ArteMarcial?.nome}</td>
                 <td style={{ padding: '8px 0', fontSize: 14, color: '#555' }}>{c.Faixa?.nome}</td>
                 <td style={{ padding: '8px 0', fontSize: 14, color: '#555' }}>{c.min_aulas} aulas</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Secao>
+
+      <Secao titulo="Professores">
+        <form onSubmit={addProfessor} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'flex-end' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Nome</label>
+            <input required placeholder="Nome do professor" value={formProfessor.nome} onChange={e => setFormProfessor(f => ({ ...f, nome: e.target.value }))} style={{ ...estiloInput, width: 200 }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>E-mail</label>
+            <input required type="email" placeholder="email@exemplo.com" value={formProfessor.email} onChange={e => setFormProfessor(f => ({ ...f, email: e.target.value }))} style={{ ...estiloInput, width: 200 }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Senha</label>
+            <input required type="password" placeholder="Senha inicial" value={formProfessor.senha} onChange={e => setFormProfessor(f => ({ ...f, senha: e.target.value }))} style={{ ...estiloInput, width: 160 }} />
+          </div>
+          <button type="submit" style={estiloBtnPrimario}>Adicionar</button>
+        </form>
+        {erroProfessor && <p style={{ color: 'red', fontSize: 13, marginTop: -8 }}>{erroProfessor}</p>}
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f5f5f5' }}>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Nome</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>E-mail</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Status</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {professores.length === 0 && <tr><td colSpan={4} style={{ padding: 16, color: '#888', fontSize: 13 }}>Nenhum professor cadastrado.</td></tr>}
+            {professores.map(p => (
+              <tr key={p.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                {professorEditandoId === p.id ? (
+                  <>
+                    <td style={{ padding: '6px 12px' }}>
+                      <input value={edicaoProfessor.nome} onChange={e => setEdicaoProfessor(f => ({ ...f, nome: e.target.value }))} style={{ ...estiloInput, width: 180 }} />
+                    </td>
+                    <td style={{ padding: '6px 12px' }}>
+                      <input type="email" value={edicaoProfessor.email} onChange={e => setEdicaoProfessor(f => ({ ...f, email: e.target.value }))} style={{ ...estiloInput, width: 200 }} />
+                    </td>
+                    <td style={{ padding: '10px 12px', fontSize: 13, color: p.ativo ? '#2e7d32' : '#c62828' }}>{p.ativo ? 'Ativo' : 'Inativo'}</td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <button onClick={() => salvarEdicaoProfessor(p)} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, marginRight: 6 }}>Salvar</button>
+                      <button onClick={cancelarEdicaoProfessor} style={{ background: 'none', border: '1px solid #ddd', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td style={{ padding: '10px 12px', fontSize: 14 }}>{p.nome}</td>
+                    <td style={{ padding: '10px 12px', fontSize: 14, color: '#555' }}>{p.email}</td>
+                    <td style={{ padding: '10px 12px', fontSize: 13, color: p.ativo ? '#2e7d32' : '#c62828' }}>{p.ativo ? 'Ativo' : 'Inativo'}</td>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                      <button onClick={() => iniciarEdicaoProfessor(p)} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: 0, marginRight: 12 }}>Editar</button>
+                      {p.ativo
+                        ? <button onClick={() => desativarProfessor(p)} style={{ background: '#c62828', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>Desativar</button>
+                        : <button onClick={() => ativarProfessor(p)} style={{ background: '#1565c0', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>Ativar</button>}
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>

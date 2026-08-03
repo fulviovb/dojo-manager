@@ -195,12 +195,14 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
                 {/* Barra de progresso */}
                 <div style={{ flex: 1, minWidth: 120 }}>
                   <div style={{ fontSize: 11, color: '#888', marginBottom: 3 }}>
-                    {aulasDesdeGraduacao} aula{aulasDesdeGraduacao !== 1 ? 's' : ''} desde a graduação
+                    {atual.min_aulas
+                      ? <>{aulasDesdeGraduacao} de {atual.min_aulas} aulas ({atual.percentual_carencia}% da carência pro exame)</>
+                      : <>{aulasDesdeGraduacao} aula{aulasDesdeGraduacao !== 1 ? 's' : ''} desde a graduação (carência não cadastrada)</>}
                   </div>
                   <div style={{ height: 8, background: '#e0e0e0', borderRadius: 4, overflow: 'hidden', maxWidth: 180 }}>
                     <div style={{
                       height: '100%',
-                      width: `${Math.min(100, (aulasDesdeGraduacao / 40) * 100)}%`,
+                      width: `${atual.min_aulas ? atual.percentual_carencia : Math.min(100, (aulasDesdeGraduacao / 40) * 100)}%`,
                       background: corDaFaixa(atual.Faixa?.nome || ''),
                       borderRadius: 4,
                       minWidth: aulasDesdeGraduacao > 0 ? 4 : 0,
@@ -240,6 +242,8 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{h.Faixa?.nome}</div>
                     <div style={{ fontSize: 11, color: '#888' }}>
                       {formatData(h.data_inicio)}{h.data_fim ? ` → ${formatData(h.data_fim)}` : ' → atual'}
+                      {' · '}{h.aulas_presentes} aula{h.aulas_presentes !== 1 ? 's' : ''} presente{h.aulas_presentes !== 1 ? 's' : ''}
+                      {h.min_aulas ? ` (${h.percentual_carencia}% da carência de ${h.min_aulas})` : ''}
                     </div>
                     {h.observacao && <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{h.observacao}</div>}
                   </div>
@@ -753,7 +757,11 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
   );
 
   const { aluno, graduacoes, matriculas, chamadas, mensalidades, ocorrencias } = dados;
-  const faixaAtual = graduacoes.find(g => g.atual)?.atual?.Faixa || null;
+  // Um aluno pode ter graduação atual em mais de uma arte marcial (ex: Vermelha
+  // no Karatê e Branca no Jiu-Jitsu) — mostra uma faixa por arte, não só a primeira.
+  const faixasAtuais = graduacoes
+    .filter(g => g.atual)
+    .map(g => ({ arteNome: g.arte.nome, faixa: g.atual.Faixa }));
 
   return (
     <div>
@@ -766,7 +774,6 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <h1 style={{ margin: 0, fontSize: 26, color: '#1e2a38' }}>{aluno.nome}</h1>
-              {faixaAtual && <FaixaChip nome={faixaAtual.nome} size="lg" />}
             </div>
             <div style={{ color: '#888', fontSize: 14, marginTop: 4 }}>
               {[aluno.matricula, aluno.email].filter(Boolean).join(' · ')}
@@ -775,7 +782,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
           {/* Avatar placeholder */}
           <div style={{
             width: 56, height: 56, borderRadius: '50%',
-            background: `linear-gradient(135deg, ${corDaFaixa(faixaAtual?.nome || '')} 0%, #1e2a38 100%)`,
+            background: `linear-gradient(135deg, ${corDaFaixa(faixasAtuais[0]?.faixa?.nome || '')} 0%, #1e2a38 100%)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', fontWeight: 700, fontSize: 22, flexShrink: 0,
             boxShadow: '0 2px 8px rgba(0,0,0,0.18)',

@@ -68,15 +68,23 @@ const fecharAula = async (req, res) => {
     if (!ehDonoDaTurma(req.usuario, aula.Turma)) return res.status(403).json({ erro: 'Acesso negado a esta aula' });
     await aula.update({ status: 'fechada' });
 
-    // Atualiza contador de aulas_desde_graduacao dos presentes
-    const chamadas = await Chamada.findAll({ where: { aula_id: aula.id } });
-    await Promise.all(
-      chamadas.map(async (c) => {
-        await MatriculaAluno.increment('aulas_desde_graduacao', {
-          where: { aluno_id: c.aluno_id, turma_id: aula.turma_id, ativa: true },
-        });
-      })
+    // Fechar a aula É o ato de validação: qualquer check-in feito por QR Code
+    // que ainda não tinha sido revisado individualmente vira confirmado aqui.
+    // O professor já teve a chance de remover presenças incorretas antes de fechar.
+    await Chamada.update(
+      { validado_por: req.usuario.id },
+      { where: { aula_id: aula.id, validado_por: null } }
     );
+
+    // Atualiza contador de aulas_desde_graduacao dos presentes.
+    // Sequencial (não Promise.all): vários UPDATEs concorrentes na mesma
+    // tabela causavam deadlock no MySQL quando a turma tinha muitos presentes.
+    const chamadas = await Chamada.findAll({ where: { aula_id: aula.id } });
+    for (const c of chamadas) {
+      await MatriculaAluno.increment('aulas_desde_graduacao', {
+        where: { aluno_id: c.aluno_id, turma_id: aula.turma_id, ativa: true },
+      });
+    }
 
     res.json({ mensagem: 'Aula fechada', aula_id: aula.id, presentes: chamadas.length });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }

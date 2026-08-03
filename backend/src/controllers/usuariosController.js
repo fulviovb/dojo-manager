@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Usuario, MatriculaAluno, Turma, ArteMarcial, Faixa,
         GraduacaoAluno, Ocorrencia, Chamada, Aula,
-        Mensalidade, PlanoMensalidade } = require('../models');
+        Mensalidade, PlanoMensalidade, CriterioGraduacao } = require('../models');
 
 const listar = async (req, res) => {
   try {
@@ -81,7 +81,7 @@ const perfil = async (req, res) => {
     });
     if (!aluno) return res.status(404).json({ erro: 'Aluno não encontrado' });
 
-    const [artes, matriculas, graduacoes, chamadas, mensalidades, ocorrencias] = await Promise.all([
+    const [artes, matriculas, graduacoes, chamadas, mensalidades, ocorrencias, criterios] = await Promise.all([
       ArteMarcial.findAll({ where: { escola_id: req.usuario.escola_id }, order: [['nome', 'ASC']] }),
 
       MatriculaAluno.findAll({
@@ -109,7 +109,6 @@ const perfil = async (req, res) => {
           include: [{ model: Turma, attributes: ['id', 'nome', 'arte_marcial_id'] }],
         }],
         order: [[{ model: Aula }, 'data', 'DESC']],
-        limit: 100,
       }),
 
       Mensalidade.findAll({
@@ -123,22 +122,39 @@ const perfil = async (req, res) => {
         include: [{ model: Usuario, as: 'Professor', attributes: ['id', 'nome'] }],
         order: [['created_at', 'DESC']],
       }),
+
+      CriterioGraduacao.findAll({ where: { escola_id: req.usuario.escola_id } }),
     ]);
 
-    // Agrupa graduações por arte marcial com contagem de aulas
+    // Agrupa graduações por arte marcial. Cada item do histórico (incluindo a
+    // atual) traz `aulas_presentes` = quantas chamadas o aluno tem NAQUELA
+    // graduação especificamente (entre data_inicio e data_fim, ou até hoje
+    // se ainda for a atual), `min_aulas` = carência cadastrada pra faixa (se
+    // houver) e `percentual_carencia` = quanto disso já foi cumprido — é
+    // isso que embasa a decisão de deixar o aluno prestar exame ou não.
     const dadosGraduacao = artes.map(arte => {
       const historico = graduacoes.filter(g => g.arte_marcial_id === arte.id);
-      const atual = historico.find(g => g.atual) || null;
 
-      let aulasDesdeGraduacao = 0;
-      if (atual && atual.data_inicio) {
-        aulasDesdeGraduacao = chamadas.filter(c =>
-          c.Aula?.Turma?.arte_marcial_id === arte.id &&
-          c.Aula?.data >= atual.data_inicio
-        ).length;
-      }
+      const historicoComPresencas = historico.map(h => {
+        const presentes = h.data_inicio
+          ? chamadas.filter(c =>
+              c.Aula?.Turma?.arte_marcial_id === arte.id &&
+              c.Aula?.data >= h.data_inicio &&
+              (!h.data_fim || c.Aula?.data <= h.data_fim)
+            ).length
+          : 0;
 
-      return { arte: arte.toJSON(), atual: atual?.toJSON() || null, historico: historico.map(h => h.toJSON()), aulasDesdeGraduacao };
+        const criterio = criterios.find(c => c.arte_marcial_id === arte.id && c.faixa_id === h.faixa_id);
+        const minAulas = criterio ? criterio.min_aulas : null;
+        const percentualCarencia = minAulas ? Math.min(100, Math.round((presentes / minAulas) * 100)) : null;
+
+        return { ...h.toJSON(), aulas_presentes: presentes, min_aulas: minAulas, percentual_carencia: percentualCarencia };
+      });
+
+      const atual = historicoComPresencas.find(h => h.atual) || null;
+      const aulasDesdeGraduacao = atual ? atual.aulas_presentes : 0;
+
+      return { arte: arte.toJSON(), atual, historico: historicoComPresencas, aulasDesdeGraduacao };
     });
 
     res.json({

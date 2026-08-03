@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { Escola, Usuario, Turma, Aula, Chamada, MatriculaAluno, Mensalidade, Pagamento, CriterioGraduacao, Faixa } = require('../models');
+const { Escola, Usuario, Turma, Aula, Chamada, MatriculaAluno, Mensalidade, Pagamento, CriterioGraduacao, Faixa, GraduacaoAluno } = require('../models');
 const { dataLocalISO } = require('../utils/data');
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
@@ -142,20 +142,55 @@ const graduacao = async (req, res) => {
       ],
     });
 
-    const elegiveis = [];
-
+    // Um aluno pode estar matriculado em várias turmas da mesma arte marcial
+    // (ex: Karatê às seg-qua 19h E 20h) — agrupa por (aluno, arte) pra contar
+    // a presença UMA vez, em vez de avaliar cada matrícula isoladamente.
+    const porAlunoArte = new Map();
     for (const m of matriculas) {
       if (!m.FaixaAtual) continue;
+      const chave = `${m.aluno_id}:${m.FaixaAtual.arte_marcial_id}`;
+      if (!porAlunoArte.has(chave)) {
+        porAlunoArte.set(chave, { aluno: m.Aluno, faixaAtual: m.FaixaAtual, turmaNomes: [] });
+      }
+      porAlunoArte.get(chave).turmaNomes.push(m.Turma.nome);
+    }
+
+    // Data de início da graduação atual de cada (aluno, arte) — a contagem de
+    // presenças precisa ser feita a partir desse marco, não desde sempre.
+    const graduacoesAtuais = await GraduacaoAluno.findAll({
+      where: { escola_id, atual: true },
+      attributes: ['aluno_id', 'arte_marcial_id', 'data_inicio'],
+    });
+    const inicioGraduacao = new Map(
+      graduacoesAtuais.map((g) => [`${g.aluno_id}:${g.arte_marcial_id}`, g.data_inicio])
+    );
+
+    const elegiveis = [];
+
+    for (const [chave, grupo] of porAlunoArte) {
       const criterio = criterios.find(
-        (c) => c.arte_marcial_id === m.FaixaAtual.arte_marcial_id && c.faixa_id === m.FaixaAtual.id
+        (c) => c.arte_marcial_id === grupo.faixaAtual.arte_marcial_id && c.faixa_id === grupo.faixaAtual.id
       );
       if (!criterio) continue;
-      if (m.aulas_desde_graduacao >= criterio.min_aulas) {
+
+      const dataInicio = inicioGraduacao.get(chave);
+      const aulasPresentes = dataInicio
+        ? await Chamada.count({
+            where: { aluno_id: grupo.aluno.id },
+            include: [{
+              model: Aula,
+              attributes: [],
+              where: { turma_id: { [Op.in]: grupo.turmaIds }, data: { [Op.gte]: dataInicio } },
+            }],
+          })
+        : 0;
+
+      if (aulasPresentes >= criterio.min_aulas) {
         elegiveis.push({
-          aluno: { id: m.Aluno.id, nome: m.Aluno.nome },
-          turma: m.Turma.nome,
-          faixa_atual: m.FaixaAtual.nome,
-          aulas_desde_graduacao: m.aulas_desde_graduacao,
+          aluno: { id: grupo.aluno.id, nome: grupo.aluno.nome },
+          turma: [...new Set(grupo.turmaNomes)].join(', '),
+          faixa_atual: grupo.faixaAtual.nome,
+          aulas_desde_graduacao: aulasPresentes,
           min_aulas_criterio: criterio.min_aulas,
         });
       }

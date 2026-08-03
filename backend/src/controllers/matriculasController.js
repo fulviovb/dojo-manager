@@ -36,7 +36,7 @@ const criar = async (req, res) => {
         aulas_desde_graduacao: 0,
       },
     });
-    if (!criada) await matricula.update({ ativa: true });
+    if (!criada) await matricula.update({ ativa: true, graduacao_atual_faixa_id });
     res.status(criada ? 201 : 200).json(matricula);
   } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
 };

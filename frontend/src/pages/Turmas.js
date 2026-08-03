@@ -3,6 +3,8 @@ import axios from 'axios';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
+const btnPerigo = { background: '#c62828', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 };
+const btnAzul = { background: '#1565c0', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 };
 const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 function Modal({ titulo, onFechar, children }) {
@@ -30,14 +32,28 @@ export default function Turmas({ onVerTurma }) {
   const [formTurma, setFormTurma] = useState({ nome: '', arte_marcial_id: '', professor_id: '' });
   const [formHorario, setFormHorario] = useState({ dia_semana: 1, hora_inicio: '18:00', hora_fim: '19:30', sala_id: '' });
   const [erro, setErro] = useState('');
+  const [filtro, setFiltro] = useState('ativas'); // 'ativas' | 'inativas' | 'todas'
 
-  const carregar = () => axios.get('/turmas').then(r => setTurmas(r.data));
+  const carregar = () => {
+    const ativaParam = filtro === 'inativas' ? '?ativa=false' : filtro === 'todas' ? '?ativa=todas' : '';
+    axios.get(`/turmas${ativaParam}`).then(r => setTurmas(r.data));
+  };
+  useEffect(carregar, [filtro]);
   useEffect(() => {
-    carregar();
     axios.get('/artes-marciais').then(r => setArtes(r.data));
     axios.get('/usuarios?role=professor').then(r => setProfessores(r.data));
     axios.get('/salas').then(r => setSalas(r.data));
   }, []);
+
+  const handleDesativar = async (turma) => {
+    await axios.delete(`/turmas/${turma.id}`);
+    carregar();
+  };
+
+  const handleAtivar = async (turma) => {
+    await axios.put(`/turmas/${turma.id}`, { ativa: true });
+    carregar();
+  };
 
   const salvarTurma = async (e) => {
     e.preventDefault(); setErro('');
@@ -60,7 +76,18 @@ export default function Turmas({ onVerTurma }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+          {[['ativas', 'Ativas'], ['inativas', 'Inativas'], ['todas', 'Todas']].map(([valor, rotulo]) => (
+            <button key={valor} onClick={() => setFiltro(valor)}
+              style={{
+                padding: '7px 14px', border: 'none', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap',
+                background: filtro === valor ? '#1e2a38' : '#fff', color: filtro === valor ? '#fff' : '#555',
+              }}>
+              {rotulo}
+            </button>
+          ))}
+        </div>
         <button style={estiloBtnPrimario} onClick={() => setModalTurma(true)}>+ Nova Turma</button>
       </div>
 
@@ -78,10 +105,17 @@ export default function Turmas({ onVerTurma }) {
                   {t.ArteMarcial?.nome} · Prof. {t.Professor?.nome}
                 </div>
               </div>
-              <button style={{ ...estiloBtnPrimario, fontSize: 12 }}
-                onClick={() => { setTurmaAtiva(t); setModalHorario(true); }}>
-                + Horário
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button style={{ ...estiloBtnPrimario, fontSize: 12 }}
+                  onClick={() => { setTurmaAtiva(t); setModalHorario(true); }}>
+                  + Horário
+                </button>
+                {t.ativa ? (
+                  <button onClick={() => handleDesativar(t)} style={btnPerigo} title="Desativar">Desativar</button>
+                ) : (
+                  <button onClick={() => handleAtivar(t)} style={btnAzul} title="Ativar">Ativar</button>
+                )}
+              </div>
             </div>
             {t.HorarioTurmas?.length > 0 && (
               <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>

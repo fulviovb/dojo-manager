@@ -14,7 +14,7 @@ function Card({ title, value, sub, color }) {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ onVerAluno }) {
   const [resumo, setResumo] = useState(null);
   const [semaforo, setSemaforo] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -52,7 +52,10 @@ export default function Dashboard() {
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 6, marginBottom: 8, background: BG_SEMAFORO[a.cor], border: "1px solid " + COR_SEMAFORO[a.cor] }}>
               <span style={{ fontSize: 20 }}>{a.cor === 'amarelo' ? '🟡' : a.cor === 'laranja' ? '🟠' : '🔴'}</span>
               <div style={{ flex: 1 }}>
-                <strong>{a.aluno.nome}</strong> <span style={{ color: '#666', fontSize: 13 }}>— {a.turma.nome}</span>
+                <button onClick={() => onVerAluno?.(a.aluno.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: '#1565c0', fontWeight: 'bold' }}>
+                  {a.aluno.nome}
+                </button> <span style={{ color: '#666', fontSize: 13 }}>— {a.turma.nome}</span>
                 <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{a.motivo}</div>
               </div>
             </div>

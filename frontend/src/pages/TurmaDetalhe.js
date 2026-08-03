@@ -35,7 +35,7 @@ const cardEstilo = { background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px 
 const cabecalhoCard = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #eee' };
 const thEstilo = { padding: '8px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 };
 
-export default function TurmaDetalhe({ turmaId, onVoltar }) {
+export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
   const [turma, setTurma] = useState(null);
   const [matriculas, setMatriculas] = useState([]);
   const [aulas, setAulas] = useState([]);
@@ -45,6 +45,10 @@ export default function TurmaDetalhe({ turmaId, onVoltar }) {
   const [modalNovo, setModalNovo] = useState(false);
   const [alunoEscolhido, setAlunoEscolhido] = useState('');
   const [faixaEscolhida, setFaixaEscolhida] = useState('');
+  const [graduacoesEscola, setGraduacoesEscola] = useState([]);
+  const [professores, setProfessores] = useState([]);
+  const [editandoProfessor, setEditandoProfessor] = useState(false);
+  const [professorEscolhido, setProfessorEscolhido] = useState('');
   const [erro, setErro] = useState('');
 
   const carregar = () => {
@@ -54,6 +58,8 @@ export default function TurmaDetalhe({ turmaId, onVoltar }) {
   };
   useEffect(carregar, [turmaId]);
   useEffect(() => { axios.get('/usuarios?role=aluno').then(r => setAlunosAtivos(r.data)); }, []);
+  useEffect(() => { axios.get('/usuarios?role=professor').then(r => setProfessores(r.data)); }, []);
+  useEffect(() => { axios.get('/graduacoes').then(r => setGraduacoesEscola(r.data)); }, []);
   useEffect(() => {
     if (turma?.arte_marcial_id) axios.get(`/faixas?arte_marcial_id=${turma.arte_marcial_id}`).then(r => setFaixasArte(r.data));
   }, [turma?.arte_marcial_id]);
@@ -61,6 +67,22 @@ export default function TurmaDetalhe({ turmaId, onVoltar }) {
   const idsMatriculados = useMemo(() => new Set(matriculas.map(m => m.aluno_id)), [matriculas]);
   const disponiveis = alunosAtivos.filter(a => !idsMatriculados.has(a.id));
   const disponiveisFiltrados = disponiveis.filter(a => a.nome.toLowerCase().includes(buscaAluno.toLowerCase()));
+
+  // Graduações já carregadas por inteiro (mesma abordagem da coluna "Artes
+  // Marciais" em Alunos.js) — a seleção do aluno preenche a faixa na hora,
+  // sem depender de uma requisição assíncrona que poderia perder a corrida
+  // contra um clique rápido em "Matricular".
+  const faixaAtualDoAluno = (alunoId) => {
+    if (!turma?.arte_marcial_id) return '';
+    const daArte = graduacoesEscola.filter(g => g.aluno_id === alunoId && g.arte_marcial_id === turma.arte_marcial_id);
+    const atual = daArte.find(g => g.atual) || daArte[daArte.length - 1] || null;
+    return atual ? atual.faixa_id : '';
+  };
+
+  const escolherAluno = (id) => {
+    setAlunoEscolhido(id);
+    setFaixaEscolhida(faixaAtualDoAluno(id));
+  };
 
   const abrirModalNovo = () => {
     setAlunoEscolhido('');
@@ -85,6 +107,19 @@ export default function TurmaDetalhe({ turmaId, onVoltar }) {
 
   const desmatricular = async (matriculaId) => {
     await axios.delete(`/matriculas/${matriculaId}`);
+    carregar();
+  };
+
+  const abrirEdicaoProfessor = () => {
+    const atualEhOpcaoValida = professores.some(p => p.id === turma.professor_id);
+    setProfessorEscolhido(atualEhOpcaoValida ? turma.professor_id : '');
+    setEditandoProfessor(true);
+  };
+
+  const salvarProfessor = async () => {
+    if (!professorEscolhido) return;
+    await axios.put(`/turmas/${turmaId}`, { professor_id: professorEscolhido });
+    setEditandoProfessor(false);
     carregar();
   };
 
@@ -125,7 +160,12 @@ export default function TurmaDetalhe({ turmaId, onVoltar }) {
               )}
               {matriculas.map(m => (
                 <tr key={m.id} style={{ borderTop: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '10px 16px', fontSize: 13 }}>{m.Aluno?.nome}</td>
+                  <td style={{ padding: '10px 16px', fontSize: 13 }}>
+                    <button onClick={() => onVerAluno?.(m.aluno_id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1565c0', fontSize: 13, textAlign: 'left' }}>
+                      {m.Aluno?.nome}
+                    </button>
+                  </td>
                   <td style={{ padding: '10px 16px' }}><Badge faixa={m.FaixaAtual} /></td>
                   <td style={{ padding: '10px 16px' }}>
                     <button onClick={() => desmatricular(m.id)}
@@ -147,7 +187,25 @@ export default function TurmaDetalhe({ turmaId, onVoltar }) {
               {turma.HorarioTurmas?.length > 0 && (
                 <div>Dias: {turma.HorarioTurmas.map(h => `${DIAS[h.dia_semana]} ${h.hora_inicio.slice(0, 5)}–${h.hora_fim.slice(0, 5)}`).join(' · ')}</div>
               )}
-              <div>Professor: {turma.Professor?.nome || '—'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {editandoProfessor ? (
+                  <>
+                    <span>Professor:</span>
+                    <select value={professorEscolhido} onChange={e => setProfessorEscolhido(e.target.value)}
+                      style={{ padding: '4px 6px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}>
+                      <option value="" disabled hidden>Selecione...</option>
+                      {professores.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                    </select>
+                    <button onClick={salvarProfessor} disabled={!professorEscolhido} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: professorEscolhido ? 'pointer' : 'not-allowed', fontSize: 12, opacity: professorEscolhido ? 1 : 0.6 }}>Salvar</button>
+                    <button onClick={() => setEditandoProfessor(false)} style={{ background: 'none', border: '1px solid #ddd', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+                  </>
+                ) : (
+                  <>
+                    <span>Professor: {turma.Professor?.nome || '—'}</span>
+                    <button onClick={abrirEdicaoProfessor} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: 0 }}>Editar</button>
+                  </>
+                )}
+              </div>
               {primeiroHorario?.Sala && <div>Local: {primeiroHorario.Sala.nome}</div>}
               <div>Arte marcial: {turma.ArteMarcial?.nome || '—'}</div>
             </div>
@@ -196,12 +254,17 @@ export default function TurmaDetalhe({ turmaId, onVoltar }) {
             </div>
             <input placeholder="Buscar aluno..." value={buscaAluno} onChange={e => setBuscaAluno(e.target.value)}
               style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, marginBottom: 10, boxSizing: 'border-box' }} />
-            <select size={6} value={alunoEscolhido} onChange={e => setAlunoEscolhido(e.target.value)}
+            <select size={6} value={alunoEscolhido} onChange={e => escolherAluno(e.target.value)}
               style={{ width: '100%', marginBottom: 12 }}>
+              {/* opção vazia correspondente ao estado inicial — sem ela, o navegador
+                  seleciona sozinho a 1ª opção da lista filtrada sem disparar onChange */}
+              <option value="" disabled hidden>Selecione um aluno...</option>
               {disponiveisFiltrados.length === 0 && <option disabled>Nenhum aluno disponível</option>}
               {disponiveisFiltrados.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
             </select>
-            <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Graduação atual (opcional)</label>
+            <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>
+              Graduação atual {alunoEscolhido && <span style={{ color: '#888', fontWeight: 400 }}>(preenchida pelo histórico do aluno — pode trocar)</span>}
+            </label>
             <select value={faixaEscolhida} onChange={e => setFaixaEscolhida(e.target.value)}
               style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, marginBottom: 16, boxSizing: 'border-box' }}>
               <option value="">—</option>

@@ -1,4 +1,4 @@
-const { GraduacaoAluno, Faixa, ArteMarcial, Usuario } = require('../models');
+const { GraduacaoAluno, Faixa, ArteMarcial, Usuario, MatriculaAluno, Turma } = require('../models');
 const { Op } = require('sequelize');
 const { dataLocalISO } = require('../utils/data');
 
@@ -36,6 +36,18 @@ const criar = async (req, res) => {
       aluno_id, arte_marcial_id, faixa_id,
       data_inicio, data_fim, atual: atual || false, observacao,
     });
+
+    if (atual) {
+      // MatriculaAluno.graduacao_atual_faixa_id é um retrato usado pela tela
+      // de turma (badge de graduação por aluno matriculado) — precisa ficar
+      // sincronizado sempre que a graduação atual mudar, senão fica "presa"
+      // na faixa anterior.
+      const turmasDaArte = await Turma.findAll({ where: { arte_marcial_id }, attributes: ['id'] });
+      await MatriculaAluno.update(
+        { graduacao_atual_faixa_id: faixa_id },
+        { where: { aluno_id, turma_id: { [Op.in]: turmasDaArte.map((t) => t.id) } } }
+      );
+    }
 
     const completo = await GraduacaoAluno.findByPk(graduacao.id, {
       include: [{ model: Faixa }, { model: ArteMarcial }],

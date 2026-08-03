@@ -66,18 +66,27 @@ const listar = async (req, res) => {
       order: [['data', 'DESC'], ['hora_inicio', 'ASC']],
     });
 
-    const totalMatriculados = turma_id
-      ? await MatriculaAluno.count({ where: { turma_id, ativa: true } })
-      : null;
+    const turmaIds = [...new Set(aulas.map((a) => a.turma_id))];
+    const matriculasPorTurma = turmaIds.length
+      ? await MatriculaAluno.findAll({
+          where: { turma_id: { [Op.in]: turmaIds }, ativa: true },
+          attributes: ['turma_id'],
+        })
+      : [];
+    const totalMatriculadosPorTurma = {};
+    for (const m of matriculasPorTurma) {
+      totalMatriculadosPorTurma[m.turma_id] = (totalMatriculadosPorTurma[m.turma_id] || 0) + 1;
+    }
 
     const resultado = aulas.map((a) => {
       const json = a.toJSON();
       const presentes = json.Chamadas?.length || 0;
       delete json.Chamadas;
+      const totalMatriculados = totalMatriculadosPorTurma[a.turma_id] || 0;
       return {
         ...json,
         presentes,
-        ausentes: totalMatriculados !== null ? Math.max(totalMatriculados - presentes, 0) : null,
+        ausentes: Math.max(totalMatriculados - presentes, 0),
       };
     });
 
@@ -107,12 +116,12 @@ const buscar = async (req, res) => {
 // POST /api/aulas  (criação manual)
 const criar = async (req, res) => {
   try {
-    const { turma_id, sala_id, data, hora_inicio, hora_fim } = req.body;
+    const { turma_id, sala_id, data, hora_inicio, hora_fim, status } = req.body;
     const turma = await Turma.findByPk(turma_id);
     if (!turma) return res.status(404).json({ erro: 'Turma não encontrada' });
     if (!ehDonoDaTurma(req.usuario, turma)) return res.status(403).json({ erro: 'Acesso negado a esta turma' });
 
-    const aula = await Aula.create({ turma_id, sala_id, data, hora_inicio, hora_fim });
+    const aula = await Aula.create({ turma_id, sala_id, data, hora_inicio, hora_fim, status });
     res.status(201).json(aula);
   } catch (erro) {
     res.status(500).json({ erro: 'Erro interno do servidor' });

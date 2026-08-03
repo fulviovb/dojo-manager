@@ -3,7 +3,9 @@ const { ehDonoDaTurma } = require('../middleware/autorizacao');
 
 const listar = async (req, res) => {
   try {
-    const where = { escola_id: req.usuario.escola_id, ativa: true };
+    const { ativa } = req.query;
+    const where = { escola_id: req.usuario.escola_id };
+    if (ativa !== 'todas') where.ativa = ativa === 'false' ? false : true;
     if (req.usuario.role === 'professor') where.professor_id = req.usuario.id;
 
     const turmas = await Turma.findAll({

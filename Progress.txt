@@ -18,6 +18,34 @@
 
 Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 
+=== FASE 2: refinamentos pós-MVP ===
+[x] Chamadas: tela reescrita — lista de aulas (busca + paginação), registro manual
+    de aula avulsa, validação individual de check-ins por QR Code (pendente →
+    validado_por), remover presença, "marcar todos presentes", link direto pro
+    perfil do aluno.
+[x] Fechamento de aula: check-ins de QR ainda não revisados são auto-validados
+    ao fechar; incremento de aulas_desde_graduacao passou de Promise.all pra
+    loop sequencial (Promise.all causava deadlock no MySQL com turmas grandes).
+[x] Graduação: cálculo de elegibilidade agora agrupa por (aluno, arte marcial)
+    em vez de por matrícula — evita contar dobrado aluno matriculado em duas
+    turmas da mesma arte. Contagem de presenças passou a considerar a
+    data_inicio da graduação atual (GraduacaoAluno), não mais um contador
+    cumulativo (aulas_desde_graduacao) que podia dessincronizar.
+[x] Perfil do aluno: histórico de graduação mostra aulas presentes e %
+    carência por faixa (usa CriterioGraduacao.min_aulas quando cadastrado);
+    suporte a faixa atual em mais de uma arte marcial simultaneamente.
+[x] Turmas: ativar/desativar (soft delete) + filtro Ativas/Inativas/Todas;
+    edição de professor responsável direto na tela de turma.
+[x] Configurações: CRUD de professores (criar, editar, ativar/desativar).
+[x] Matrícula: ao reativar matrícula existente, sincroniza graduacao_atual_faixa_id.
+[x] Navegação: nome do aluno é clicável em Turmas, Chamadas, Dashboard e
+    Financeiro, abrindo o perfil por cima da página atual.
+
+=== BUGS CONHECIDOS ===
+[ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
+    no console ao desmontar componente na tela de Chamadas. Não observado
+    impacto funcional até agora — investigar se persistir em produção.
+
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
 - Branch: feat/escola-artes-marciais
@@ -25,3 +53,4 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 - Tipo: Produto Novo | Tamanho: G
 - Referência de stack: ~/competicao-manager/
 - Check-in é PRIORIDADE #1 — começar por T-01 → T-02 → T-04 → T-05 → T-10
+- MVP (T-01 a T-15) concluído; trabalho atual é refinamento pós-MVP (ver FASE 2)
