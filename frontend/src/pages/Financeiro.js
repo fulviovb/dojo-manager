@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import GraficoArea from '../components/GraficoArea';
+import assinaturaImg from '../assets/assinatura.png';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const btnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -482,8 +483,9 @@ function ModalRecibo({ fatura, onFechar }) {
             assinatura <strong>{PERIODICIDADE_LABEL[recibo.periodicidade] || 'avulsa'}</strong> do <strong>{recibo.plano_nome}</strong>.
           </p>
           <p style={{ fontSize: 13, color: '#555' }}>Em {formatData(recibo.data_pagamento)} · {recibo.forma_pagamento?.replace(/_/g, ' ')}</p>
-          <div style={{ marginTop: 32, textAlign: 'right', fontSize: 12, color: '#888' }}>
-            <div style={{ borderTop: '1px solid #ccc', display: 'inline-block', paddingTop: 4 }}>{recibo.escola_nome}</div>
+          <div style={{ marginTop: 24, textAlign: 'right' }}>
+            <img src={assinaturaImg} alt="Assinatura" style={{ height: 60, display: 'inline-block' }} />
+            <div style={{ borderTop: '1px solid #ccc', paddingTop: 4, fontSize: 12, color: '#888' }}>{recibo.escola_nome}</div>
           </div>
         </div>
       )}

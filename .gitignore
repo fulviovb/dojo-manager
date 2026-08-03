@@ -16,6 +16,11 @@ backend/dist/
 # Backups de banco (podem conter dados reais de alunos)
 backup_*.sql
 
+# Assinatura pessoal usada no recibo — não deve ir para o repositório
+frontend/src/assets/assinatura.png
+gestao-financeira/assinatura.png
+gestao-financeira/assinatura.jpg
+
 # SO / editores
 .DS_Store
 Thumbs.db

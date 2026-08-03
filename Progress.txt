@@ -70,6 +70,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 [x] `AlunoDetalhe.js`: seção lateral passou a mostrar os planos vinculados do
     aluno (com pausar/reativar/finalizar) e as últimas faturas, em vez do
     lançamento manual de mensalidade avulsa de antes.
+[x] Recibo imprimível ganhou a assinatura de quem administra a escola, lida
+    de `frontend/src/assets/assinatura.png`. Esse arquivo é pessoal e fica
+    de fora do controle de versão (ver `.gitignore`) — quem clonar o repo
+    precisa colocar sua própria imagem de assinatura nesse caminho para o
+    recibo renderizar a imagem (sem ela, só falta a imagem; o resto do
+    recibo funciona normalmente).
 [x] Schema aplicado ao banco existente via script one-off
     (`backend/src/scripts/2026-08-financeiro-schema.js`, já executado) —
     projeto não usa migrations, `sync({alter:false})` não altera tabelas
