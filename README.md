@@ -300,7 +300,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Recurso              | Rotas (método + path)                                                                 | Roles                  |
 |-----------------------|---------------------------------------------------------------------------------------|-------------------------|
 | Auth                  | `POST /auth/login`, `GET /auth/me`                                                    | público / autenticado   |
-| Escolas               | `GET,POST /escolas`, `GET,PUT /escolas/:id`                                           | autenticado / admin     |
+| Escolas               | `GET,POST /escolas`, `GET,PUT /escolas/:id`, `POST /escolas/:id/assinatura` (multipart, campo `assinatura`, PNG) | autenticado / admin |
 | Usuários              | `GET /usuarios` (`?role=`, `?ativo=false\|todos` — padrão só ativos), `GET /usuarios/:id`, `GET /usuarios/:id/perfil` (inclui `frequencia`, `assinaturas`), `POST,PUT,DELETE /usuarios/:id` (`DELETE` = desativar; reativar é `PUT {ativo:true}`), `POST /usuarios/:id/foto` (multipart, campo `foto`) | autenticado / admin |
 | Artes marciais        | `GET /artes-marciais`, `GET/:id`, `POST,PUT,DELETE`                                   | autenticado / admin     |
 | Faixas                | `GET /faixas`, `POST,PUT,DELETE`                                                       | autenticado / admin     |
@@ -345,8 +345,9 @@ Páginas (`frontend/src/pages/`): `Login`, `Dashboard`, `Alunos` / `AlunoDetalhe
 `Configuracoes`, `CheckinPublico`, `ReciboPage`.
 
 Componentes compartilhados (`frontend/src/components/`): `Avatar` (foto do aluno com
-fallback de iniciais) e `GraficoArea` (gráfico de área em SVG puro, sem dependência
-externa, usado no painel financeiro).
+fallback de iniciais), `GraficoArea` (gráfico de área em SVG puro, sem dependência
+externa, usado no painel financeiro) e `AssinaturaPad` (assinatura desenhada à mão
+em `<canvas>`, salva por escola — ver "Financeiro" abaixo).
 
 O token JWT é guardado em `localStorage` e injetado em toda requisição via
 interceptor do axios (`App.js`).
@@ -386,7 +387,10 @@ Abas **Painel** (indicadores + gráfico de ganhos vs a receber) / **Planos** /
 **Assinaturas** / **Faturas**. Uma Assinatura vincula aluno + plano + dia de
 vencimento; faturas são geradas automaticamente (ver "Geração de faturas" acima).
 Pagamento aceita juros/desconto com total recalculado ao vivo; recibo abre em
-nova aba, imprimível.
+nova aba, imprimível. A assinatura que aparece no recibo é **por escola**
+(`Escola.assinatura_url`), desenhada em Configurações → "Assinatura para
+Recibos" (`AssinaturaPad`, canvas) e salva no servidor — sem isso, o recibo
+simplesmente não mostra assinatura (sem quebrar o resto).
 
 ### Relatórios
 
@@ -408,15 +412,18 @@ Frequência: Presença Mínima.
 ## Status
 
 Todas as 15 tarefas do MVP (T-01 a T-15) descritas no PRD estão concluídas.
-Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 7):
+Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 8):
 reescrita da tela de Chamadas, módulo de Gestão Financeira completo (planos,
 assinaturas recorrentes, faturas com geração automática, recibo imprimível),
 módulo de Relatórios (7 relatórios básicos inspirados no iDojo), foto do aluno,
 histórico de frequência com ausências, correções de cadastro (CPF como
 identificador único do aluno, e-mail deixou de ser único pra permitir irmãos
-compartilhando o e-mail dos pais), e módulo satélite de check-in online
+compartilhando o e-mail dos pais), módulo satélite de check-in online
 (`checkin-online/`, ver seção própria acima) — já em produção no Google
-Cloud, faltando só a reimpressão física dos QR Codes das salas.
+Cloud, faltando só a reimpressão física dos QR Codes das salas — e
+assinatura do recibo passando a ser desenhada e salva por escola (sem mais
+depender de um arquivo local no repositório), essencial pra outras escolas
+usarem o sistema.
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

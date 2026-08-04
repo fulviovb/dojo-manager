@@ -71,11 +71,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     aluno (com pausar/reativar/finalizar) e as últimas faturas, em vez do
     lançamento manual de mensalidade avulsa de antes.
 [x] Recibo imprimível ganhou a assinatura de quem administra a escola, lida
-    de `frontend/src/assets/assinatura.png`. Esse arquivo é pessoal e fica
-    de fora do controle de versão (ver `.gitignore`) — quem clonar o repo
-    precisa colocar sua própria imagem de assinatura nesse caminho para o
-    recibo renderizar a imagem (sem ela, só falta a imagem; o resto do
-    recibo funciona normalmente).
+    de `frontend/src/assets/assinatura.png` (arquivo local pessoal, fora do
+    controle de versão). **Substituído na FASE 8** por um mecanismo por
+    escola guardado no servidor — não depender mais de um arquivo local
+    era necessário pra escolas novas funcionarem sem precisar editar
+    código/arquivos do repositório.
 [x] Schema aplicado ao banco existente via script one-off
     (`backend/src/scripts/2026-08-financeiro-schema.js`, já executado) —
     projeto não usa migrations, `sync({alter:false})` não altera tabelas
@@ -270,6 +270,53 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Souza fizeram check-in de verdade pelo celular, pela URL pública —
     confirmado check-in registrado e refletido no `checkin_feito` do
     roster. Módulo satélite considerado funcional ponta a ponta.
+[x] Bug real encontrado no primeiro clique em "Sincronizar" com dados de
+    verdade: os 3 check-ins reais (Kelli/Anderson/Matheus) vieram como
+    "0 novos" — a `Aula` de hoje daquela turma já existia com horário
+    desatualizado (sobra de um teste meu, anterior nesta sessão, de
+    `HorarioTurma` temporário que não tinha sido totalmente revertido —
+    `Aula.findOrCreate` só define horário na criação, nunca atualiza uma
+    aula já existente). Corrigido o horário da aula afetada e recriadas
+    manualmente as 3 `Chamada` reais (`origem:'qrcode'`) que tinham sido
+    descartadas. Auditoria das outras aulas do dia não achou mais nenhuma
+    divergente.
+[x] Bug de fundo corrigido em `checkinOnlineService.buscarEReconciliarCheckins`:
+    o arquivo de check-ins do dia era arquivado (`/sync/checkins/confirmar`)
+    mesmo quando algum evento não encontrava aula correspondente — perdendo
+    a chance de tentar de novo depois de corrigir o problema, contradizendo
+    a intenção original de "nunca perder check-in por sincronização que
+    falhou no meio". Agora só arquiva se **todo** evento reconciliou; a
+    tela de Chamadas mostra um aviso com quantos ficaram pendentes.
+
+=== FASE 8: Assinatura do recibo por escola (self-service, sem arquivo local) ===
+[x] Problema: a assinatura do recibo vinha de um arquivo local
+    (`frontend/src/assets/assinatura.png`, pessoal, fora do git) importado
+    de forma estática no build do React — funcionava só porque o arquivo
+    já existe na máquina de quem desenvolveu o sistema. Pra uma escola
+    nova usar o sistema, precisaria editar arquivo/código do repositório
+    manualmente, o que não faz sentido pra um admin sem acesso técnico.
+[x] Campo novo `Escola.assinatura_url` (script one-off
+    `backend/src/scripts/2026-08-assinatura-escola.js`, já executado, com
+    backup prévio do banco) + endpoint `POST /api/escolas/:id/assinatura`
+    (admin, só da própria escola — `multer`, mesmo padrão já usado pra
+    foto do aluno), salvando em `backend/uploads/assinaturas/` (fora do
+    versionamento, como as fotos).
+[x] `frontend/src/components/AssinaturaPad.js` (novo): assinatura desenhada
+    à mão num `<canvas>` (mouse e touch), com "Limpar" e "Salvar
+    Assinatura" — exporta o desenho como PNG (`canvas.toBlob`) e envia
+    via `FormData`. Nova seção "Assinatura para Recibos" em
+    `Configuracoes.js`, mostra a assinatura atual (se existir) acima do
+    pad de desenho.
+[x] `financeiroController.reciboMensalidade` passou a incluir
+    `escola_assinatura_url` na resposta; `ReciboPage.js` não usa mais o
+    import estático do arquivo local (que quebraria o build pra quem não
+    tivesse esse arquivo pessoal) — só renderiza a imagem se a escola tiver
+    uma assinatura salva no servidor.
+[x] A assinatura pessoal que já estava em uso foi migrada pro novo
+    mecanismo via upload direto do arquivo local existente pro endpoint
+    novo — mesmo conteúdo visual, sem precisar redesenhar nada; testado
+    (tela de Configurações e um recibo real) e confirmado idêntico ao de
+    antes.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
