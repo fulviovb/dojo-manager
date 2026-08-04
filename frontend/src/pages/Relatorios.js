@@ -193,6 +193,7 @@ export default function Relatorios() {
   const [artes, setArtes] = useState([]);
   const [turmas, setTurmas] = useState([]);
   const [alunos, setAlunos] = useState([]);
+  const [busca, setBusca] = useState('');
 
   useEffect(() => {
     axios.get('/artes-marciais').then(r => setArtes(r.data));
@@ -200,15 +201,25 @@ export default function Relatorios() {
     axios.get('/usuarios?role=aluno').then(r => setAlunos(r.data));
   }, []);
 
+  const relatorios = [
+    { titulo: 'Alunos por Graduação', node: <CardAlunosPorGraduacao artes={artes} /> },
+    { titulo: 'Alunos por Turma-Horário', node: <CardAlunosPorTurma turmas={turmas} /> },
+    { titulo: 'Ficha Cadastral Resumida', node: <CardFichaCadastral alunos={alunos} /> },
+    { titulo: 'Aulas & Frequências (Turma)', node: <CardFrequenciaTurma turmas={turmas} /> },
+    { titulo: 'Aulas & Frequências (Alunos)', node: <CardFrequenciaAluno alunos={alunos} /> },
+    { titulo: 'Aniversariantes por mês', node: <CardAniversariantes /> },
+    { titulo: 'Frequência: Presença Mínima', node: <CardPresencaMinima artes={artes} /> },
+  ];
+  const filtrados = relatorios.filter(r => r.titulo.toLowerCase().includes(busca.toLowerCase()));
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-      <CardAlunosPorGraduacao artes={artes} />
-      <CardAlunosPorTurma turmas={turmas} />
-      <CardFichaCadastral alunos={alunos} />
-      <CardFrequenciaTurma turmas={turmas} />
-      <CardFrequenciaAluno alunos={alunos} />
-      <CardAniversariantes />
-      <CardPresencaMinima artes={artes} />
+    <div>
+      <input placeholder="Buscar relatório..." value={busca} onChange={e => setBusca(e.target.value)}
+        style={{ ...estiloInput, maxWidth: 320, marginBottom: 16 }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+        {filtrados.length === 0 && <p style={{ color: '#888' }}>Nenhum relatório encontrado.</p>}
+        {filtrados.map((r, i) => <React.Fragment key={i}>{r.node}</React.Fragment>)}
+      </div>
     </div>
   );
 }

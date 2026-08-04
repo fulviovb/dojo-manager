@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { SERVER_ORIGIN } from '../components/Avatar';
 
 // ── Cores das faixas ──────────────────────────────────────────────────────────
 
@@ -335,14 +336,14 @@ function SecaoTurmas({ matriculas, alunoId, onRefresh }) {
 
 // ── Seção: Frequência ─────────────────────────────────────────────────────────
 
-function SecaoFrequencia({ chamadas }) {
+function SecaoFrequencia({ frequencia }) {
   const [busca, setBusca] = useState('');
   const [pagina, setPagina] = useState(1);
   const POR_PAG = 10;
 
-  const filtradas = chamadas.filter(c => {
-    const turma = c.Aula?.Turma?.nome || '';
-    return turma.toLowerCase().includes(busca.toLowerCase()) || (c.Aula?.data || '').includes(busca);
+  const filtradas = frequencia.filter(f => {
+    const turma = f.turma || '';
+    return turma.toLowerCase().includes(busca.toLowerCase()) || (f.data || '').includes(busca);
   });
   const total = filtradas.length;
   const paginas = Math.ceil(total / POR_PAG);
@@ -372,15 +373,21 @@ function SecaoFrequencia({ chamadas }) {
             {slice.length === 0 && (
               <tr><td colSpan={3} style={{ padding: 16, textAlign: 'center', color: '#aaa' }}>Nenhum registro encontrado.</td></tr>
             )}
-            {slice.map((c, i) => (
-              <tr key={c.id} style={{ borderBottom: '1px solid #f5f5f5', background: i % 2 ? '#fafafa' : '#fff' }}>
-                <td style={{ padding: '7px 8px', fontWeight: 500 }}>{formatData(c.Aula?.data)}</td>
+            {slice.map((f, i) => (
+              <tr key={f.aula_id} style={{ borderBottom: '1px solid #f5f5f5', background: i % 2 ? '#fafafa' : '#fff' }}>
+                <td style={{ padding: '7px 8px', fontWeight: 500 }}>{formatData(f.data)}</td>
                 <td style={{ padding: '7px 8px' }}>
-                  <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
-                    Presente
-                  </span>
+                  {f.presente ? (
+                    <span style={{ background: '#e8f5e9', color: '#2e7d32', fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
+                      Presente
+                    </span>
+                  ) : (
+                    <span style={{ background: '#ffebee', color: '#c62828', fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
+                      Ausente
+                    </span>
+                  )}
                 </td>
-                <td style={{ padding: '7px 8px', color: '#555' }}>{c.Aula?.Turma?.nome || '—'}</td>
+                <td style={{ padding: '7px 8px', color: '#555' }}>{f.turma || '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -782,7 +789,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
     <div style={{ padding: 24, color: '#c00' }}>Erro ao carregar dados do aluno.</div>
   );
 
-  const { aluno, graduacoes, matriculas, chamadas, mensalidades, ocorrencias, assinaturas } = dados;
+  const { aluno, graduacoes, matriculas, frequencia, mensalidades, ocorrencias, assinaturas } = dados;
   // Um aluno pode ter graduação atual em mais de uma arte marcial (ex: Vermelha
   // no Karatê e Branca no Jiu-Jitsu) — mostra uma faixa por arte, não só a primeira.
   const faixasAtuais = graduacoes
@@ -805,16 +812,23 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
               {[aluno.matricula, aluno.email].filter(Boolean).join(' · ')}
             </div>
           </div>
-          {/* Avatar placeholder */}
-          <div style={{
-            width: 56, height: 56, borderRadius: '50%',
-            background: `linear-gradient(135deg, ${corDaFaixa(faixasAtuais[0]?.faixa?.nome || '')} 0%, #1e2a38 100%)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 700, fontSize: 22, flexShrink: 0,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-          }}>
-            {aluno.nome[0].toUpperCase()}
-          </div>
+          {/* Avatar: foto real quando existir, senão iniciais + gradiente da faixa */}
+          {aluno.foto_url ? (
+            <img src={`${SERVER_ORIGIN}${aluno.foto_url}`} alt={aluno.nome} style={{
+              width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            }} />
+          ) : (
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${corDaFaixa(faixasAtuais[0]?.faixa?.nome || '')} 0%, #1e2a38 100%)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 700, fontSize: 22, flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            }}>
+              {aluno.nome[0].toUpperCase()}
+            </div>
+          )}
         </div>
       </div>
 
@@ -825,7 +839,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
         <div>
           <SecaoGraduacao dadosGraduacao={graduacoes} alunoId={alunoId} onRefresh={carregar} />
           <SecaoTurmas matriculas={matriculas} alunoId={alunoId} onRefresh={carregar} />
-          <SecaoFrequencia chamadas={chamadas} />
+          <SecaoFrequencia frequencia={frequencia} />
         </div>
 
         {/* Sidebar */}

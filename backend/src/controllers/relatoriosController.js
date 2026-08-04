@@ -25,7 +25,7 @@ const alunosPorGraduacao = async (req, res) => {
       include: [
         { model: Usuario, as: 'Aluno', attributes: ['id', 'nome'], where: { escola_id, role: 'aluno', ativo: true } },
         { model: Faixa, as: 'FaixaAtual', attributes: ['id', 'nome', 'cor', 'ordem', 'arte_marcial_id'] },
-        { model: Turma, attributes: ['id', 'nome'], where: arte_marcial_id ? { arte_marcial_id } : undefined },
+        { model: Turma, attributes: ['id', 'nome'], where: { ativa: true, ...(arte_marcial_id ? { arte_marcial_id } : {}) } },
       ],
     });
 
@@ -63,7 +63,7 @@ const alunosPorTurma = async (req, res) => {
     const comPlano = req.query.plano_pagamento === 'true';
 
     const turma = await Turma.findOne({
-      where: { id: turma_id, escola_id },
+      where: { id: turma_id, escola_id, ativa: true },
       include: [
         { model: ArteMarcial, attributes: ['id', 'nome'] },
         { model: Usuario, as: 'Professor', attributes: ['id', 'nome'] },
@@ -95,6 +95,7 @@ const alunosPorTurma = async (req, res) => {
         id: m.Aluno.id,
         nome: m.Aluno.nome,
         faixa: m.FaixaAtual?.nome || null,
+        faixa_cor: m.FaixaAtual?.cor || null,
         plano: comPlano ? (planosPorAluno[m.aluno_id] || null) : undefined,
       }))
       .sort((a, b) => a.nome.localeCompare(b.nome));
@@ -145,7 +146,7 @@ const fichaCadastral = async (req, res) => {
     res.json({
       aluno: aluno.toJSON(),
       turmas: matriculas.map((m) => m.Turma?.nome).filter(Boolean),
-      graduacoes_atuais: graduacoesAtuais.map((g) => ({ arte: g.ArteMarcial?.nome, faixa: g.Faixa?.nome })),
+      graduacoes_atuais: graduacoesAtuais.map((g) => ({ arte: g.ArteMarcial?.nome, faixa: g.Faixa?.nome, faixa_cor: g.Faixa?.cor || null })),
     });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
@@ -157,7 +158,7 @@ const frequenciaTurma = async (req, res) => {
     const { turma_id, modo } = req.query;
     if (!turma_id) return res.status(400).json({ erro: 'turma_id é obrigatório' });
 
-    const turma = await Turma.findOne({ where: { id: turma_id, escola_id } });
+    const turma = await Turma.findOne({ where: { id: turma_id, escola_id, ativa: true } });
     if (!turma) return res.status(404).json({ erro: 'Turma não encontrada' });
     if (!ehDonoDaTurma(req.usuario, turma)) return res.status(403).json({ erro: 'Acesso negado a esta turma' });
 

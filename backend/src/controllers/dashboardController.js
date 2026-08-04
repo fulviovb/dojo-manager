@@ -197,6 +197,7 @@ const graduacao = async (req, res) => {
           aluno: { id: grupo.aluno.id, nome: grupo.aluno.nome },
           turma: [...new Set(grupo.turmaNomes)].join(', '),
           faixa_atual: grupo.faixaAtual.nome,
+          faixa_cor: grupo.faixaAtual.cor || null,
           aulas_desde_graduacao: aulasPresentes,
           min_aulas_criterio: criterio.min_aulas,
         });

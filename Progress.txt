@@ -104,6 +104,70 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     marcial (`?arte_marcial_id=`), evitando duplicar a lógica de
     elegibilidade só pro relatório.
 
+=== FASE 5: Demandas 2026-08-03 (demandas20260803.txt) ===
+[x] Histórico de frequência do aluno passou a mostrar também as AUSÊNCIAS, não
+    só as presenças. `usuariosController.perfil` ganhou o campo `frequencia`
+    (presença + ausência por aula fechada das turmas matriculadas, a partir
+    da data_matricula de cada turma — mas presenças reais sempre aparecem,
+    mesmo anteriores à matrícula atual, pra não sumir com histórico
+    legítimo). Só aulas com `status:'fechada'` contam (mesmo critério do
+    semáforo de ausência).
+[x] Foto do aluno: upload via `POST /api/usuarios/:id/foto` (multipart,
+    `multer`), salva em `backend/uploads/fotos/` (fora do versionamento,
+    servido estático em `/uploads`). Campo `foto_url` já existia no model
+    e não era usado em lugar nenhum — agora entra em `CAMPOS_ALUNO` e tem
+    upload direto no formulário de edição em `Alunos.js`.
+[x] Componente `frontend/src/components/Avatar.js` (novo, compartilhado):
+    mostra a foto real quando existe, senão iniciais + cor sólida. Usado na
+    listagem de `Alunos.js`, na lista de matriculados de `TurmaDetalhe.js`
+    (precisou incluir `foto_url` na query de `matriculasController.listar`,
+    que não trazia esse campo) e no cabeçalho de `AlunoDetalhe.js` (mantendo
+    o gradiente por cor de faixa como fallback, já existente ali).
+[x] Cor da faixa nos relatórios: `frontend/src/utils/faixaCores.js` (novo,
+    porta a lógica já usada em `TurmaDetalhe.js` — cor do banco quando não é
+    o placeholder `#808080`, senão deriva do nome da faixa). Aplicado nos 4
+    relatórios que citam faixa (Alunos por Graduação, Alunos por Turma,
+    Ficha Cadastral, Presença Mínima); backend passou a enviar `cor`/
+    `faixa_cor` nesses payloads (antes buscava e descartava).
+[x] Turmas desativadas não aparecem mais nos relatórios: nenhuma query de
+    `Turma` em `relatoriosController.js` filtrava `ativa: true` — um aluno
+    com matrícula ativa numa turma desativada continuava aparecendo
+    agrupado em "Alunos por Graduação", e dava pra gerar "Alunos por
+    Turma"/"Frequência (Turma)" passando o `turma_id` de uma turma inativa.
+    Agora filtra sempre; turma inativa retorna 404 igual turma inexistente.
+[x] Campo de busca em `Relatorios.js` pra filtrar os 7 cards pelo título.
+
+=== FASE 6: Correções no cadastro de aluno ===
+[x] Bug: editar um aluno deixando um campo de data em branco (Nascimento ou
+    Data de ingresso) quebrava com "Erro interno" — o formulário manda `''`
+    e o MySQL rejeita string vazia num campo DATEONLY. Também descoberto que
+    o `catch` de `atualizar`/`criar`/`listar`/`buscar`/`desativar` em
+    `usuariosController.js` engolia o erro real sem logar nada, por isso não
+    aparecia em lugar nenhum — todos os `catch` do arquivo agora fazem
+    `console.error(e)`.
+[x] Bug relacionado, mais sério: e-mail duplicado ao editar um aluno também
+    dava "Erro interno" em vez de mensagem clara — `atualizar` não tratava
+    `SequelizeUniqueConstraintError` como `criar` já tratava. Investigando a
+    causa raiz de um caso real (duas fichas cadastradas pro mesmo aluno,
+    uma ativa com e-mail digitado errado, outra inativa com o e-mail
+    certo — a inativa "segurava" o e-mail e travava a correção da ativa)
+    ficou claro que o problema de fundo é maior: **crianças pequenas não
+    têm e-mail próprio e várias costumam usar o e-mail dos pais**, então
+    e-mail nunca deveria ter sido único pra aluno.
+[x] CPF passa a ser o identificador único de fato do aluno; e-mail deixou de
+    ser único no schema (`backend/src/models/Usuario.js`). E-mail duplicado
+    só é bloqueado pra quem realmente loga no sistema (`admin`/`professor`),
+    validado na aplicação (`usuariosController.js`), não mais no banco.
+    Campos vazios (`cpf`, `data_nascimento`, `data_ingresso`) viram `null`
+    antes de salvar — nunca `''`, pra não colidir entre si nos índices
+    únicos. Migração one-off já executada
+    (`backend/src/scripts/2026-08-cpf-unico.js`): backup do banco, CPFs em
+    branco normalizados pra `NULL`, índice único de `email` removido,
+    índice único de `cpf` criado (sem duplicatas reais encontradas antes de
+    aplicar). O cadastro duplicado real encontrado durante essa investigação
+    foi excluído do banco (sem histórico vinculado — chamadas, matrículas,
+    financeiro — então seguro remover).
+
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Não observado
@@ -116,4 +180,4 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 - Tipo: Produto Novo | Tamanho: G
 - Referência de stack: ~/competicao-manager/
 - Check-in é PRIORIDADE #1 — começar por T-01 → T-02 → T-04 → T-05 → T-10
-- MVP (T-01 a T-15) concluído; trabalho atual é refinamento pós-MVP (ver FASE 2)
+- MVP (T-01 a T-15) concluído; trabalho atual é refinamento pós-MVP (ver FASE 2 a FASE 6)

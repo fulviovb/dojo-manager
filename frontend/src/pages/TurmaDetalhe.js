@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import Avatar from '../components/Avatar';
 
 const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -149,6 +150,7 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fafafa' }}>
+                <th style={thEstilo}></th>
                 <th style={thEstilo}>Aluno</th>
                 <th style={thEstilo}>Graduação</th>
                 <th style={thEstilo}></th>
@@ -156,10 +158,13 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
             </thead>
             <tbody>
               {matriculas.length === 0 && (
-                <tr><td colSpan={3} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>Nenhum aluno matriculado.</td></tr>
+                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>Nenhum aluno matriculado.</td></tr>
               )}
               {matriculas.map(m => (
                 <tr key={m.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                  <td style={{ padding: '8px 0 8px 16px' }}>
+                    <Avatar fotoUrl={m.Aluno?.foto_url} nome={m.Aluno?.nome} tamanho={28} />
+                  </td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>
                     <button onClick={() => onVerAluno?.(m.aluno_id)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1565c0', fontSize: 13, textAlign: 'left' }}>

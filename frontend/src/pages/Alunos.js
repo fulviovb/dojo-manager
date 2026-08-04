@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
+import Avatar from '../components/Avatar';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const btnPrimario  = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -13,7 +14,7 @@ const FORM_VAZIO = {
   data_ingresso: '', naturalidade: '', profissao: '',
   telefone: '', matricula: '',
   endereco: '', bairro: '', cep: '', cidade: '', estado: '',
-  mae: '', pai: '', observacoes: '',
+  mae: '', pai: '', observacoes: '', foto_url: '',
 };
 
 function Campo({ label, campo, form, setForm, type = 'text', required = false, spanAll = false }) {
@@ -34,6 +35,36 @@ function Campo({ label, campo, form, setForm, type = 'text', required = false, s
   );
 }
 
+function CampoFoto({ fotoUrl, nome, alunoId, onEnviada }) {
+  const [enviando, setEnviando] = useState(false);
+  const [erroFoto, setErroFoto] = useState('');
+  const inputRef = useRef(null);
+
+  const escolherArquivo = async (e) => {
+    const arquivo = e.target.files[0];
+    if (!arquivo) return;
+    setEnviando(true); setErroFoto('');
+    try {
+      const formData = new FormData();
+      formData.append('foto', arquivo);
+      const r = await axios.post(`/usuarios/${alunoId}/foto`, formData);
+      onEnviada(r.data.foto_url);
+    } catch (ex) { setErroFoto(ex.response?.data?.erro || 'Erro ao enviar foto'); }
+    finally { setEnviando(false); if (inputRef.current) inputRef.current.value = ''; }
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+      <Avatar fotoUrl={fotoUrl} nome={nome} tamanho={56} />
+      <div>
+        <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={escolherArquivo} disabled={enviando} style={{ fontSize: 12 }} />
+        {enviando && <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>Enviando...</div>}
+        {erroFoto && <div style={{ fontSize: 12, color: 'red', marginTop: 2 }}>{erroFoto}</div>}
+      </div>
+    </div>
+  );
+}
+
 function Modal({ titulo, onFechar, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, padding: '24px 16px', overflowY: 'auto' }}>
@@ -48,7 +79,7 @@ function Modal({ titulo, onFechar, children }) {
   );
 }
 
-function FormularioAluno({ form, setForm, erro, onSubmit, onCancelar, isEdicao }) {
+function FormularioAluno({ form, setForm, erro, onSubmit, onCancelar, isEdicao, alunoId, onFotoEnviada }) {
   const secao = (titulo) => (
     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#aaa', marginBottom: 8, marginTop: 8, borderBottom: '1px solid #eee', paddingBottom: 4 }}>
       {titulo}
@@ -58,6 +89,9 @@ function FormularioAluno({ form, setForm, erro, onSubmit, onCancelar, isEdicao }
 
   return (
     <form onSubmit={onSubmit}>
+      {isEdicao && alunoId && (
+        <CampoFoto fotoUrl={form.foto_url} nome={form.nome} alunoId={alunoId} onEnviada={onFotoEnviada} />
+      )}
       {secao('Identificação')}
       <div style={grid2}>
         <Campo label="Nome completo" campo="nome" form={form} setForm={setForm} required spanAll />
@@ -192,6 +226,11 @@ export default function Alunos({ onVerAluno }) {
     carregar();
   };
 
+  const handleFotoEnviada = (foto_url) => {
+    setForm(f => ({ ...f, foto_url }));
+    carregar();
+  };
+
   const filtrados = alunos
     .filter(a =>
       a.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -210,6 +249,7 @@ export default function Alunos({ onVerAluno }) {
   });
 
   const COLUNAS = [
+    { key: null, label: '' },
     { key: 'nome', label: 'Nome' },
     { key: 'apelido', label: 'Apelido' },
     { key: 'matricula', label: 'Matrícula' },
@@ -247,8 +287,8 @@ export default function Alunos({ onVerAluno }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f5f5f5' }}>
-              {COLUNAS.map(c => (
-                <th key={c.label} onClick={() => c.key && handleSort(c.key)}
+              {COLUNAS.map((c, i) => (
+                <th key={i} onClick={() => c.key && handleSort(c.key)}
                   style={{
                     padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#555',
                     textTransform: 'uppercase', letterSpacing: 0.5,
@@ -267,6 +307,9 @@ export default function Alunos({ onVerAluno }) {
               <tr key={a.id} style={{ borderTop: '1px solid #f0f0f0' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
                 onMouseLeave={e => e.currentTarget.style.background = ''}>
+                <td style={{ padding: '8px 0 8px 16px' }}>
+                  <Avatar fotoUrl={a.foto_url} nome={a.nome} tamanho={32} />
+                </td>
                 <td style={{ padding: '10px 16px' }}>
                   <button onClick={() => onVerAluno?.(a.id)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: '#1565c0', padding: 0, textAlign: 'left' }}>
@@ -305,7 +348,8 @@ export default function Alunos({ onVerAluno }) {
       {alunoEditando && (
         <Modal titulo={`Editar: ${alunoEditando.nome}`} onFechar={() => setAlunoEditando(null)}>
           <FormularioAluno form={form} setForm={setForm} erro={erro}
-            onSubmit={handleAtualizar} onCancelar={() => setAlunoEditando(null)} isEdicao={true} />
+            onSubmit={handleAtualizar} onCancelar={() => setAlunoEditando(null)} isEdicao={true}
+            alunoId={alunoEditando.id} onFotoEnviada={handleFotoEnviada} />
         </Modal>
       )}
     </div>

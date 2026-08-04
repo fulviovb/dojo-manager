@@ -16,6 +16,10 @@ backend/dist/
 # Backups de banco (podem conter dados reais de alunos)
 backup_*.sql
 
+# Fotos de alunos enviadas via upload (dados de usuário, não código)
+backend/uploads/fotos/*
+!backend/uploads/fotos/.gitkeep
+
 # Assinatura pessoal usada no recibo — não deve ir para o repositório
 frontend/src/assets/assinatura.png
 gestao-financeira/assinatura.png

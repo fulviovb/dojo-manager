@@ -10,7 +10,7 @@ const listar = async (req, res) => {
     const matriculas = await MatriculaAluno.findAll({
       where,
       include: [
-        { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'email'] },
+        { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'email', 'foto_url'] },
         { model: Turma, attributes: ['id', 'nome'] },
         { model: Faixa, as: 'FaixaAtual', attributes: ['id', 'nome', 'cor'] },
       ],

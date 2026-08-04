@@ -9,5 +9,6 @@ router.get('/:id', autenticar, ctrl.buscar);
 router.post('/', autenticar, autorizarRole(['admin']), ctrl.criar);
 router.put('/:id', autenticar, autorizarRole(['admin']), ctrl.atualizar);
 router.delete('/:id', autenticar, autorizarRole(['admin']), ctrl.desativar);
+router.post('/:id/foto', autenticar, autorizarRole(['admin']), ctrl.enviarFoto);
 
 module.exports = router;

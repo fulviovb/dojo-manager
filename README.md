@@ -28,12 +28,17 @@ escola-artes-marciais/
 │   │   ├── controllers/      # regras de negócio por recurso
 │   │   ├── routes/           # definição de rotas Express por recurso
 │   │   ├── middleware/       # autenticação (JWT) e autorização (roles)
+│   │   ├── services/         # lógica reaproveitada por vários controllers (ex: faturaService.js)
+│   │   ├── scripts/          # migrações one-off (projeto não usa migration tool, ver nota abaixo)
 │   │   └── utils/            # helpers puros (ex: data.js — datas em fuso local)
+│   ├── uploads/fotos/         # fotos de aluno enviadas via upload (fora do versionamento)
 │   └── Dockerfile
 ├── frontend/                  # SPA React (CRA)
 │   └── src/
 │       ├── App.js            # layout, sidebar, roteamento simples por estado
-│       └── pages/            # uma página por tela (Dashboard, Turmas, Chamadas...)
+│       ├── pages/            # uma página por tela (Dashboard, Turmas, Chamadas...)
+│       ├── components/       # componentes compartilhados entre páginas (Avatar, GraficoArea)
+│       └── utils/            # helpers puros de UI (ex: faixaCores.js)
 ├── docker-compose.yml         # orquestra mysql + backend + frontend + nginx
 ├── nginx.conf                 # proxy reverso (alias /escola-am, /api, /ws)
 ├── CLAUDE.md                  # instruções e boundaries para agentes de IA
@@ -135,9 +140,17 @@ MatriculaAluno → graduacao_atual_faixa_id, aulas_desde_graduacao (contador p/ 
 GraduacaoAluno → histórico de faixas por aluno + arte marcial
 Ocorrencia     → anotações do professor sobre um aluno
 
-PlanoMensalidade 1―* Mensalidade *―1 Usuario (Aluno)
+PlanoMensalidade 1―* AssinaturaAluno *―1 Usuario (Aluno)   [vínculo recorrente: dia de
+                 vencimento + status ativa/pausada/finalizada]
+AssinaturaAluno  1―* Mensalidade  ("Fatura" na UI — geradas automaticamente, ver abaixo)
+PlanoMensalidade 1―* Mensalidade  (fatura também pode ser avulsa, sem assinatura)
 Mensalidade 1―* Pagamento
 ```
+
+`Usuario.email` **não é único** (ver "Unicidade de cadastro" abaixo); `Usuario.cpf`
+é o identificador único de fato, quando preenchido. `Usuario.foto_url` guarda o
+caminho relativo da foto enviada (`/uploads/fotos/<arquivo>`), servido estático a
+partir de `backend/uploads/`.
 
 ## Regras de negócio críticas
 
@@ -172,7 +185,37 @@ Ela busca todo `HorarioTurma` cujo `dia_semana` bate com a data pedida e faz
 Aluno é elegível quando `MatriculaAluno.aulas_desde_graduacao >=
 CriterioGraduacao.min_aulas` para a combinação escola + arte marcial + faixa atual.
 O contador é incrementado em `POST /api/chamadas/fechar/:aula_id` para cada aluno
-presente.
+presente. `GET /api/dashboard/graduacao` (aceita `?arte_marcial_id=` opcional) lista
+os elegíveis, agrupando por (aluno, arte marcial) pra não contar dobrado quem está
+matriculado em mais de uma turma da mesma arte.
+
+### Histórico de frequência (presenças **e** ausências)
+
+`GET /api/usuarios/:id/perfil` monta o campo `frequencia`: para cada turma em que o
+aluno tem matrícula ativa, cruza todas as `Aula`s **fechadas** dessa turma com as
+`Chamada`s do aluno — o que não tem chamada correspondente vira "ausente". Presenças
+reais aparecem sempre, mesmo anteriores à `data_matricula` atual (uma matrícula pode
+ser recriada depois de uma pausa sem apagar o histórico); só a marcação de *ausência*
+respeita esse corte, pra não inventar falta antes do aluno estar matriculado.
+
+### Geração de faturas (sem cron)
+
+Mesmo espírito do motor de aulas: `faturaService.gerarFaturasPendentes(escola_id)`
+roda **sob demanda** (disparada pelos endpoints financeiros e pelo perfil do aluno),
+gerando toda `Mensalidade` ("Fatura") de ciclos já vencidos de cada `AssinaturaAluno`
+ativa, com clamp de fim de mês (dia de vencimento 31 num fevereiro cai no dia 28/29).
+Pausar uma assinatura não gera cobrança retroativa do período pausado. Existe também
+geração antecipada (`POST /api/assinaturas/:id/gerar-fatura`, idempotente) pra quem
+quer pagar antes do vencimento normal.
+
+### Unicidade de cadastro: CPF, não e-mail
+
+`Usuario.email` não é único no banco — alunos menores costumam usar o e-mail dos
+pais, e é comum dois irmãos (dois alunos) compartilharem o mesmo endereço. Só
+precisa ser único quem realmente faz login (`admin`/`professor`); isso é validado na
+aplicação (`usuariosController.js`), não no schema. O identificador único de fato do
+aluno é o `cpf` (índice único no banco, `NULL` quando ainda não cadastrado — nunca
+`''`, pra não colidir entre alunos sem CPF preenchido).
 
 ### Datas e fuso horário
 
@@ -197,34 +240,51 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 |-----------------------|---------------------------------------------------------------------------------------|-------------------------|
 | Auth                  | `POST /auth/login`, `GET /auth/me`                                                    | público / autenticado   |
 | Escolas               | `GET,POST /escolas`, `GET,PUT /escolas/:id`                                           | autenticado / admin     |
-| Usuários              | `GET /usuarios` (`?role=`, `?ativo=false\|todos` — padrão só ativos), `GET /usuarios/:id`, `GET /usuarios/:id/perfil`, `POST,PUT,DELETE /usuarios/:id` (`DELETE` = desativar; reativar é `PUT {ativo:true}`) | autenticado / admin |
+| Usuários              | `GET /usuarios` (`?role=`, `?ativo=false\|todos` — padrão só ativos), `GET /usuarios/:id`, `GET /usuarios/:id/perfil` (inclui `frequencia`, `assinaturas`), `POST,PUT,DELETE /usuarios/:id` (`DELETE` = desativar; reativar é `PUT {ativo:true}`), `POST /usuarios/:id/foto` (multipart, campo `foto`) | autenticado / admin |
 | Artes marciais        | `GET /artes-marciais`, `GET/:id`, `POST,PUT,DELETE`                                   | autenticado / admin     |
 | Faixas                | `GET /faixas`, `POST,PUT,DELETE`                                                       | autenticado / admin     |
 | Critérios de graduação| `GET /criterios-graduacao`, `POST,PUT,DELETE`                                         | autenticado / admin     |
-| Turmas                | `GET /turmas`, `GET /turmas/:id`, `POST /turmas` (admin), `PUT /turmas/:id` (admin ou professor dono) | ver `ehDonoDaTurma` |
+| Turmas                | `GET /turmas` (`?ativa=false\|todas`), `GET /turmas/:id`, `POST /turmas` (admin), `PUT /turmas/:id` (admin ou professor dono) | ver `ehDonoDaTurma` |
 | Salas                 | `GET /salas`, `GET/:id`, `POST,PUT,DELETE`                                            | autenticado / admin     |
 | Horários (HorarioTurma)| `GET /horarios`, `POST,PUT,DELETE`                                                    | autenticado / admin     |
 | Aulas                 | `GET /aulas` (`?turma_id=` traz `presentes`/`ausentes` por aula), `GET/:id`, `POST /aulas/gerar-hoje` (admin), `POST,PUT` (admin/professor dono), `DELETE` (admin) | ver `ehDonoDaTurma` |
 | Check-in              | `GET,POST /checkin/:qr_token`                                                          | público (sem JWT)       |
 | Chamadas              | `GET,POST /chamadas`, `PUT /chamadas/:id/validar`, `POST /chamadas/fechar/:aula_id`, `DELETE /chamadas/:id` (admin) | admin/professor dono |
 | Matrículas            | `GET /matriculas`, `POST,PUT` (admin/professor), `DELETE` (admin)                     | autenticado             |
-| Planos                | `GET /planos`, `POST,PUT,DELETE`                                                       | autenticado / admin     |
-| Mensalidades          | `GET /mensalidades`, `POST,PUT`                                                        | autenticado / admin     |
-| Pagamentos            | `GET /pagamentos`, `POST`                                                              | autenticado / admin     |
+| Planos                | `GET /planos` (`?todos=true` inclui inativos), `POST,PUT,DELETE`                       | autenticado / admin     |
+| Assinaturas           | `GET /assinaturas` (`?status=`, `?aluno_id=`), `POST`, `PUT /:id`, `PUT /:id/pausar\|reativar\|finalizar`, `POST /:id/gerar-fatura` | autenticado / admin |
+| Mensalidades ("Faturas")| `GET /mensalidades` (`?aluno_id=`, `?status=`, `?ano=`, `?vencida=`), `POST,PUT`, `PUT /:id/cancelar`, `GET /:id/recibo` | autenticado / admin |
+| Pagamentos            | `GET /pagamentos` (`?mensalidade_id=`, `?aluno_id=`), `POST`, `DELETE /:id` (desfazer)| autenticado / admin     |
+| Financeiro            | `GET /financeiro/painel` (`?ano=` — indicadores + série mensal ganhos vs a receber)   | autenticado              |
+| Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes`                                                          | autenticado             |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
-| Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao`               | autenticado             |
+| Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`) | autenticado      |
 | Health check          | `GET /health`                                                                          | público                 |
+| Uploads (estático)    | `GET /uploads/fotos/:arquivo`                                                          | público (sem JWT)       |
 
 ## Frontend
 
 SPA de página única (`frontend/src/App.js`) sem router: a navegação principal troca
-componentes por estado local (sidebar), exceto `/checkin/:qr_token`, que é detectada
-por `window.location.pathname` e renderizada **fora** do app autenticado (página
-pública, sem `AuthGuard`).
+componentes por estado local (sidebar). Três rotas são detectadas por
+`window.location.pathname` e renderizadas **fora** do app autenticado (sem sidebar):
+
+| Path                | Página              | Uso |
+|---------------------|----------------------|-----|
+| `/checkin/:qr_token`| `CheckinPublico`     | pública, sem JWT — auto check-in do aluno |
+| `/recibo/:id`       | `ReciboPage`         | aberta em nova aba a partir de Financeiro → Faturas; imprimível |
+| `/relatorio/:tipo`  | `RelatorioPage`      | aberta em nova aba a partir de Relatórios; imprimível |
+
+`ReciboPage`/`RelatorioPage` reaproveitam o token já salvo no `localStorage` (mesma
+origem/aba do navegador) — não são páginas públicas de verdade, só não têm sidebar.
 
 Páginas (`frontend/src/pages/`): `Login`, `Dashboard`, `Alunos` / `AlunoDetalhe`,
-`Turmas` / `TurmaDetalhe`, `Chamadas`, `Financeiro`, `Configuracoes`, `CheckinPublico`.
+`Turmas` / `TurmaDetalhe`, `Chamadas`, `Financeiro`, `Relatorios` / `RelatorioPage`,
+`Configuracoes`, `CheckinPublico`, `ReciboPage`.
+
+Componentes compartilhados (`frontend/src/components/`): `Avatar` (foto do aluno com
+fallback de iniciais) e `GraficoArea` (gráfico de área em SVG puro, sem dependência
+externa, usado no painel financeiro).
 
 O token JWT é guardado em `localStorage` e injetado em toda requisição via
 interceptor do axios (`App.js`).
@@ -239,11 +299,16 @@ interceptor do axios (`App.js`).
 - Cabeçalhos da tabela (Nome, Apelido, Matrícula, Artes Marciais) são clicáveis
   para ordenar. A coluna **Artes Marciais** concatena os nomes distintos das
   artes em que o aluno tem algum registro em `GraduacaoAluno`.
+- Avatar (foto ou iniciais) do lado esquerdo de cada linha; upload de foto direto
+  no formulário de edição (`Escolher arquivo` → sobe na hora, sem precisar salvar
+  o resto do formulário).
+- Histórico de frequência no perfil (`AlunoDetalhe`) mostra presenças **e**
+  ausências, não só presenças.
 
 ### Turmas
 
 Clicar no nome de uma turma abre `TurmaDetalhe`, com:
-- **Alunos matriculados**: nome + badge da graduação atual (`FaixaAtual`),
+- **Alunos matriculados**: avatar, nome + badge da graduação atual (`FaixaAtual`),
   botão "Desmatricular" e um modal "+ Novo" para matricular um aluno ativo
   ainda não matriculado (com seleção opcional da faixa atual, filtrada por
   `arte_marcial_id` da turma).
@@ -252,6 +317,23 @@ Clicar no nome de uma turma abre `TurmaDetalhe`, com:
 
 Matricular um aluno numa turma é o que habilita a chamada/check-in daquela
 turma a contar presença para ele.
+
+### Financeiro
+
+Abas **Painel** (indicadores + gráfico de ganhos vs a receber) / **Planos** /
+**Assinaturas** / **Faturas**. Uma Assinatura vincula aluno + plano + dia de
+vencimento; faturas são geradas automaticamente (ver "Geração de faturas" acima).
+Pagamento aceita juros/desconto com total recalculado ao vivo; recibo abre em
+nova aba, imprimível.
+
+### Relatórios
+
+Grid de cards com filtro próprio por relatório (campo de busca no topo pra achar
+um específico). "Gerar Relatório" abre o resultado em nova aba, página imprimível
+— mesmo padrão do recibo. 7 relatórios: Alunos por Graduação, Alunos por
+Turma-Horário, Ficha Cadastral Resumida, Aulas & Frequências (Turma, com modos
+Relação/Quantitativo), Aulas & Frequências (Aluno), Aniversariantes por Mês,
+Frequência: Presença Mínima.
 
 ## Documentos do projeto
 
@@ -263,7 +345,14 @@ turma a contar presença para ele.
 
 ## Status
 
-Todas as 15 tarefas do MVP (T-01 a T-15) descritas no PRD estão concluídas — ver
-`Progress.txt`. Fora de escopo do MVP: gateway de pagamento, app mobile nativo,
-portal do aluno com login, comunicação automática (WhatsApp/e-mail) e gestão de
-campeonatos.
+Todas as 15 tarefas do MVP (T-01 a T-15) descritas no PRD estão concluídas.
+Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 6):
+reescrita da tela de Chamadas, módulo de Gestão Financeira completo (planos,
+assinaturas recorrentes, faturas com geração automática, recibo imprimível),
+módulo de Relatórios (7 relatórios básicos inspirados no iDojo), foto do aluno,
+histórico de frequência com ausências, e correções de cadastro (CPF como
+identificador único do aluno, e-mail deixou de ser único pra permitir irmãos
+compartilhando o e-mail dos pais).
+
+Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
+com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

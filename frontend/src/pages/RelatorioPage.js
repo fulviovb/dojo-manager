@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { corDaFaixa } from '../utils/faixaCores';
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -23,6 +24,16 @@ function formatData(iso) {
   return iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—';
 }
 
+function FaixaSwatch({ nome, cor }) {
+  if (!nome) return <span>—</span>;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ width: 12, height: 12, borderRadius: 3, background: corDaFaixa(nome, cor), border: '1px solid #ccc', display: 'inline-block', flexShrink: 0 }} />
+      {nome}
+    </span>
+  );
+}
+
 // Monta a URL + querystring do endpoint certo pra cada tipo de relatório,
 // a partir dos filtros vindos na querystring da própria página (ex:
 // /relatorio/alunos-por-graduacao?arte_marcial_id=...&exibir_turmas=true).
@@ -41,7 +52,7 @@ function TabelaAlunosPorGraduacao({ dados }) {
       {dados.faixas.map((f) => (
         <div key={f.faixa.id} style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ width: 14, height: 14, borderRadius: 3, background: f.faixa.cor, border: '1px solid #ccc', display: 'inline-block' }} />
+            <span style={{ width: 14, height: 14, borderRadius: 3, background: corDaFaixa(f.faixa.nome, f.faixa.cor), border: '1px solid #ccc', display: 'inline-block' }} />
             <strong>{f.faixa.nome}</strong>
             <span style={{ color: '#888', fontSize: 12 }}>({f.alunos.length})</span>
           </div>
@@ -82,7 +93,7 @@ function TabelaAlunosPorTurma({ dados }) {
           {dados.alunos.map((a) => (
             <tr key={a.id}>
               <td style={tdEstilo}>{a.nome}</td>
-              <td style={tdEstilo}>{a.faixa || '—'}</td>
+              <td style={tdEstilo}><FaixaSwatch nome={a.faixa} cor={a.faixa_cor} /></td>
               {dados.com_plano_pagamento && <td style={tdEstilo}>{a.plano || '—'}</td>}
             </tr>
           ))}
@@ -118,7 +129,15 @@ function FichaCadastral({ dados }) {
       {linha('Pai', a.pai)}
       {linha('Data de ingresso', formatData(a.data_ingresso))}
       {linha('Turmas', dados.turmas.join(', '))}
-      {linha('Graduação atual', dados.graduacoes_atuais.map((g) => `${g.arte}: ${g.faixa}`).join(' · '))}
+      <div style={{ display: 'flex', padding: '4px 0', borderBottom: '1px solid #f5f5f5' }}>
+        <span style={{ width: 160, color: '#888', fontSize: 12 }}>Graduação atual</span>
+        <span style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {dados.graduacoes_atuais.length === 0 && '—'}
+          {dados.graduacoes_atuais.map((g, i) => (
+            <span key={i}>{g.arte}: <FaixaSwatch nome={g.faixa} cor={g.faixa_cor} /></span>
+          ))}
+        </span>
+      </div>
       {a.observacoes && linha('Observações', a.observacoes)}
     </div>
   );
@@ -242,7 +261,7 @@ function PresencaMinima({ dados }) {
             <tr key={e.aluno.id}>
               <td style={tdEstilo}>{e.aluno.nome}</td>
               <td style={tdEstilo}>{e.turma}</td>
-              <td style={tdEstilo}>{e.faixa_atual}</td>
+              <td style={tdEstilo}><FaixaSwatch nome={e.faixa_atual} cor={e.faixa_cor} /></td>
               <td style={tdEstilo}>{e.aulas_desde_graduacao} / {e.min_aulas_criterio}</td>
             </tr>
           ))}
