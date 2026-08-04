@@ -270,9 +270,12 @@ dado financeiro ou cadastral completo. Detalhes de rotas e formato de
 arquivo em `checkin-online/` (README próprio, se existir) ou no plano
 salvo em `/home/fulviovb/.claude/plans/zesty-splashing-babbage.md`.
 
-**Pendente**: deploy do `checkin-online/` num host de verdade e reimpressão
-dos QR Codes das salas com a URL nova (hoje apontam pro `qr_token` local,
-inacessível de fora) — ver `Progress.txt`, FASE 7.
+**Em produção**: VM `e2-micro` (Always Free) no Google Cloud, atrás de um
+domínio grátis DuckDNS com HTTPS automático via Caddy (Let's Encrypt) — ver
+`checkin-online/deploy/` (compose próprio da VM) e detalhes em
+`Progress.txt`, FASE 7. A tela **Configurações → Salas e QR Codes** já
+mostra a URL pública de produção (`REACT_APP_CHECKIN_ONLINE_PUBLIC_URL`),
+pronta pra reimpressão física dos QR Codes.
 
 ## Referência da API
 
@@ -397,9 +400,8 @@ módulo de Relatórios (7 relatórios básicos inspirados no iDojo), foto do alu
 histórico de frequência com ausências, correções de cadastro (CPF como
 identificador único do aluno, e-mail deixou de ser único pra permitir irmãos
 compartilhando o e-mail dos pais), e módulo satélite de check-in online
-(`checkin-online/`, ver seção própria acima) — falta só o deploy num host
-externo e a reimpressão dos QR Codes, que dependem de acesso à conta de
-nuvem do usuário.
+(`checkin-online/`, ver seção própria acima) — já em produção no Google
+Cloud, faltando só a reimpressão física dos QR Codes das salas.
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

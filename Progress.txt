@@ -208,10 +208,32 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     alert quantos check-ins novos entraram. Testado no navegador: sync
     completo sem erros (confirmado via log do backend — queries de roster e
     reconciliação executadas corretamente).
-[ ] Deploy do `checkin-online/` num host com disco persistente (ex: Oracle
-    Cloud Always Free) — depende de acesso à conta de nuvem do usuário.
-[ ] Reimprimir os QR Codes das salas com a URL do módulo online, depois do
-    deploy.
+[x] Deploy em produção: VM `e2-micro` (Always Free) no Google Cloud, projeto
+    `escola-checkin`, zona `us-central1-b`, IP externo estático
+    `136.64.1.44`. Domínio grátis via DuckDNS (`karatevilasboas.duckdns.org`).
+    Pilha: `checkin-online/deploy/docker-compose.yml` (novo) sobe o
+    `checkin-online` + **Caddy** na frente cuidando de HTTPS automático
+    (Let's Encrypt) via `{$DOMAIN}` no `Caddyfile`. `.env` de produção fica
+    só na VM (fora do git), com `API_KEY` gerada via `openssl rand -hex 32`
+    (nunca reaproveitar a chave de teste local). SSH na VM feito via túnel
+    IAP do Google (`gcloud compute ssh --tunnel-through-iap`) — porta 22
+    direta ficou bloqueada pela rede de saída durante o setup; criada regra
+    de firewall `allow-ssh-iap` (origem `35.235.240.0/20`) pra habilitar.
+[x] `docker compose up -d --force-recreate <serviço>` é obrigatório depois
+    de editar `.env`/`docker-compose.yml` — `restart` sozinho **não**
+    recarrega variáveis de ambiente (ficam fixas desde a criação do
+    container). Isso mascarou um teste de sincronização que "deu certo"
+    contra o servidor de teste antigo (porta 4001) em vez do de produção,
+    porque o backend não tinha sido recriado depois de trocar
+    `CHECKIN_ONLINE_URL`/`CHECKIN_ONLINE_API_KEY`.
+[x] Sincronização testada de ponta a ponta contra a URL pública: roster
+    real chegou na VM (`docker exec ... cat data/roster.json`), endpoint
+    `/checkin/:qr_token` respondendo certo (`aula_ativa:false` fora da
+    janela de horário, como esperado).
+[x] QR Codes: `Configuracoes.js` trocou `window.location.origin` por
+    `REACT_APP_CHECKIN_ONLINE_PUBLIC_URL` (nova env var no
+    `docker-compose.yml`, valor = URL pública do DuckDNS) — a tela "Salas e
+    QR Codes" já mostra a URL de produção certa pra reimpressão física.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

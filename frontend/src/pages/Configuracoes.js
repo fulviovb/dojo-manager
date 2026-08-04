@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+const CHECKIN_ONLINE_PUBLIC_URL = process.env.REACT_APP_CHECKIN_ONLINE_PUBLIC_URL || window.location.origin;
+
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
 
@@ -300,7 +302,7 @@ export default function Configuracoes() {
                 <td style={{ padding: '10px 12px' }}>{s.nome}</td>
                 <td style={{ padding: '10px 12px' }}>
                   <code style={{ fontSize: 12, background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>
-                    {window.location.origin}/checkin/{s.qr_token}
+                    {CHECKIN_ONLINE_PUBLIC_URL}/checkin/{s.qr_token}
                   </code>
                 </td>
               </tr>

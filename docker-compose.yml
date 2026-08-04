@@ -60,6 +60,10 @@ services:
       - frontend-modules:/app/node_modules
     environment:
       - REACT_APP_API_URL=http://localhost:5000/api
+      # URL pública do módulo satélite checkin-online/ — usada só para montar
+      # a URL exibida na tela de QR Codes (Configurações). Sem ela, cai de
+      # volta pro endereço local (não alcançável de fora da rede).
+      - REACT_APP_CHECKIN_ONLINE_PUBLIC_URL=https://karatevilasboas.duckdns.org
     networks:
       - escola-network
 
