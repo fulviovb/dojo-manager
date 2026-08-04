@@ -331,6 +331,13 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     direção, clique alterna asc/desc). Ordena por No., Nome, Plano,
     Vencimento, Total Devido (numérico, valor-desconto+juros), Pagamento
     ou Status.
+[x] Avatar do aluno (foto ou iniciais) nas telas de Chamadas e Faturas —
+    mesmo componente `Avatar` já usado em `Alunos.js`/`TurmaDetalhe.js`.
+    Em Chamadas: lista de presentes, ausentes, check-ins QR pendentes de
+    validação, e busca de "aluno de outra turma". Em Faturas: coluna Nome
+    da tabela. Precisou incluir `foto_url` nas queries de `Aluno` que
+    faltavam (`chamadasController.listar`,
+    `financeiroController.listarMensalidades`) — só tinham `id, nome`.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

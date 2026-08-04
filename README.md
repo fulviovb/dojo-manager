@@ -384,6 +384,14 @@ Clicar no nome de uma turma abre `TurmaDetalhe`, com:
 Matricular um aluno numa turma é o que habilita a chamada/check-in daquela
 turma a contar presença para ele.
 
+### Chamadas
+
+Detalhe de uma aula mostra presentes, ausentes e check-ins por QR Code ainda
+não validados, cada um com avatar (foto ou iniciais, mesmo componente
+`Avatar`) ao lado do nome — inclusive na busca de "aluno de outra turma".
+Botão "Sincronizar Check-in Online" puxa os check-ins do módulo satélite
+(ver seção própria acima).
+
 ### Financeiro
 
 Abas **Painel** (indicadores + gráfico de ganhos vs a receber) / **Planos** /
@@ -394,7 +402,8 @@ nova aba, imprimível. A assinatura que aparece no recibo é **por escola**
 (`Escola.assinatura_url`), desenhada em Configurações → "Assinatura para
 Recibos" (`AssinaturaPad`, canvas) e salva no servidor — sem isso, o recibo
 simplesmente não mostra assinatura (sem quebrar o resto). Cabeçalho da tabela
-de Faturas é clicável e ordenável (mesmo padrão de `Alunos.js`).
+de Faturas é clicável e ordenável (mesmo padrão de `Alunos.js`), com avatar
+do aluno na coluna Nome.
 
 ### Relatórios
 
@@ -428,7 +437,8 @@ Cloud, faltando só a reimpressão física dos QR Codes das salas — e
 assinatura do recibo passando a ser desenhada e salva por escola (sem mais
 depender de um arquivo local no repositório), essencial pra outras escolas
 usarem o sistema, e ajustes financeiros pós-lançamento (fatura gerada com
-5 dias de antecedência do vencimento, tabela de Faturas ordenável).
+5 dias de antecedência do vencimento, tabela de Faturas ordenável, avatar
+do aluno em Chamadas e Faturas).
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.
