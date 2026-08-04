@@ -209,11 +209,14 @@ respeita esse corte, pra não inventar falta antes do aluno estar matriculado.
 
 Mesmo espírito do motor de aulas: `faturaService.gerarFaturasPendentes(escola_id)`
 roda **sob demanda** (disparada pelos endpoints financeiros e pelo perfil do aluno),
-gerando toda `Mensalidade` ("Fatura") de ciclos já vencidos de cada `AssinaturaAluno`
-ativa, com clamp de fim de mês (dia de vencimento 31 num fevereiro cai no dia 28/29).
-Pausar uma assinatura não gera cobrança retroativa do período pausado. Existe também
-geração antecipada (`POST /api/assinaturas/:id/gerar-fatura`, idempotente) pra quem
-quer pagar antes do vencimento normal.
+gerando toda `Mensalidade` ("Fatura") de ciclos que já entraram na janela de
+**5 dias de antecedência do vencimento** (`ANTECEDENCIA_GERACAO_DIAS`) de cada
+`AssinaturaAluno` ativa, com clamp de fim de mês (dia de vencimento 31 num
+fevereiro cai no dia 28/29) — a `data_vencimento` continua sendo a real, só a
+geração antecipa, dando tempo do aluno pagar antes da data. Pausar uma assinatura
+não gera cobrança retroativa do período pausado. Existe também geração antecipada
+manual (`POST /api/assinaturas/:id/gerar-fatura`, idempotente) pra quem quer pagar
+ainda mais cedo, fora da janela automática.
 
 ### Unicidade de cadastro: CPF, não e-mail
 
@@ -390,7 +393,8 @@ Pagamento aceita juros/desconto com total recalculado ao vivo; recibo abre em
 nova aba, imprimível. A assinatura que aparece no recibo é **por escola**
 (`Escola.assinatura_url`), desenhada em Configurações → "Assinatura para
 Recibos" (`AssinaturaPad`, canvas) e salva no servidor — sem isso, o recibo
-simplesmente não mostra assinatura (sem quebrar o resto).
+simplesmente não mostra assinatura (sem quebrar o resto). Cabeçalho da tabela
+de Faturas é clicável e ordenável (mesmo padrão de `Alunos.js`).
 
 ### Relatórios
 
@@ -412,7 +416,7 @@ Frequência: Presença Mínima.
 ## Status
 
 Todas as 15 tarefas do MVP (T-01 a T-15) descritas no PRD estão concluídas.
-Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 8):
+Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 9):
 reescrita da tela de Chamadas, módulo de Gestão Financeira completo (planos,
 assinaturas recorrentes, faturas com geração automática, recibo imprimível),
 módulo de Relatórios (7 relatórios básicos inspirados no iDojo), foto do aluno,
@@ -423,7 +427,8 @@ compartilhando o e-mail dos pais), módulo satélite de check-in online
 Cloud, faltando só a reimpressão física dos QR Codes das salas — e
 assinatura do recibo passando a ser desenhada e salva por escola (sem mais
 depender de um arquivo local no repositório), essencial pra outras escolas
-usarem o sistema.
+usarem o sistema, e ajustes financeiros pós-lançamento (fatura gerada com
+5 dias de antecedência do vencimento, tabela de Faturas ordenável).
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

@@ -318,6 +318,20 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     (tela de Configurações e um recibo real) e confirmado idêntico ao de
     antes.
 
+=== FASE 9: Ajustes financeiros pós-lançamento ===
+[x] Fatura passa a ser gerada com 5 dias de antecedência do vencimento
+    (`faturaService.gerarFaturasPendentes`: `venc <= hoje` virou
+    `venc <= hoje + ANTECEDENCIA_GERACAO_DIAS`, constante = 5), em vez de
+    só quando o ciclo já tinha vencido — dá tempo do aluno pagar antes da
+    data. `data_vencimento` continua sendo a real, só a geração antecipa.
+    Testado: faturas com vencimento no dia seguinte já apareceram no
+    mesmo instante da mudança (antes só apareceriam no dia do vencimento).
+[x] Cabeçalho da tabela de Faturas (`Financeiro.js`) ficou clicável e
+    ordenável — mesmo padrão já usado em `Alunos.js` (seta indicando
+    direção, clique alterna asc/desc). Ordena por No., Nome, Plano,
+    Vencimento, Total Devido (numérico, valor-desconto+juros), Pagamento
+    ou Status.
+
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Não observado
