@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import assinaturaImg from '../assets/assinatura.png';
+import { SERVER_ORIGIN } from '../components/Avatar';
 
 const PERIODICIDADE_LABEL = { mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
 
@@ -50,7 +50,9 @@ export default function ReciboPage({ mensalidadeId }) {
             </p>
             <p style={{ fontSize: 13, color: '#555' }}>Em {formatData(recibo.data_pagamento)} · {recibo.forma_pagamento?.replace(/_/g, ' ')}</p>
             <div style={{ marginTop: 24, textAlign: 'right' }}>
-              <img src={assinaturaImg} alt="Assinatura" style={{ height: 100, display: 'inline-block' }} />
+              {recibo.escola_assinatura_url && (
+                <img src={`${SERVER_ORIGIN}${recibo.escola_assinatura_url}`} alt="Assinatura" style={{ height: 100, display: 'inline-block' }} />
+              )}
               <div style={{ borderTop: '1px solid #ccc', paddingTop: 4, fontSize: 12, color: '#888' }}>{recibo.escola_nome}</div>
             </div>
           </div>

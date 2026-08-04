@@ -6,6 +6,7 @@ const Escola = sequelize.define('Escola', {
   nome: { type: DataTypes.STRING, allowNull: false },
   slug: { type: DataTypes.STRING, allowNull: false, unique: true },
   logo_url: { type: DataTypes.STRING },
+  assinatura_url: { type: DataTypes.STRING },
   threshold_falta_vermelho: { type: DataTypes.INTEGER, defaultValue: 40 },
   ativa: { type: DataTypes.BOOLEAN, defaultValue: true },
 }, { tableName: 'escolas' });

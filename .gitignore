@@ -20,6 +20,10 @@ backup_*.sql
 backend/uploads/fotos/*
 !backend/uploads/fotos/.gitkeep
 
+# Assinaturas de escola desenhadas via Configurações (dados de usuário)
+backend/uploads/assinaturas/*
+!backend/uploads/assinaturas/.gitkeep
+
 # Assinatura pessoal usada no recibo — não deve ir para o repositório
 frontend/src/assets/assinatura.png
 gestao-financeira/assinatura.png

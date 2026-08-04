@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import QRCode from 'qrcode';
+import AssinaturaPad from '../components/AssinaturaPad';
 
 const CHECKIN_ONLINE_PUBLIC_URL = process.env.REACT_APP_CHECKIN_ONLINE_PUBLIC_URL || window.location.origin;
 
@@ -164,6 +165,19 @@ export default function Configuracoes() {
           <button style={estiloBtnPrimario} onClick={salvarThreshold}>Salvar</button>
           {msgEscola && <span style={{ color: '#2e7d32', fontSize: 13 }}>{msgEscola}</span>}
         </div>
+      </Secao>
+
+      <Secao titulo="Assinatura para Recibos">
+        <p style={{ fontSize: 13, color: '#888', marginTop: -8, marginBottom: 16 }}>
+          Usada no recibo de pagamento impresso. Cada escola tem a sua — desenhe e salve abaixo.
+        </p>
+        {escola && (
+          <AssinaturaPad
+            escolaId={escola.id}
+            assinaturaAtualUrl={escola.assinatura_url}
+            onSalvo={carregar}
+          />
+        )}
       </Secao>
 
       <Secao titulo="Artes Marciais">

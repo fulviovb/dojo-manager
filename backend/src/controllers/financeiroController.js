@@ -130,6 +130,7 @@ const reciboMensalidade = async (req, res) => {
       plano_nome: m.Plano?.nome || 'Fatura avulsa',
       periodicidade: m.Plano?.periodicidade || null,
       escola_nome: escola?.nome || '',
+      escola_assinatura_url: escola?.assinatura_url || null,
     });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
