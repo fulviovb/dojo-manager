@@ -9,7 +9,7 @@ const listar = async (req, res) => {
 
     const chamadas = await Chamada.findAll({
       where: { aula_id },
-      include: [{ model: Usuario, as: 'Aluno', attributes: ['id', 'nome'] }],
+      include: [{ model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'] }],
     });
 
     // Alunos matriculados sem chamada = ausentes
@@ -19,13 +19,13 @@ const listar = async (req, res) => {
 
     const matriculas = await MatriculaAluno.findAll({
       where: { turma_id: aula.turma_id, ativa: true },
-      include: [{ model: Usuario, as: 'Aluno', attributes: ['id', 'nome'] }],
+      include: [{ model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'] }],
     });
 
     const presentes = chamadas.map((c) => c.aluno_id);
     const ausentes = matriculas
       .filter((m) => !presentes.includes(m.aluno_id))
-      .map((m) => ({ id: m.Aluno.id, nome: m.Aluno.nome }));
+      .map((m) => ({ id: m.Aluno.id, nome: m.Aluno.nome, foto_url: m.Aluno.foto_url }));
 
     res.json({ aula, chamadas, ausentes });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }

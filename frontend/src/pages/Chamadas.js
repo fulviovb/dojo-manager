@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Avatar from '../components/Avatar';
 
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -104,12 +105,15 @@ function ListaAulas({ aulas, turmas, busca, setBusca, onAbrir, onExcluir, onNova
 
 // ─── Detalhe de uma aula: presença/ausência, validação, fechamento ──────────
 
-function NomeAluno({ id, nome, onVerAluno }) {
+function NomeAluno({ id, nome, fotoUrl, onVerAluno }) {
   return (
-    <button onClick={() => onVerAluno?.(id)}
-      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1565c0', fontSize: 14, textAlign: 'left' }}>
-      {nome}
-    </button>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <Avatar fotoUrl={fotoUrl} nome={nome} tamanho={24} />
+      <button onClick={() => onVerAluno?.(id)}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1565c0', fontSize: 14, textAlign: 'left' }}>
+        {nome}
+      </button>
+    </span>
   );
 }
 
@@ -208,7 +212,7 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {pendentesQR.map(c => (
               <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #ffe8c4' }}>
-                <span style={{ fontSize: 14 }}><NomeAluno id={c.aluno_id} nome={c.Aluno?.nome} onVerAluno={onVerAluno} /> <span style={{ fontSize: 11, color: '#ef6c00' }}>📱 QR — pendente</span></span>
+                <span style={{ fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}><NomeAluno id={c.aluno_id} nome={c.Aluno?.nome} fotoUrl={c.Aluno?.foto_url} onVerAluno={onVerAluno} /> <span style={{ fontSize: 11, color: '#ef6c00' }}>📱 QR — pendente</span></span>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button onClick={() => validar(c.id)} style={btnVerde}>✓ Validar</button>
                   <button onClick={() => remover(c.id)} style={btnPerigo}>✕ Remover</button>
@@ -229,7 +233,7 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
             {validadas.map(c => (
               <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
                 <span style={{ fontSize: 14 }}>
-                  <NomeAluno id={c.aluno_id} nome={c.Aluno?.nome} onVerAluno={onVerAluno} />
+                  <NomeAluno id={c.aluno_id} nome={c.Aluno?.nome} fotoUrl={c.Aluno?.foto_url} onVerAluno={onVerAluno} />
                   <span style={{ fontSize: 11, color: '#888', marginLeft: 6 }}>{c.origem === 'qrcode' ? '📱 QR' : '✍️ manual'}</span>
                 </span>
                 <button onClick={() => remover(c.id)} style={btnPerigo}>✕</button>
@@ -249,7 +253,7 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
             {ausentes.length === 0 && <p style={{ color: '#aaa', fontSize: 13, padding: '12px 0' }}>Todos os matriculados já estão presentes.</p>}
             {ausentes.map(a => (
               <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
-                <NomeAluno id={a.id} nome={a.nome} onVerAluno={onVerAluno} />
+                <NomeAluno id={a.id} nome={a.nome} fotoUrl={a.foto_url} onVerAluno={onVerAluno} />
                 <button onClick={() => marcarPresenca(a.id)} style={btnVerde}>+ Presença</button>
               </div>
             ))}
@@ -270,7 +274,10 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
             {resultadosExtra.length === 0 && <p style={{ color: '#aaa', fontSize: 13 }}>Nenhum aluno encontrado.</p>}
             {resultadosExtra.map(a => (
               <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f5f5f5' }}>
-                <span style={{ fontSize: 14 }}>{a.nome}</span>
+                <span style={{ fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Avatar fotoUrl={a.foto_url} nome={a.nome} tamanho={24} />
+                  {a.nome}
+                </span>
                 <button onClick={() => adicionarExtra(a.id)} style={btnVerde}>+ Presença</button>
               </div>
             ))}

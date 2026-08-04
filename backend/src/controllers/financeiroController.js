@@ -60,7 +60,7 @@ const listarMensalidades = async (req, res) => {
     const mensalidades = await Mensalidade.findAll({
       where,
       include: [
-        { model: Usuario, as: 'Aluno', attributes: ['id', 'nome'], where: { escola_id: req.usuario.escola_id } },
+        { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'], where: { escola_id: req.usuario.escola_id } },
         { model: PlanoMensalidade, as: 'Plano', attributes: ['id', 'nome', 'valor', 'periodicidade'] },
         { model: Pagamento, attributes: ['id', 'valor_pago', 'data_pagamento', 'forma_pagamento'] },
       ],

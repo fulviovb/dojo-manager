@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import GraficoArea from '../components/GraficoArea';
+import Avatar from '../components/Avatar';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const btnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -601,9 +602,12 @@ function ListaFaturas({ onVerAluno }) {
                 <tr key={f.id} style={{ borderTop: '1px solid #f0f0f0' }}>
                   <td style={{ padding: '10px 16px', fontSize: 12, color: '#888' }}>#{f.id.slice(0, 8).toUpperCase()}</td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>
-                    <button onClick={() => onVerAluno?.(f.aluno_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1565c0', fontSize: 13 }}>
-                      {f.Aluno?.nome}
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Avatar fotoUrl={f.Aluno?.foto_url} nome={f.Aluno?.nome} tamanho={28} />
+                      <button onClick={() => onVerAluno?.(f.aluno_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1565c0', fontSize: 13 }}>
+                        {f.Aluno?.nome}
+                      </button>
+                    </div>
                   </td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>{f.Plano?.nome || 'Avulsa'}</td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>{formatData(f.data_vencimento)}</td>
