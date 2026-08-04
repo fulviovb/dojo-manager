@@ -1,0 +1,41 @@
+# docker-compose.yml — deploy de produção do checkin-online/
+#
+# Uso na VM (depois de `git clone` do repo principal):
+#   cd checkin-online/deploy
+#   cp .env.example .env   # editar DOMAIN e API_KEY
+#   docker compose up -d --build
+#
+# Caddy cuida do HTTPS automático (Let's Encrypt) pro domínio configurado
+# em DOMAIN; o checkin-online só fica acessível através dele (porta interna
+# 4000, não publicada diretamente).
+
+services:
+  checkin-online:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - checkin-data:/app/data
+    expose:
+      - "4000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  checkin-data:
+  caddy-data:
+  caddy-config:
