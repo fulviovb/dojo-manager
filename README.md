@@ -5,6 +5,9 @@ do produto é a **chamada por QR Code**: o aluno faz auto check-in ao escanear o
 Code fixado na sala, e o professor valida/fecha a chamada depois. O sistema é
 multi-escola, com isolamento total de dados por `escola_id`.
 
+Repositório: [github.com/fulviovb/dojo-manager](https://github.com/fulviovb/dojo-manager)
+(branch padrão `master`).
+
 ## Stack
 
 | Camada    | Tecnologia                                      |

@@ -175,7 +175,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
-- Branch: feat/escola-artes-marciais
+- GitHub: github.com/fulviovb/dojo-manager (branch padrão: master). O repo já
+  existia com um scaffold Express/EJS abandonado (commit único, 10/06/2026,
+  nunca era esse projeto de verdade) — esse checkout local começou como
+  `git init` sem remoto e só foi conectado ao repo em 04/08/2026. Se um
+  clone novo deste projeto não tiver `origin` configurado, é isso: rodar
+  `git remote add origin https://github.com/fulviovb/dojo-manager.git`.
 - Repos: backend/, frontend/
 - Tipo: Produto Novo | Tamanho: G
 - Referência de stack: ~/competicao-manager/
