@@ -17,6 +17,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - TZ=America/Sao_Paulo
     volumes:
       - checkin-data:/app/data
     expose:
