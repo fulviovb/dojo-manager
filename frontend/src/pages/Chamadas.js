@@ -31,7 +31,7 @@ function Modal({ titulo, onFechar, children, largura = 420 }) {
 
 // ─── Lista geral de aulas ────────────────────────────────────────────────────
 
-function ListaAulas({ aulas, turmas, busca, setBusca, onAbrir, onExcluir, onNovaAula }) {
+function ListaAulas({ aulas, turmas, busca, setBusca, onAbrir, onExcluir, onNovaAula, onSincronizar, sincronizando }) {
   const [pagina, setPagina] = useState(1);
   const POR_PAG = 10;
 
@@ -48,6 +48,9 @@ function ListaAulas({ aulas, turmas, busca, setBusca, onAbrir, onExcluir, onNova
         <input placeholder="Pesquisar por turma ou data..." value={busca}
           onChange={e => { setBusca(e.target.value); setPagina(1); }}
           style={{ ...estiloInput, maxWidth: 300, flex: 1 }} />
+        <button style={btnAzul} onClick={onSincronizar} disabled={sincronizando}>
+          {sincronizando ? 'Sincronizando...' : 'Sincronizar Check-in Online'}
+        </button>
         <button style={btnVerde} onClick={onNovaAula}>+ Registrar Aula &amp; Frequência</button>
       </div>
 
@@ -344,10 +347,24 @@ export default function Chamadas({ onVerAluno }) {
   const [busca, setBusca] = useState('');
   const [aulaAbertaId, setAulaAbertaId] = useState(null);
   const [modalNova, setModalNova] = useState(false);
+  const [sincronizando, setSincronizando] = useState(false);
 
   const carregarAulas = () => { axios.get('/aulas').then(r => setAulas(r.data)); };
   useEffect(carregarAulas, []);
   useEffect(() => { axios.get('/turmas').then(r => setTurmas(r.data)); }, []);
+
+  const sincronizarOnline = async () => {
+    setSincronizando(true);
+    try {
+      const { data } = await axios.post('/checkin-online/sincronizar');
+      alert(`Sincronização concluída: ${data.novos_checkins} novo(s) check-in(s).`);
+      carregarAulas();
+    } catch (e) {
+      alert(e.response?.data?.erro || 'Erro ao sincronizar check-in online');
+    } finally {
+      setSincronizando(false);
+    }
+  };
 
   const excluirAula = async (aula) => {
     await axios.delete(`/aulas/${aula.id}`);
@@ -371,6 +388,8 @@ export default function Chamadas({ onVerAluno }) {
         onAbrir={abrirAula}
         onExcluir={excluirAula}
         onNovaAula={() => setModalNova(true)}
+        onSincronizar={sincronizarOnline}
+        sincronizando={sincronizando}
       />
 
       {modalNova && (

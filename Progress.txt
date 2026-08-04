@@ -168,6 +168,51 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     foi excluído do banco (sem histórico vinculado — chamadas, matrículas,
     financeiro — então seguro remover).
 
+=== FASE 7: Módulo satélite de check-in online (checkin-online/) ===
+[x] Problema: hospedar o sistema inteiro online (MySQL + disco de fotos) pra
+    permitir check-in por QR Code fora da rede local exigiria hospedagem paga
+    confiável — free tiers de verdade pra essa stack são raros/instáveis.
+    Decisão: módulo satélite mínimo, hospedado separadamente, sem banco de
+    dados — só mostra a lista de alunos da sala pro check-in e grava os
+    toques num arquivo de texto (JSON-lines por dia). O sistema local, sob
+    demanda (botão manual), busca esses check-ins via webservice e
+    reconcilia como `Chamada` de verdade — mesmo resultado de um check-in
+    local. Plano completo em `/home/fulviovb/.claude/plans/zesty-splashing-babbage.md`.
+[x] `checkin-online/`: app Node/Express standalone (sem Sequelize/MySQL),
+    `package.json`/`Dockerfile` próprios. Armazenamento em arquivo
+    (`src/storage.js`): `data/roster.json` (lista do dia, sobrescrita a cada
+    sync) e `data/checkins-AAAA-MM-DD.txt` (JSON-lines, append). Rotas
+    públicas `GET/POST /checkin/:qr_token` (espelham o contrato de
+    `checkinController.js`: janela ±20min, idempotente) e rotas `/sync/*`
+    (roster, checkins, confirmar, limpar-antigos) autenticadas por
+    `Authorization: Bearer <API_KEY>` (segredo compartilhado simples, sem
+    JWT). Confirmar arquivo move pra `data/synced/` em vez de apagar na
+    hora (rede de segurança); `limpar-antigos` remove o que tiver lá com
+    mais de N dias. Testado via curl: auth, sync de roster, check-in dentro/
+    fora da janela, idempotência, aluno não matriculado rejeitado, roster
+    não sincronizado hoje rejeitado, confirmar+rotacionar, limpeza.
+[x] Backend local: `checkinOnlineService.js` — `sincronizarRoster(escola_id)`
+    monta a lista de hoje (Sala + HorarioTurma do dia da semana + Turma
+    ativa + MatriculaAluno) e empurra pro módulo online;
+    `buscarEReconciliarCheckins(escola_id)` puxa os check-ins pendentes,
+    resolve a `Aula` local de cada evento por `sala_id` + horário
+    (`encontrarAulaPorInstante`, que chama `gerarAulasPorData` primeiro —
+    mesma geração preguiçosa do motor de aulas, então a Aula é criada
+    automaticamente com status "aberta" se ainda não existir, sem precisar
+    abrir a turma manualmente antes), faz `Chamada.findOrCreate` com
+    `origem:'qrcode'` e confirma os arquivos processados. Endpoint novo
+    `POST /api/checkin-online/sincronizar` (admin). Variáveis novas no
+    `.env`: `CHECKIN_ONLINE_URL`, `CHECKIN_ONLINE_API_KEY`.
+[x] Frontend: botão "Sincronizar Check-in Online" em `Chamadas.js`, ao lado
+    de "+ Registrar Aula & Frequência" — chama o endpoint acima e mostra em
+    alert quantos check-ins novos entraram. Testado no navegador: sync
+    completo sem erros (confirmado via log do backend — queries de roster e
+    reconciliação executadas corretamente).
+[ ] Deploy do `checkin-online/` num host com disco persistente (ex: Oracle
+    Cloud Always Free) — depende de acesso à conta de nuvem do usuário.
+[ ] Reimprimir os QR Codes das salas com a URL do módulo online, depois do
+    deploy.
+
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Não observado

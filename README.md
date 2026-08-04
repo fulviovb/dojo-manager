@@ -42,6 +42,8 @@ escola-artes-marciais/
 │       ├── pages/            # uma página por tela (Dashboard, Turmas, Chamadas...)
 │       ├── components/       # componentes compartilhados entre páginas (Avatar, GraficoArea)
 │       └── utils/            # helpers puros de UI (ex: faixaCores.js)
+├── checkin-online/             # módulo satélite (deploy separado, sem banco — ver abaixo)
+│   └── src/                   # Node/Express standalone, storage em arquivo
 ├── docker-compose.yml         # orquestra mysql + backend + frontend + nginx
 ├── nginx.conf                 # proxy reverso (alias /escola-am, /api, /ws)
 ├── CLAUDE.md                  # instruções e boundaries para agentes de IA
@@ -96,6 +98,8 @@ Ver `backend/.env.example`. Principais:
 | `DB_HOST/PORT/NAME/USER/PASSWORD` | conexão MySQL (dentro do compose, host é `mysql`) |
 | `JWT_SECRET`     | chave de assinatura do token JWT              |
 | `JWT_EXPIRES_IN` | validade do token (padrão `7d`)               |
+| `CHECKIN_ONLINE_URL` | URL do módulo satélite `checkin-online/` (opcional — ver seção própria abaixo) |
+| `CHECKIN_ONLINE_API_KEY` | segredo compartilhado com o `checkin-online/` (mesmo valor do `.env` de lá) |
 
 O frontend lê `REACT_APP_API_URL` (padrão `http://localhost:5000/api`), definida no
 `docker-compose.yml`.
@@ -234,6 +238,42 @@ processo). Já aplicado em `checkinController`, `aulasController`
 (`gerarAulasPorData`), `dashboardController` (período de 30 dias e mês
 atual) e `graduacoesController` (fechamento de graduação anterior).
 
+## Módulo satélite: check-in online (`checkin-online/`)
+
+O sistema principal roda só localmente (`docker compose`), então alunos não
+conseguem escanear o QR Code de fora da rede local. Em vez de colocar a
+stack inteira (MySQL + disco de fotos) numa hospedagem paga, existe um
+módulo **satélite**, mínimo e com deploy separado, em `checkin-online/`:
+Node/Express puro (sem Sequelize/MySQL), armazenamento em arquivo — sem
+banco de dados. Ele só faz duas coisas: mostra a lista de alunos da sala
+pro aluno escanear o QR Code, e grava os check-ins num arquivo de texto
+(`data/checkins-AAAA-MM-DD.txt`, JSON-lines). Por escrever em disco local,
+só funciona num host com processo único e disco persistente (ex.: Oracle
+Cloud Always Free) — não em serverless/edge onde o disco é efêmero.
+
+Sincronização é manual, sob demanda: o botão **"Sincronizar Check-in
+Online"** na tela Chamadas (`frontend/src/pages/Chamadas.js`) chama
+`POST /api/checkin-online/sincronizar` (admin), que:
+
+1. Empurra a lista de hoje (salas, turmas do dia, alunos matriculados) pro
+   `checkin-online/` (`checkinOnlineService.sincronizarRoster`).
+2. Busca os check-ins pendentes de lá e reconcilia cada um como `Chamada`
+   real (`checkinOnlineService.buscarEReconciliarCheckins`), criando
+   automaticamente a `Aula` do dia se ainda não existir (mesma geração
+   preguiçosa do motor de aulas — **não é preciso abrir a turma
+   manualmente antes de sincronizar**).
+
+Autenticação entre os dois sistemas é um segredo simples compartilhado
+(`Authorization: Bearer <CHECKIN_ONLINE_API_KEY>`), não JWT — nível de
+exposição baixo, o módulo só guarda nomes e horários de check-in, nenhum
+dado financeiro ou cadastral completo. Detalhes de rotas e formato de
+arquivo em `checkin-online/` (README próprio, se existir) ou no plano
+salvo em `/home/fulviovb/.claude/plans/zesty-splashing-babbage.md`.
+
+**Pendente**: deploy do `checkin-online/` num host de verdade e reimpressão
+dos QR Codes das salas com a URL nova (hoje apontam pro `qr_token` local,
+inacessível de fora) — ver `Progress.txt`, FASE 7.
+
 ## Referência da API
 
 Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exceto
@@ -263,6 +303,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Graduações            | `GET,POST,DELETE /graduacoes`                                                          | autenticado             |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
 | Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`) | autenticado      |
+| Check-in online       | `POST /checkin-online/sincronizar` (sincroniza roster + reconcilia check-ins do módulo satélite, ver seção própria acima) | admin |
 | Health check          | `GET /health`                                                                          | público                 |
 | Uploads (estático)    | `GET /uploads/fotos/:arquivo`                                                          | público (sem JWT)       |
 
@@ -349,13 +390,16 @@ Frequência: Presença Mínima.
 ## Status
 
 Todas as 15 tarefas do MVP (T-01 a T-15) descritas no PRD estão concluídas.
-Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 6):
+Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 7):
 reescrita da tela de Chamadas, módulo de Gestão Financeira completo (planos,
 assinaturas recorrentes, faturas com geração automática, recibo imprimível),
 módulo de Relatórios (7 relatórios básicos inspirados no iDojo), foto do aluno,
-histórico de frequência com ausências, e correções de cadastro (CPF como
+histórico de frequência com ausências, correções de cadastro (CPF como
 identificador único do aluno, e-mail deixou de ser único pra permitir irmãos
-compartilhando o e-mail dos pais).
+compartilhando o e-mail dos pais), e módulo satélite de check-in online
+(`checkin-online/`, ver seção própria acima) — falta só o deploy num host
+externo e a reimpressão dos QR Codes, que dependem de acesso à conta de
+nuvem do usuário.
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

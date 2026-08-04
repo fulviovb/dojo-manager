@@ -1,0 +1,18 @@
+{
+  "name": "checkin-online",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Módulo satélite de check-in por QR Code — sem banco, armazena em arquivo. Deploy separado do sistema principal.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}

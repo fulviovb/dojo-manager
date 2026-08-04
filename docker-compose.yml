@@ -39,6 +39,10 @@ services:
         required: false
     environment:
       - TZ=America/Sao_Paulo
+    extra_hosts:
+      # permite o backend alcançar serviços rodando fora do Docker (ex: o
+      # módulo checkin-online/ em desenvolvimento, via host.docker.internal)
+      - "host.docker.internal:host-gateway"
     depends_on:
       mysql:
         condition: service_healthy

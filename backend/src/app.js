@@ -52,4 +52,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 // Relatórios
 app.use('/api/relatorios', require('./routes/relatorios'));
 
+// Check-in online (módulo satélite, hospedagem separada — ver checkin-online/)
+app.use('/api/checkin-online', require('./routes/checkinOnline'));
+
 module.exports = app;
