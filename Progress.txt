@@ -234,6 +234,42 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     `REACT_APP_CHECKIN_ONLINE_PUBLIC_URL` (nova env var no
     `docker-compose.yml`, valor = URL pública do DuckDNS) — a tela "Salas e
     QR Codes" já mostra a URL de produção certa pra reimpressão física.
+[x] Bug real encontrado no primeiro teste em aula de verdade (Jiu Jitsu KM3
+    - COPEL, alunos Kelli/Anderson/Matheus): a VM roda em UTC por padrão,
+    mas `janela.js` usa `new Date().getHours()` (hora do servidor) contra
+    horários salvos em hora local de Brasília — mesma classe de bug já
+    documentada pro backend principal (ver "Datas e fuso horário" no
+    README). Toda janela de check-in ficava 3h fora do horário real.
+    Corrigido com `TZ=America/Sao_Paulo` no serviço `checkin-online` do
+    `deploy/docker-compose.yml`.
+[x] QR Code gerado de verdade: `Configuracoes.js` ganhou geração client-side
+    (`qrcode`, npm) com miniatura por sala + clique pra abrir em tamanho
+    grande e imprimir (`window.print()`). Antes só existia a URL em texto.
+[x] Bug de UX encontrado no mesmo teste: o QR apontava direto pra rota de
+    dados (JSON puro) do `checkin-online/` — ao escanear, o celular
+    mostrava texto cru, não a tela de toque do nome. Faltava servir HTML de
+    verdade nesse módulo (só tinha API). Corrigido com negociação de
+    conteúdo em `GET /checkin/:qr_token`: navegador recebe uma página
+    autocontida nova (`checkin-online/src/paginaCheckin.js`, sem build
+    step, mesmo espírito minimalista do módulo) que busca os dados via
+    fetch com `Accept: application/json` e deixa o aluno tocar o nome;
+    chamada explícita com esse header continua recebendo só JSON (usado
+    pelos testes via curl).
+[x] Pedido do usuário após o teste: tela de check-in não deve mostrar quem
+    já fez check-in, só quem falta. Aplicado nas duas telas (a nova
+    `paginaCheckin.js` do módulo satélite e a local `CheckinPublico.js`,
+    mesma UX) — filtra a lista antes de renderizar; se todo mundo já
+    confirmou, mostra mensagem em vez de lista vazia.
+[x] Pedido do usuário: "Salas e QR Codes" em Configurações deve listar só
+    sala com turma ativa (uma sala nova sem turma ainda, ou só com turmas
+    desativadas, não tem check-in acontecendo de verdade). `Configuracoes.js`
+    passou a cruzar `/salas` com `/turmas` (que já só traz `ativa:true` por
+    padrão) via `HorarioTurma.Sala.id`.
+[x] Teste real em produção, dia 04/08/2026: aula de Jiu Jitsu KM3 (COPEL),
+    alunos Kelli Elizabeth Kuss, Anderson COPEL e Matheus Vieira Garcia de
+    Souza fizeram check-in de verdade pelo celular, pela URL pública —
+    confirmado check-in registrado e refletido no `checkin_feito` do
+    roster. Módulo satélite considerado funcional ponta a ponta.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

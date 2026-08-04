@@ -270,12 +270,27 @@ dado financeiro ou cadastral completo. Detalhes de rotas e formato de
 arquivo em `checkin-online/` (README próprio, se existir) ou no plano
 salvo em `/home/fulviovb/.claude/plans/zesty-splashing-babbage.md`.
 
+`GET /checkin/:qr_token` faz negociação de conteúdo: um navegador (o
+celular do aluno, escaneando o QR) recebe uma página HTML autocontida
+(`checkin-online/src/paginaCheckin.js`, sem build step — mesmo espírito
+minimalista do módulo) que busca os dados via fetch e deixa o aluno tocar
+o nome; uma chamada explícita com `Accept: application/json` continua
+recebendo só os dados (usado nos testes e por integrações). A lista só
+mostra quem **ainda não** fez check-in — quem já confirmou some da tela
+(mesmo filtro aplicado na versão local, `CheckinPublico.js`).
+
 **Em produção**: VM `e2-micro` (Always Free) no Google Cloud, atrás de um
 domínio grátis DuckDNS com HTTPS automático via Caddy (Let's Encrypt) — ver
 `checkin-online/deploy/` (compose próprio da VM) e detalhes em
-`Progress.txt`, FASE 7. A tela **Configurações → Salas e QR Codes** já
-mostra a URL pública de produção (`REACT_APP_CHECKIN_ONLINE_PUBLIC_URL`),
-pronta pra reimpressão física dos QR Codes.
+`Progress.txt`, FASE 7. Importante: a VM roda em UTC por padrão — o
+serviço `checkin-online` do compose de deploy define `TZ=America/Sao_Paulo`
+explicitamente, senão a janela de ±20min do check-in fica 3h fora do
+horário real (mesma classe de bug do fuso descrita acima). A tela
+**Configurações → Salas e QR Codes** mostra a URL pública de produção
+(`REACT_APP_CHECKIN_ONLINE_PUBLIC_URL`) com QR Code gerado no navegador
+(`qrcode`, client-side) pronto pra abrir em tamanho grande e imprimir —
+só lista sala com pelo menos uma turma ativa. Testado com alunos reais em
+04/08/2026 (turma de Jiu Jitsu KM3, COPEL) — funcionando ponta a ponta.
 
 ## Referência da API
 
