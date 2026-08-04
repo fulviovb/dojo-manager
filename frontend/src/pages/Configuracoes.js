@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import QRCode from 'qrcode';
 
 const CHECKIN_ONLINE_PUBLIC_URL = process.env.REACT_APP_CHECKIN_ONLINE_PUBLIC_URL || window.location.origin;
 
@@ -22,6 +23,7 @@ export default function Configuracoes() {
   const [faixas, setFaixas] = useState([]);
   const [criterios, setCriterios] = useState([]);
   const [salas, setSalas] = useState([]);
+  const [turmasAtivas, setTurmasAtivas] = useState([]);
   const [professores, setProfessores] = useState([]);
   const [msgEscola, setMsgEscola] = useState('');
   const [formArte, setFormArte] = useState('');
@@ -33,15 +35,51 @@ export default function Configuracoes() {
   const [edicaoProfessor, setEdicaoProfessor] = useState({ nome: '', email: '' });
   const [erro, setErro] = useState('');
   const [erroProfessor, setErroProfessor] = useState('');
+  const [qrCodes, setQrCodes] = useState({});
 
   const carregar = () => {
     axios.get('/escolas').then(r => { if (r.data[0]) { setEscola(r.data[0]); setThreshold(r.data[0].threshold_falta_vermelho); } });
     axios.get('/artes-marciais').then(r => setArtes(r.data));
     axios.get('/criterios-graduacao').then(r => setCriterios(r.data));
     axios.get('/salas').then(r => setSalas(r.data));
+    axios.get('/turmas').then(r => setTurmasAtivas(r.data));
     axios.get('/usuarios?role=professor&ativo=todos').then(r => setProfessores(r.data));
   };
   useEffect(carregar, []);
+
+  // Só mostra sala que tem pelo menos uma turma ativa usando ela (via
+  // HorarioTurma) — sala sem turma ativa não tem check-in acontecendo, não
+  // faz sentido ocupar espaço na lista de QR Codes.
+  const salaIdsComTurmaAtiva = new Set(
+    turmasAtivas.flatMap(t => (t.HorarioTurmas || []).map(h => h.Sala?.id)).filter(Boolean)
+  );
+  const salasComTurmaAtiva = salas.filter(s => salaIdsComTurmaAtiva.has(s.id));
+
+  useEffect(() => {
+    salasComTurmaAtiva.forEach(s => {
+      if (qrCodes[s.id]) return;
+      const url = `${CHECKIN_ONLINE_PUBLIC_URL}/checkin/${s.qr_token}`;
+      QRCode.toDataURL(url, { width: 240, margin: 1 })
+        .then(dataUrl => setQrCodes(prev => ({ ...prev, [s.id]: dataUrl })));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salasComTurmaAtiva]);
+
+  const abrirQrParaImprimir = (sala) => {
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <html>
+        <head><title>QR Code — ${sala.nome}</title></head>
+        <body style="text-align:center; font-family: sans-serif; padding: 40px;">
+          <h2>${sala.nome}</h2>
+          <img src="${qrCodes[sala.id]}" style="width:400px;height:400px" />
+          <p style="font-size:12px;color:#888">${CHECKIN_ONLINE_PUBLIC_URL}/checkin/${sala.qr_token}</p>
+          <script>window.print()</script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
 
   useEffect(() => {
     if (formFaixa.arte_marcial_id) axios.get('/faixas?arte_marcial_id=' + formFaixa.arte_marcial_id).then(r => setFaixas(r.data));
@@ -293,17 +331,33 @@ export default function Configuracoes() {
             <tr style={{ background: '#f5f5f5' }}>
               <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Sala</th>
               <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>URL do Check-in</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>QR Code</th>
             </tr>
           </thead>
           <tbody>
-            {salas.length === 0 && <tr><td colSpan={2} style={{ padding: 16, color: '#888', fontSize: 13 }}>Nenhuma sala cadastrada.</td></tr>}
-            {salas.map(s => (
+            {salasComTurmaAtiva.length === 0 && <tr><td colSpan={3} style={{ padding: 16, color: '#888', fontSize: 13 }}>Nenhuma sala com turma ativa.</td></tr>}
+            {salasComTurmaAtiva.map(s => (
               <tr key={s.id} style={{ borderTop: '1px solid #f0f0f0' }}>
                 <td style={{ padding: '10px 12px' }}>{s.nome}</td>
                 <td style={{ padding: '10px 12px' }}>
                   <code style={{ fontSize: 12, background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>
                     {CHECKIN_ONLINE_PUBLIC_URL}/checkin/{s.qr_token}
                   </code>
+                </td>
+                <td style={{ padding: '10px 12px' }}>
+                  {qrCodes[s.id]
+                    ? (
+                      <img
+                        src={qrCodes[s.id]}
+                        alt={`QR Code — ${s.nome}`}
+                        title="Clique para abrir em tamanho grande e imprimir"
+                        width={56}
+                        height={56}
+                        style={{ cursor: 'pointer', border: '1px solid #eee', borderRadius: 4 }}
+                        onClick={() => abrirQrParaImprimir(s)}
+                      />
+                    )
+                    : <span style={{ fontSize: 12, color: '#888' }}>gerando...</span>}
                 </td>
               </tr>
             ))}
