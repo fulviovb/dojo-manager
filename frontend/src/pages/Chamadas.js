@@ -357,7 +357,11 @@ export default function Chamadas({ onVerAluno }) {
     setSincronizando(true);
     try {
       const { data } = await axios.post('/checkin-online/sincronizar');
-      alert(`Sincronização concluída: ${data.novos_checkins} novo(s) check-in(s).`);
+      let msg = `Sincronização concluída: ${data.novos_checkins} novo(s) check-in(s).`;
+      if (data.nao_reconciliados > 0) {
+        msg += `\n\n⚠ ${data.nao_reconciliados} check-in(s) não encontraram aula correspondente (ex: horário da aula desatualizado) e continuam pendentes — corrija e sincronize de novo.`;
+      }
+      alert(msg);
       carregarAulas();
     } catch (e) {
       alert(e.response?.data?.erro || 'Erro ao sincronizar check-in online');

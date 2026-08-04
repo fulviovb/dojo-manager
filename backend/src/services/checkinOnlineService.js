@@ -89,12 +89,13 @@ async function buscarEReconciliarCheckins(escola_id) {
   const salaPorToken = new Map(salas.map((s) => [s.qr_token, s]));
 
   let novos = 0;
+  let naoReconciliados = 0;
   for (const evento of eventos) {
     const sala = salaPorToken.get(evento.qr_token);
     if (!sala) continue; // token não é desta escola (ou sala removida)
 
     const aula = await encontrarAulaPorInstante(sala.id, evento.ts);
-    if (!aula) continue; // defensivo — não deveria acontecer, já validado no módulo online
+    if (!aula) { naoReconciliados++; continue; } // ex: Aula existente com horário desatualizado
 
     const [, criada] = await Chamada.findOrCreate({
       where: { aula_id: aula.id, aluno_id: evento.aluno_id },
@@ -103,13 +104,17 @@ async function buscarEReconciliarCheckins(escola_id) {
     if (criada) novos++;
   }
 
-  if (arquivos.length) {
+  // Só arquiva (confirma) se TODO evento foi reconciliado — um evento sem
+  // aula correspondente pode ser corrigido depois (ex: horário da Aula
+  // ajustado manualmente) e precisa continuar pendente pra ser tentado de
+  // novo na próxima sincronização, nunca descartado silenciosamente.
+  if (arquivos.length && naoReconciliados === 0) {
     await fetch(`${BASE_URL}/sync/checkins/confirmar`, {
       method: 'POST', headers: headers(), body: JSON.stringify({ arquivos }),
     });
   }
 
-  return { total_eventos: eventos.length, novos_checkins: novos };
+  return { total_eventos: eventos.length, novos_checkins: novos, nao_reconciliados: naoReconciliados };
 }
 
 module.exports = { sincronizarRoster, buscarEReconciliarCheckins };
