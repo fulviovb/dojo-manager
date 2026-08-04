@@ -42,27 +42,30 @@ export default function CheckinPublico({ qrToken }) {
     </Tela>
   );
 
+  const pendentes = dados.alunos.filter((a) => !a.checkin_feito);
+
   return (
     <Tela>
       <h2 style={{ textAlign: 'center', marginBottom: 8 }}>🥋 {dados.aula.turma}</h2>
       <p style={{ textAlign: 'center', color: '#888', marginBottom: 24, fontSize: 14 }}>
         {dados.aula.hora_inicio} – {dados.aula.hora_fim} · Toque seu nome
       </p>
-      <div>
-        {dados.alunos.map((aluno) => (
-          <button key={aluno.id} onClick={() => !aluno.checkin_feito && fazerCheckin(aluno.id, aluno.nome)}
-            disabled={aluno.checkin_feito}
-            style={{
-              display: 'block', width: '100%', padding: '14px 16px', marginBottom: 10,
-              background: aluno.checkin_feito ? '#e8f5e9' : '#fff',
-              border: `2px solid ${aluno.checkin_feito ? '#4caf50' : '#ddd'}`,
-              borderRadius: 8, fontSize: 16, textAlign: 'left', cursor: aluno.checkin_feito ? 'default' : 'pointer',
-              color: aluno.checkin_feito ? '#2e7d32' : '#333',
-            }}>
-            {aluno.checkin_feito ? '✅ ' : ''}{aluno.nome}
-          </button>
-        ))}
-      </div>
+      {pendentes.length === 0
+        ? <p style={{ color: '#888', fontSize: 16, textAlign: 'center' }}>✅ Todos os alunos já fizeram check-in.</p>
+        : (
+          <div>
+            {pendentes.map((aluno) => (
+              <button key={aluno.id} onClick={() => fazerCheckin(aluno.id, aluno.nome)}
+                style={{
+                  display: 'block', width: '100%', padding: '14px 16px', marginBottom: 10,
+                  background: '#fff', border: '2px solid #ddd',
+                  borderRadius: 8, fontSize: 16, textAlign: 'left', cursor: 'pointer', color: '#333',
+                }}>
+                {aluno.nome}
+              </button>
+            ))}
+          </div>
+        )}
     </Tela>
   );
 }

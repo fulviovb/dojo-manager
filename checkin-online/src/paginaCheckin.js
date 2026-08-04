@@ -52,15 +52,19 @@ function paginaCheckin() {
     }
 
     function renderLista(dados) {
+      const pendentes = dados.alunos.filter(a => !a.checkin_feito);
       let html = '<h2 style="text-align:center">🥋 ' + escapeHtml(dados.turma_nome) + '</h2>' +
         '<p class="sub">' + escapeHtml(dados.hora_inicio) + ' – ' + escapeHtml(dados.hora_fim) + ' · Toque seu nome</p><div id="lista"></div>';
       app.innerHTML = html;
       const lista = document.getElementById('lista');
-      dados.alunos.forEach(aluno => {
+      if (pendentes.length === 0) {
+        lista.innerHTML = '<p class="msg">✅ Todos os alunos já fizeram check-in.</p>';
+        return;
+      }
+      pendentes.forEach(aluno => {
         const btn = document.createElement('button');
         btn.className = 'aluno';
-        btn.disabled = !!aluno.checkin_feito;
-        btn.textContent = (aluno.checkin_feito ? '✅ ' : '') + aluno.nome;
+        btn.textContent = aluno.nome;
         btn.onclick = () => fazerCheckin(aluno.id, aluno.nome, dados.turma_nome);
         lista.appendChild(btn);
       });
