@@ -30,6 +30,8 @@ export default function Configuracoes() {
   const [formArte, setFormArte] = useState('');
   const [formFaixa, setFormFaixa] = useState({ arte_marcial_id: '', nome: '', cor: '#ffffff', ordem: 1 });
   const [formCriterio, setFormCriterio] = useState({ arte_marcial_id: '', faixa_id: '', min_aulas: 30 });
+  const [sortColCriterio, setSortColCriterio] = useState('arte_marcial');
+  const [sortDirCriterio, setSortDirCriterio] = useState('asc');
   const [formSala, setFormSala] = useState('');
   const [formProfessor, setFormProfessor] = useState(formProfessorVazio);
   const [professorEditandoId, setProfessorEditandoId] = useState(null);
@@ -259,13 +261,33 @@ export default function Configuracoes() {
           <button type="submit" style={estiloBtnPrimario}>Adicionar</button>
         </form>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f5f5f5' }}>
+              {[['arte_marcial', 'Arte Marcial'], ['faixa', 'Faixa'], ['min_aulas', 'Min. aulas']].map(([col, label]) => (
+                <th key={col} onClick={() => {
+                  if (sortColCriterio === col) setSortDirCriterio(d => d === 'asc' ? 'desc' : 'asc');
+                  else { setSortColCriterio(col); setSortDirCriterio('asc'); }
+                }} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13, cursor: 'pointer', userSelect: 'none' }}>
+                  {label}{sortColCriterio === col ? (sortDirCriterio === 'asc' ? ' ▲' : ' ▼') : ''}
+                </th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
-            {criterios.length === 0 && <tr><td style={{ color: '#888', fontSize: 13 }}>Nenhum criterio cadastrado.</td></tr>}
-            {criterios.map(c => (
+            {criterios.length === 0 && <tr><td colSpan={3} style={{ padding: '8px 12px', color: '#888', fontSize: 13 }}>Nenhum criterio cadastrado.</td></tr>}
+            {[...criterios].sort((a, b) => {
+              const dir = sortDirCriterio === 'asc' ? 1 : -1;
+              if (sortColCriterio === 'arte_marcial') {
+                const cmp = (a.ArteMarcial?.nome || '').localeCompare(b.ArteMarcial?.nome || '');
+                return dir * (cmp !== 0 ? cmp : (a.Faixa?.ordem ?? 0) - (b.Faixa?.ordem ?? 0));
+              }
+              if (sortColCriterio === 'faixa') return dir * ((a.Faixa?.ordem ?? 0) - (b.Faixa?.ordem ?? 0));
+              return dir * (a.min_aulas - b.min_aulas);
+            }).map(c => (
               <tr key={c.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                <td style={{ padding: '8px 0', fontSize: 14 }}>{c.ArteMarcial?.nome}</td>
-                <td style={{ padding: '8px 0', fontSize: 14, color: '#555' }}>{c.Faixa?.nome}</td>
-                <td style={{ padding: '8px 0', fontSize: 14, color: '#555' }}>{c.min_aulas} aulas</td>
+                <td style={{ padding: '8px 12px', fontSize: 14 }}>{c.ArteMarcial?.nome}</td>
+                <td style={{ padding: '8px 12px', fontSize: 14, color: '#555' }}>{c.Faixa?.nome}</td>
+                <td style={{ padding: '8px 12px', fontSize: 14, color: '#555' }}>{c.min_aulas} aulas</td>
               </tr>
             ))}
           </tbody>
