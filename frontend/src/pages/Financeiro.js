@@ -502,7 +502,14 @@ function ListaFaturas({ onVerAluno }) {
   const [pagina, setPagina] = useState(1);
   const [modalPagar, setModalPagar] = useState(null);
   const [modalGerar, setModalGerar] = useState(false);
+  const [sortCol, setSortCol] = useState('data_vencimento');
+  const [sortDir, setSortDir] = useState('asc');
   const POR_PAG = 10;
+
+  const handleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  };
 
   const carregar = () => { axios.get('/mensalidades').then(r => setFaturas(r.data)); };
   useEffect(carregar, []);
@@ -522,8 +529,38 @@ function ListaFaturas({ onVerAluno }) {
     if (busca && !(f.Aluno?.nome || '').toLowerCase().includes(busca.toLowerCase())) return false;
     return true;
   });
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAG));
-  const slice = filtradas.slice((pagina - 1) * POR_PAG, pagina * POR_PAG);
+  const SORT_ACCESSORES_FATURA = {
+    numero: f => f.id,
+    nome: f => f.Aluno?.nome || '',
+    plano: f => f.Plano?.nome || '',
+    data_vencimento: f => f.data_vencimento || '',
+    total_devido: f => parseFloat(f.valor) - parseFloat(f.desconto || 0) + parseFloat(f.juros || 0),
+    data_pagamento: f => f.Pagamentos?.[0]?.data_pagamento || '',
+    status: f => statusFatura(f),
+  };
+  const ordenadas = [...filtradas].sort((a, b) => {
+    const va = SORT_ACCESSORES_FATURA[sortCol](a);
+    const vb = SORT_ACCESSORES_FATURA[sortCol](b);
+    if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
+    const sa = va.toString().toLowerCase();
+    const sb = vb.toString().toLowerCase();
+    if (sa < sb) return sortDir === 'asc' ? -1 : 1;
+    if (sa > sb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  const totalPaginas = Math.max(1, Math.ceil(ordenadas.length / POR_PAG));
+  const slice = ordenadas.slice((pagina - 1) * POR_PAG, pagina * POR_PAG);
+
+  const COLUNAS_FATURA = [
+    { key: 'numero', label: 'No.' },
+    { key: 'nome', label: 'Nome' },
+    { key: 'plano', label: 'Plano' },
+    { key: 'data_vencimento', label: 'Vencimento' },
+    { key: 'total_devido', label: 'Total Devido' },
+    { key: 'data_pagamento', label: 'Pagamento' },
+    { key: 'status', label: 'Status' },
+    { key: null, label: '' },
+  ];
 
   return (
     <div>
@@ -544,14 +581,12 @@ function ListaFaturas({ onVerAluno }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#fafafa' }}>
-              <th style={thEstilo}>No.</th>
-              <th style={thEstilo}>Nome</th>
-              <th style={thEstilo}>Plano</th>
-              <th style={thEstilo}>Vencimento</th>
-              <th style={thEstilo}>Total Devido</th>
-              <th style={thEstilo}>Pagamento</th>
-              <th style={thEstilo}>Status</th>
-              <th style={thEstilo}></th>
+              {COLUNAS_FATURA.map((c, i) => (
+                <th key={i} onClick={() => c.key && handleSort(c.key)}
+                  style={{ ...thEstilo, cursor: c.key ? 'pointer' : 'default', userSelect: 'none' }}>
+                  {c.label}{c.key && sortCol === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
