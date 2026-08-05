@@ -116,9 +116,12 @@ const semaforo = async (req, res) => {
       }
     }
 
-    // Ordena: vermelho > laranja > amarelo
-    const ordem = { vermelho: 0, laranja: 1, amarelo: 2 };
-    alertas.sort((a, b) => ordem[a.cor] - ordem[b.cor]);
+    // Ordena por % de faltas, do maior pro menor — como vermelho só ocorre
+    // quando pct_faltas >= threshold e laranja/amarelo só quando é menor
+    // que isso, os vermelhos continuam naturalmente no topo, mas agora com
+    // ordenação real dentro de cada grupo em vez da ordem arbitrária da
+    // consulta.
+    alertas.sort((a, b) => b.pct_faltas - a.pct_faltas);
 
     res.json({ total: alertas.length, alertas });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }

@@ -187,6 +187,10 @@ Ela busca todo `HorarioTurma` cujo `dia_semana` bate com a data pedida e faz
 - 🟠 **Laranja**: 2 semanas corridas sem presença
 - 🔴 **Vermelho**: `% faltas >= Escola.threshold_falta_vermelho` (padrão 40%)
 
+Lista ordenada por `% de faltas` decrescente — como vermelho só ocorre acima do
+threshold e laranja/amarelo só abaixo dele, os vermelhos ficam naturalmente no
+topo, com ordenação real dentro de cada grupo.
+
 ### Graduação
 
 Aluno é elegível quando `MatriculaAluno.aulas_desde_graduacao >=
@@ -195,6 +199,12 @@ O contador é incrementado em `POST /api/chamadas/fechar/:aula_id` para cada alu
 presente. `GET /api/dashboard/graduacao` (aceita `?arte_marcial_id=` opcional) lista
 os elegíveis, agrupando por (aluno, arte marcial) pra não contar dobrado quem está
 matriculado em mais de uma turma da mesma arte.
+
+**Faixas e critérios são editáveis em Configurações**: clicar numa faixa da
+lista abre edição inline (nome, cor, ordem); `Faixa.cor_secundaria` (opcional)
+permite marcar uma faixa com duas cores (ex: Cinza-Branca), mostradas como um
+círculo dividido ao meio. Critérios de Graduação têm botão "Editar" por linha
+pra atualizar o Min. aulas.
 
 ### Histórico de frequência (presenças **e** ausências)
 
@@ -411,10 +421,16 @@ do aluno na coluna Nome.
 
 Grid de cards com filtro próprio por relatório (campo de busca no topo pra achar
 um específico). "Gerar Relatório" abre o resultado em nova aba, página imprimível
-— mesmo padrão do recibo. 7 relatórios: Alunos por Graduação, Alunos por
+— mesmo padrão do recibo. 8 relatórios: Alunos por Graduação, Alunos por
 Turma-Horário, Ficha Cadastral Resumida, Aulas & Frequências (Turma, com modos
 Relação/Quantitativo), Aulas & Frequências (Aluno), Aniversariantes por Mês,
-Frequência: Presença Mínima.
+Frequência: Presença Mínima, e **Frequência: % de Presença** (todo aluno ativo
+e o % de carência cumprida em relação à faixa atual — aulas presentes desde o
+início da graduação atual ÷ `CriterioGraduacao.min_aulas` da faixa; filtro por
+Programa Marcial e por Turma; ordena por Nome, Graduação ou Percentual). Ambos
+os relatórios de carência contam presença em qualquer turma da mesma arte
+marcial desde o início da graduação — não só nas turmas matriculadas hoje,
+pra não subcontar quem trocou de turma/horário no meio do caminho.
 
 ## Documentos do projeto
 
@@ -430,7 +446,7 @@ Todas as 15 tarefas do MVP (T-01 a T-15) descritas no PRD estão concluídas.
 Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 9):
 reescrita da tela de Chamadas, módulo de Gestão Financeira completo (planos,
 assinaturas recorrentes, faturas com geração automática, recibo imprimível),
-módulo de Relatórios (7 relatórios básicos inspirados no iDojo), foto do aluno,
+módulo de Relatórios (8 relatórios básicos inspirados no iDojo), foto do aluno,
 histórico de frequência com ausências, correções de cadastro (CPF como
 identificador único do aluno, e-mail deixou de ser único pra permitir irmãos
 compartilhando o e-mail dos pais), módulo satélite de check-in online
@@ -441,7 +457,9 @@ depender de um arquivo local no repositório), essencial pra outras escolas
 usarem o sistema, e ajustes pós-lançamento (fatura gerada com 5 dias de
 antecedência do vencimento, tabela de Faturas ordenável, avatar do aluno
 em Chamadas e Faturas, cabeçalho ordenável em Critérios de Graduação,
-botão "Validar Todos" nos check-ins QR pendentes).
+botão "Validar Todos" nos check-ins QR pendentes, relatório novo
+"Frequência: % de Presença", faixas com edição e duas cores, critérios
+de graduação editáveis).
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

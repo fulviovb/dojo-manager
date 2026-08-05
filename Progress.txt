@@ -350,6 +350,33 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     check-ins por QR Code aguardando validação, sem remover os botões de
     validação individual. Testado com dados reais (criados e removidos
     depois do teste).
+[x] Novo relatório "Frequência: % de Presença" (`GET
+    /api/relatorios/frequencia-percentual`): lista todo aluno ativo com o
+    % de carência cumprida em relação à FAIXA ATUAL (aulas presentes desde
+    o início da graduação atual ÷ `CriterioGraduacao.min_aulas` da faixa),
+    com filtro opcional por Programa Marcial e por Turma, e "Ordenar por"
+    (Nome, Graduação/ordem de faixa, ou Percentual — padrão). Diferente do
+    "Presença Mínima" já existente (esse só lista quem já atingiu 100%);
+    o novo mostra todo mundo, inclusive abaixo da carência.
+[x] Bug real encontrado logo no primeiro uso (comparando com o perfil de
+    verdade da aluna Giovanna Carvalho Lazaro): a implementação original
+    contava presença só nas turmas em que o aluno está matriculado HOJE —
+    errado, porque trocar de turma/horário no meio da graduação não
+    deveria "resetar" carência já cumprida. Corrigido pra contar presença
+    em qualquer turma da mesma arte marcial desde o início da graduação
+    atual (mesma base do perfil do aluno). A mesma falha existia também no
+    relatório "Presença Mínima" (`dashboardController.graduacao`) — corrigida
+    junto, já que é o mesmo tipo de cálculo.
+[x] Faixas (Configurações) ganharam edição: cada faixa da lista é clicável,
+    abre edição inline (nome, cor, ordem) com Salvar/Cancelar. Campo novo
+    `Faixa.cor_secundaria` (script one-off, já executado) permite marcar
+    uma faixa com 1 ou 2 cores (ex: Cinza-Branca) — checkbox "2ª cor?" no
+    form de criação e na edição; o círculo da faixa mostra as duas cores
+    divididas quando configurado.
+[x] Critérios de Graduação (Configurações) ganharam edição: botão "Editar"
+    em cada linha atualiza o Min. aulas inline. Os endpoints `PUT
+    /faixas/:id` e `PUT /criterios-graduacao/:id` já existiam prontos no
+    backend — só faltava a UI.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
