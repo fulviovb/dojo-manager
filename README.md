@@ -390,7 +390,9 @@ Detalhe de uma aula mostra presentes, ausentes e check-ins por QR Code ainda
 não validados, cada um com avatar (foto ou iniciais, mesmo componente
 `Avatar`) ao lado do nome — inclusive na busca de "aluno de outra turma".
 Botão "Sincronizar Check-in Online" puxa os check-ins do módulo satélite
-(ver seção própria acima).
+(ver seção própria acima). Botão "Validar Todos" no card de pendentes QR
+valida todos de uma vez (mesmo padrão do "Marcar todos presentes" dos
+ausentes) sem remover a validação individual por aluno.
 
 ### Financeiro
 
@@ -436,9 +438,10 @@ compartilhando o e-mail dos pais), módulo satélite de check-in online
 Cloud, faltando só a reimpressão física dos QR Codes das salas — e
 assinatura do recibo passando a ser desenhada e salva por escola (sem mais
 depender de um arquivo local no repositório), essencial pra outras escolas
-usarem o sistema, e ajustes financeiros pós-lançamento (fatura gerada com
-5 dias de antecedência do vencimento, tabela de Faturas ordenável, avatar
-do aluno em Chamadas e Faturas).
+usarem o sistema, e ajustes pós-lançamento (fatura gerada com 5 dias de
+antecedência do vencimento, tabela de Faturas ordenável, avatar do aluno
+em Chamadas e Faturas, cabeçalho ordenável em Critérios de Graduação,
+botão "Validar Todos" nos check-ins QR pendentes).
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

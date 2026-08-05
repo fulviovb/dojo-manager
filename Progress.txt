@@ -318,7 +318,7 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     (tela de Configurações e um recibo real) e confirmado idêntico ao de
     antes.
 
-=== FASE 9: Ajustes financeiros pós-lançamento ===
+=== FASE 9: Ajustes pós-lançamento ===
 [x] Fatura passa a ser gerada com 5 dias de antecedência do vencimento
     (`faturaService.gerarFaturasPendentes`: `venc <= hoje` virou
     `venc <= hoje + ANTECEDENCIA_GERACAO_DIAS`, constante = 5), em vez de
@@ -338,6 +338,18 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     da tabela. Precisou incluir `foto_url` nas queries de `Aluno` que
     faltavam (`chamadasController.listar`,
     `financeiroController.listarMensalidades`) — só tinham `id, nome`.
+[x] Cabeçalho ordenável em Critérios de Graduação (`Configuracoes.js`):
+    não tinha `<thead>` nenhum antes, ordem vinha só da query do backend
+    (por faixa, ignorando arte marcial). Ordenação padrão agora é por
+    Arte Marcial e, dentro dela, pela ordem de graduação da Faixa
+    (`Faixa.ordem` — a sequência real de faixas, não ordem alfabética);
+    clicar em qualquer coluna reordena.
+[x] Botão "Validar Todos" nos check-ins QR pendentes de uma aula
+    (`Chamadas.js` → `DetalheAula`) — mesmo padrão do "Marcar todos
+    presentes" já existente pros ausentes. Valida de uma vez só todos os
+    check-ins por QR Code aguardando validação, sem remover os botões de
+    validação individual. Testado com dados reais (criados e removidos
+    depois do teste).
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
