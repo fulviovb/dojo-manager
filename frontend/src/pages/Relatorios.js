@@ -198,7 +198,7 @@ function CardFrequenciaPercentual({ artes }) {
           {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
         </select>
       </div>
-      <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Todos os alunos ativos e o % de presença atual de cada um.</p>
+      <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Todos os alunos ativos e o % de carência cumprida na faixa atual.</p>
       <button style={btnVerde} onClick={() => abrirRelatorio('frequencia-percentual', { arte_marcial_id: arteId })}>+ Gerar Relatório</button>
     </Card>
   );

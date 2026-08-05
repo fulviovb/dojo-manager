@@ -277,14 +277,15 @@ function FrequenciaPercentual({ dados }) {
   return (
     <div>
       <p style={{ fontSize: 13, color: '#555', marginTop: 0 }}>
-        % de presença de cada aluno ativo, desde a matrícula (aulas fechadas de todas as turmas em que está matriculado).
+        % da carência cumprida por cada aluno ativo, em relação à faixa atual (aulas desde o início
+        dessa graduação ÷ carência mínima cadastrada pra faixa). "—" = sem critério de carência cadastrado.
       </p>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead><tr>
           <th style={thEstilo}>Aluno</th>
           <th style={thEstilo}>Turma(s)</th>
-          <th style={thEstilo}>Presenças</th>
-          <th style={thEstilo}>Total de Aulas</th>
+          <th style={thEstilo}>Faixa Atual</th>
+          <th style={thEstilo}>Aulas / Carência</th>
           <th style={thEstilo}>%</th>
         </tr></thead>
         <tbody>
@@ -298,8 +299,8 @@ function FrequenciaPercentual({ dados }) {
                 </span>
               </td>
               <td style={{ ...tdEstilo, color: '#666' }}>{(a.turmas || []).map(t => t.split('\n')[0]).join(', ')}</td>
-              <td style={tdEstilo}>{a.presentes}</td>
-              <td style={tdEstilo}>{a.total_aulas}</td>
+              <td style={tdEstilo}><FaixaSwatch nome={a.faixa_atual} cor={a.faixa_cor} /></td>
+              <td style={tdEstilo}>{a.min_aulas_criterio === null ? '—' : `${a.aulas_presentes} / ${a.min_aulas_criterio}`}</td>
               <td style={tdEstilo}>{a.percentual === null ? '—' : `${a.percentual}%`}</td>
             </tr>
           ))}

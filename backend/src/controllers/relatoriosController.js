@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const {
   Usuario, Turma, ArteMarcial, Faixa, MatriculaAluno, GraduacaoAluno,
-  HorarioTurma, Sala, Aula, Chamada, AssinaturaAluno, PlanoMensalidade,
+  HorarioTurma, Sala, Aula, Chamada, AssinaturaAluno, PlanoMensalidade, CriterioGraduacao,
 } = require('../models');
 const { ehDonoDaTurma } = require('../middleware/autorizacao');
 const { dataLocalISO } = require('../utils/data');
@@ -250,74 +250,83 @@ const aniversariantes = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-// GET /api/relatorios/frequencia-percentual?arte_marcial_id= — % de presença
-// atual de cada aluno ativo (aulas fechadas desde a matrícula, cruzadas com
-// as chamadas dele), agregado entre todas as turmas matriculadas que batem
-// com o filtro de arte marcial (ou todas, se não informado).
+// GET /api/relatorios/frequencia-percentual?arte_marcial_id= — % de carência
+// cumprida por cada aluno ativo em relação à FAIXA ATUAL (uma linha por
+// aluno+arte marcial): aulas presentes desde o início da graduação atual
+// dividido pelo min_aulas do CriterioGraduacao cadastrado pra essa faixa —
+// mesma base de cálculo de dashboardController.graduacao (usada no relatório
+// "Presença Mínima"), mas sem o corte de só mostrar quem já atingiu 100%.
 const frequenciaPercentual = async (req, res) => {
   try {
     const escola_id = req.usuario.escola_id;
     const { arte_marcial_id } = req.query;
 
+    const criterios = await CriterioGraduacao.findAll({
+      where: { escola_id },
+      include: [{ model: Faixa, attributes: ['id', 'nome', 'cor', 'ordem'] }],
+    });
+
     const matriculas = await MatriculaAluno.findAll({
       where: { ativa: true },
       include: [
         { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'], where: { escola_id, role: 'aluno', ativo: true } },
-        { model: Turma, attributes: ['id', 'nome'], where: { ativa: true, ...(arte_marcial_id ? { arte_marcial_id } : {}) } },
+        { model: Faixa, as: 'FaixaAtual', attributes: ['id', 'nome', 'cor', 'ordem', 'arte_marcial_id'] },
+        { model: Turma, attributes: ['id', 'nome', 'arte_marcial_id'] },
       ],
     });
-    if (matriculas.length === 0) return res.json({ arte_marcial_id: arte_marcial_id || null, alunos: [] });
 
-    const turmaIds = [...new Set(matriculas.map((m) => m.turma_id))];
-    const aulas = await Aula.findAll({ where: { turma_id: { [Op.in]: turmaIds }, status: 'fechada' } });
-    const aulasPorTurma = new Map();
-    for (const a of aulas) {
-      if (!aulasPorTurma.has(a.turma_id)) aulasPorTurma.set(a.turma_id, []);
-      aulasPorTurma.get(a.turma_id).push(a);
-    }
-
-    const alunoIds = [...new Set(matriculas.map((m) => m.aluno_id))];
-    const aulaIds = aulas.map((a) => a.id);
-    const chamadas = await Chamada.findAll({ where: { aluno_id: { [Op.in]: alunoIds }, aula_id: { [Op.in]: aulaIds } } });
-    const chamadasPorAluno = new Map();
-    for (const c of chamadas) {
-      if (!chamadasPorAluno.has(c.aluno_id)) chamadasPorAluno.set(c.aluno_id, new Set());
-      chamadasPorAluno.get(c.aluno_id).add(c.aula_id);
-    }
-
-    const porAluno = new Map();
+    // Um aluno pode estar matriculado em várias turmas da mesma arte marcial
+    // — agrupa por (aluno, arte) pra contar a presença uma vez só.
+    const porAlunoArte = new Map();
     for (const m of matriculas) {
-      if (!porAluno.has(m.aluno_id)) {
-        porAluno.set(m.aluno_id, { id: m.Aluno.id, nome: m.Aluno.nome, foto_url: m.Aluno.foto_url, turmas: new Set(), total: 0, presentes: 0 });
+      if (!m.FaixaAtual) continue;
+      if (arte_marcial_id && m.FaixaAtual.arte_marcial_id !== arte_marcial_id) continue;
+      const chave = `${m.aluno_id}:${m.FaixaAtual.arte_marcial_id}`;
+      if (!porAlunoArte.has(chave)) {
+        porAlunoArte.set(chave, { aluno: m.Aluno, faixaAtual: m.FaixaAtual, turmaNomes: [], turmaIds: [] });
       }
-      const registro = porAluno.get(m.aluno_id);
-      registro.turmas.add(m.Turma.nome);
-
-      const aulasDaTurma = aulasPorTurma.get(m.turma_id) || [];
-      const presencasDoAluno = chamadasPorAluno.get(m.aluno_id) || new Set();
-      for (const a of aulasDaTurma) {
-        const presente = presencasDoAluno.has(a.id);
-        // Aula conta no total se já tem presença registrada (fato consumado)
-        // ou se é posterior à matrícula — mesma regra do perfil do aluno,
-        // pra não inventar falta antes dele estar matriculado.
-        if (presente || a.data >= m.data_matricula) {
-          registro.total++;
-          if (presente) registro.presentes++;
-        }
-      }
+      porAlunoArte.get(chave).turmaNomes.push(m.Turma.nome);
+      porAlunoArte.get(chave).turmaIds.push(m.turma_id);
     }
 
-    const alunosResp = [...porAluno.values()]
-      .map((a) => ({
-        id: a.id,
-        nome: a.nome,
-        foto_url: a.foto_url,
-        turmas: [...a.turmas],
-        total_aulas: a.total,
-        presentes: a.presentes,
-        percentual: a.total ? Math.round((a.presentes / a.total) * 100) : null,
-      }))
-      .sort((a, b) => (a.percentual ?? -1) - (b.percentual ?? -1) || a.nome.localeCompare(b.nome));
+    const graduacoesAtuais = await GraduacaoAluno.findAll({
+      where: { escola_id, atual: true },
+      attributes: ['aluno_id', 'arte_marcial_id', 'data_inicio'],
+    });
+    const inicioGraduacao = new Map(graduacoesAtuais.map((g) => [`${g.aluno_id}:${g.arte_marcial_id}`, g.data_inicio]));
+
+    const alunosResp = [];
+    for (const [chave, grupo] of porAlunoArte) {
+      const criterio = criterios.find(
+        (c) => c.arte_marcial_id === grupo.faixaAtual.arte_marcial_id && c.faixa_id === grupo.faixaAtual.id
+      );
+
+      const dataInicio = inicioGraduacao.get(chave);
+      const aulasPresentes = dataInicio
+        ? await Chamada.count({
+            where: { aluno_id: grupo.aluno.id },
+            include: [{
+              model: Aula,
+              attributes: [],
+              where: { turma_id: { [Op.in]: grupo.turmaIds }, data: { [Op.gte]: dataInicio } },
+            }],
+          })
+        : 0;
+
+      alunosResp.push({
+        id: grupo.aluno.id,
+        nome: grupo.aluno.nome,
+        foto_url: grupo.aluno.foto_url,
+        turmas: [...new Set(grupo.turmaNomes)],
+        faixa_atual: grupo.faixaAtual.nome,
+        faixa_cor: grupo.faixaAtual.cor || null,
+        aulas_presentes: aulasPresentes,
+        min_aulas_criterio: criterio ? criterio.min_aulas : null,
+        percentual: criterio ? Math.round((aulasPresentes / criterio.min_aulas) * 100) : null,
+      });
+    }
+
+    alunosResp.sort((a, b) => (a.percentual ?? -1) - (b.percentual ?? -1) || a.nome.localeCompare(b.nome));
 
     res.json({ arte_marcial_id: arte_marcial_id || null, alunos: alunosResp });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
