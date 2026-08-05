@@ -149,6 +149,13 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
     carregar();
   };
 
+  const validarTodos = async () => {
+    await Promise.all(dados.chamadas
+      .filter(c => c.origem === 'qrcode' && !c.validado_por)
+      .map(c => axios.put(`/chamadas/${c.id}/validar`)));
+    carregar();
+  };
+
   const remover = async (chamadaId) => {
     await axios.delete(`/chamadas/${chamadaId}`);
     carregar();
@@ -208,7 +215,10 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
 
       {pendentesQR.length > 0 && (
         <div style={{ ...cardEstilo, padding: 16, marginBottom: 16, border: '1px solid #ffe0b2', background: '#fffaf0' }}>
-          <strong style={{ fontSize: 13, color: '#ef6c00' }}>⏳ Check-ins por QR Code aguardando sua validação</strong>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong style={{ fontSize: 13, color: '#ef6c00' }}>⏳ Check-ins por QR Code aguardando sua validação</strong>
+            <button onClick={validarTodos} style={btnVerde}>✓ Validar Todos</button>
+          </div>
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {pendentesQR.map(c => (
               <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #ffe8c4' }}>
