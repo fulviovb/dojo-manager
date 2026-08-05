@@ -181,13 +181,19 @@ const graduacao = async (req, res) => {
       if (!criterio) continue;
 
       const dataInicio = inicioGraduacao.get(chave);
+      // Conta presença em QUALQUER turma daquela arte marcial desde o início
+      // da graduação atual — não só nas turmas em que está matriculado
+      // agora, porque trocar de turma/horário no meio do caminho não deveria
+      // "resetar" a carência já cumprida (mesma base de
+      // relatoriosController.frequenciaPercentual).
       const aulasPresentes = dataInicio
         ? await Chamada.count({
             where: { aluno_id: grupo.aluno.id },
             include: [{
               model: Aula,
               attributes: [],
-              where: { turma_id: { [Op.in]: grupo.turmaIds }, data: { [Op.gte]: dataInicio } },
+              where: { data: { [Op.gte]: dataInicio } },
+              include: [{ model: Turma, attributes: [], where: { arte_marcial_id: grupo.faixaAtual.arte_marcial_id } }],
             }],
           })
         : 0;
