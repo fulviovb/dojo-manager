@@ -36,6 +36,7 @@ export default function Configuracoes() {
   const [formCriterio, setFormCriterio] = useState({ arte_marcial_id: '', faixa_id: '', min_aulas: 30 });
   const [criterioEditandoId, setCriterioEditandoId] = useState(null);
   const [edicaoCriterio, setEdicaoCriterio] = useState({ min_aulas: 30 });
+  const [msgDataExameId, setMsgDataExameId] = useState(null);
   const [sortColCriterio, setSortColCriterio] = useState('arte_marcial');
   const [sortDirCriterio, setSortDirCriterio] = useState('asc');
   const [formSala, setFormSala] = useState('');
@@ -107,6 +108,15 @@ export default function Configuracoes() {
     e.preventDefault(); setErro('');
     try { await axios.post('/artes-marciais', { nome: formArte }); setFormArte(''); carregar(); }
     catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
+  };
+
+  const salvarDataExame = async (arte) => {
+    setErro('');
+    try {
+      await axios.put(`/artes-marciais/${arte.id}`, { data_proximo_exame: arte.data_proximo_exame || null });
+      setMsgDataExameId(arte.id);
+      setTimeout(() => setMsgDataExameId(null), 2000);
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar data do exame'); }
   };
 
   const addFaixa = async (e) => {
@@ -232,11 +242,35 @@ export default function Configuracoes() {
           <input required placeholder="Nome da arte marcial" value={formArte} onChange={e => setFormArte(e.target.value)} style={{ ...estiloInput, maxWidth: 260 }} />
           <button type="submit" style={estiloBtnPrimario}>Adicionar</button>
         </form>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {artes.map(a => (
-            <span key={a.id} style={{ background: '#e8eaf6', padding: '6px 14px', borderRadius: 20, fontSize: 13 }}>{a.nome}</span>
-          ))}
-        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f5f5f5' }}>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Arte Marcial</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Data do próximo exame de faixa</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {artes.map(a => (
+              <tr key={a.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                <td style={{ padding: '8px 12px', fontSize: 14 }}>{a.nome}</td>
+                <td style={{ padding: '8px 12px' }}>
+                  <input type="date" value={a.data_proximo_exame || ''}
+                    onChange={e => setArtes(as => as.map(x => x.id === a.id ? { ...x, data_proximo_exame: e.target.value } : x))}
+                    style={{ ...estiloInput, width: 160 }} />
+                </td>
+                <td style={{ padding: '8px 12px' }}>
+                  <button onClick={() => salvarDataExame(a)} style={{ background: 'none', border: 'none', color: '#2e7d32', cursor: 'pointer', fontSize: 12, padding: 0 }}>
+                    {msgDataExameId === a.id ? 'Salvo!' : 'Salvar'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
+          Usada no "Semáforo de Graduação" (Dashboard) pra calcular quantas aulas realmente restam até o exame.
+        </p>
       </Secao>
 
       <Secao titulo="Faixas">
