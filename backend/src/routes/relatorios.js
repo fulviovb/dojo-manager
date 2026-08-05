@@ -8,5 +8,6 @@ router.get('/ficha-cadastral', autenticar, ctrl.fichaCadastral);
 router.get('/frequencia-turma', autenticar, ctrl.frequenciaTurma);
 router.get('/frequencia-aluno', autenticar, ctrl.frequenciaAluno);
 router.get('/aniversariantes', autenticar, ctrl.aniversariantes);
+router.get('/frequencia-percentual', autenticar, ctrl.frequenciaPercentual);
 
 module.exports = router;

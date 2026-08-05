@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { corDaFaixa } from '../utils/faixaCores';
+import Avatar from '../components/Avatar';
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -12,6 +13,7 @@ const TITULOS = {
   'frequencia-aluno': 'Aulas & Frequências (Aluno)',
   'aniversariantes': 'Aniversariantes por Mês',
   'presenca-minima': 'Frequência: Presença Mínima',
+  'frequencia-percentual': 'Frequência: % de Presença',
 };
 
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -271,6 +273,42 @@ function PresencaMinima({ dados }) {
   );
 }
 
+function FrequenciaPercentual({ dados }) {
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: '#555', marginTop: 0 }}>
+        % de presença de cada aluno ativo, desde a matrícula (aulas fechadas de todas as turmas em que está matriculado).
+      </p>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead><tr>
+          <th style={thEstilo}>Aluno</th>
+          <th style={thEstilo}>Turma(s)</th>
+          <th style={thEstilo}>Presenças</th>
+          <th style={thEstilo}>Total de Aulas</th>
+          <th style={thEstilo}>%</th>
+        </tr></thead>
+        <tbody>
+          {dados.alunos.length === 0 && <tr><td colSpan={5} style={tdEstilo}>Nenhum aluno encontrado.</td></tr>}
+          {dados.alunos.map((a) => (
+            <tr key={a.id}>
+              <td style={tdEstilo}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Avatar fotoUrl={a.foto_url} nome={a.nome} tamanho={24} />
+                  {a.nome}
+                </span>
+              </td>
+              <td style={{ ...tdEstilo, color: '#666' }}>{(a.turmas || []).map(t => t.split('\n')[0]).join(', ')}</td>
+              <td style={tdEstilo}>{a.presentes}</td>
+              <td style={tdEstilo}>{a.total_aulas}</td>
+              <td style={tdEstilo}>{a.percentual === null ? '—' : `${a.percentual}%`}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const RENDERIZADORES = {
   'alunos-por-graduacao': TabelaAlunosPorGraduacao,
   'alunos-por-turma': TabelaAlunosPorTurma,
@@ -279,6 +317,7 @@ const RENDERIZADORES = {
   'frequencia-aluno': FrequenciaAluno,
   'aniversariantes': Aniversariantes,
   'presenca-minima': PresencaMinima,
+  'frequencia-percentual': FrequenciaPercentual,
 };
 
 // Página standalone (mesmo padrão de ReciboPage.js): sem sidebar, aberta em
