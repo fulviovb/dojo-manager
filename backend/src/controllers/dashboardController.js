@@ -269,12 +269,15 @@ const semaforoGraduacao = async (req, res) => {
       include: [{ model: Faixa, attributes: ['id', 'nome', 'cor', 'ordem'] }],
     });
 
+    // Turma precisa estar ativa: uma turma desativada não vai ter mais aula
+    // de verdade, então não pode contar como "aula restante" na projeção até
+    // o exame (mesmo que a matrícula do aluno nela continue ativa).
     const matriculas = await MatriculaAluno.findAll({
       where: { ativa: true },
       include: [
         { model: Usuario, as: 'Aluno', where: { escola_id, role: 'aluno', ativo: true }, attributes: ['id', 'nome'] },
         { model: Faixa, as: 'FaixaAtual', attributes: ['id', 'nome', 'cor', 'ordem', 'arte_marcial_id'] },
-        { model: Turma, attributes: ['id', 'nome', 'arte_marcial_id'] },
+        { model: Turma, attributes: ['id', 'nome', 'arte_marcial_id'], where: { ativa: true } },
       ],
     });
 
