@@ -6,6 +6,7 @@ const Faixa = sequelize.define('Faixa', {
   arte_marcial_id: { type: DataTypes.UUID, allowNull: false },
   nome: { type: DataTypes.STRING, allowNull: false },
   cor: { type: DataTypes.STRING },
+  cor_secundaria: { type: DataTypes.STRING },
   ordem: { type: DataTypes.INTEGER, allowNull: false },
 }, { tableName: 'faixas' });
 

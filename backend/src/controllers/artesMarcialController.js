@@ -4,7 +4,7 @@ const listar = async (req, res) => {
   try {
     const artes = await ArteMarcial.findAll({
       where: { escola_id: req.usuario.escola_id },
-      include: [{ model: Faixa, attributes: ['id', 'nome', 'cor', 'ordem'], order: [['ordem', 'ASC']] }],
+      include: [{ model: Faixa, attributes: ['id', 'nome', 'cor', 'cor_secundaria', 'ordem'], order: [['ordem', 'ASC']] }],
       order: [['nome', 'ASC']],
     });
     res.json(artes);

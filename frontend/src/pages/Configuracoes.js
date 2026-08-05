@@ -28,8 +28,14 @@ export default function Configuracoes() {
   const [professores, setProfessores] = useState([]);
   const [msgEscola, setMsgEscola] = useState('');
   const [formArte, setFormArte] = useState('');
-  const [formFaixa, setFormFaixa] = useState({ arte_marcial_id: '', nome: '', cor: '#ffffff', ordem: 1 });
+  const [formFaixa, setFormFaixa] = useState({ arte_marcial_id: '', nome: '', cor: '#ffffff', cor_secundaria: '', ordem: 1 });
+  const [duasCoresNova, setDuasCoresNova] = useState(false);
+  const [faixaEditandoId, setFaixaEditandoId] = useState(null);
+  const [edicaoFaixa, setEdicaoFaixa] = useState({ nome: '', cor: '#ffffff', cor_secundaria: '', ordem: 1 });
+  const [duasCoresEdicao, setDuasCoresEdicao] = useState(false);
   const [formCriterio, setFormCriterio] = useState({ arte_marcial_id: '', faixa_id: '', min_aulas: 30 });
+  const [criterioEditandoId, setCriterioEditandoId] = useState(null);
+  const [edicaoCriterio, setEdicaoCriterio] = useState({ min_aulas: 30 });
   const [sortColCriterio, setSortColCriterio] = useState('arte_marcial');
   const [sortDirCriterio, setSortDirCriterio] = useState('asc');
   const [formSala, setFormSala] = useState('');
@@ -105,8 +111,47 @@ export default function Configuracoes() {
 
   const addFaixa = async (e) => {
     e.preventDefault(); setErro('');
-    try { await axios.post('/faixas', formFaixa); setFormFaixa(f => ({ ...f, nome: '', ordem: f.ordem + 1 })); carregar(); }
-    catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
+    const payload = { ...formFaixa, cor_secundaria: duasCoresNova ? formFaixa.cor_secundaria : null };
+    try {
+      await axios.post('/faixas', payload);
+      setFormFaixa(f => ({ ...f, nome: '', ordem: f.ordem + 1 }));
+      setDuasCoresNova(false);
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
+  };
+
+  const iniciarEdicaoFaixa = (faixa) => {
+    setFaixaEditandoId(faixa.id);
+    setEdicaoFaixa({ nome: faixa.nome, cor: faixa.cor || '#ffffff', cor_secundaria: faixa.cor_secundaria || '#ffffff', ordem: faixa.ordem });
+    setDuasCoresEdicao(!!faixa.cor_secundaria);
+  };
+
+  const cancelarEdicaoFaixa = () => setFaixaEditandoId(null);
+
+  const salvarEdicaoFaixa = async (faixa) => {
+    setErro('');
+    const payload = { ...edicaoFaixa, cor_secundaria: duasCoresEdicao ? edicaoFaixa.cor_secundaria : null };
+    try {
+      await axios.put(`/faixas/${faixa.id}`, payload);
+      setFaixaEditandoId(null);
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar faixa'); }
+  };
+
+  const iniciarEdicaoCriterio = (criterio) => {
+    setCriterioEditandoId(criterio.id);
+    setEdicaoCriterio({ min_aulas: criterio.min_aulas });
+  };
+
+  const cancelarEdicaoCriterio = () => setCriterioEditandoId(null);
+
+  const salvarEdicaoCriterio = async (criterio) => {
+    setErro('');
+    try {
+      await axios.put(`/criterios-graduacao/${criterio.id}`, edicaoCriterio);
+      setCriterioEditandoId(null);
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar critério'); }
   };
 
   const addCriterio = async (e) => {
@@ -213,6 +258,13 @@ export default function Configuracoes() {
             <input type="color" value={formFaixa.cor} onChange={e => setFormFaixa(f => ({ ...f, cor: e.target.value }))} style={{ height: 36, width: 48, border: '1px solid #ddd', borderRadius: 4, padding: 2 }} />
           </div>
           <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, marginBottom: 4 }}>
+              <input type="checkbox" checked={duasCoresNova} onChange={e => setDuasCoresNova(e.target.checked)} /> 2ª cor?
+            </label>
+            <input type="color" value={formFaixa.cor_secundaria || '#ffffff'} onChange={e => setFormFaixa(f => ({ ...f, cor_secundaria: e.target.value }))}
+              disabled={!duasCoresNova} style={{ height: 36, width: 48, border: '1px solid #ddd', borderRadius: 4, padding: 2, opacity: duasCoresNova ? 1 : 0.4 }} />
+          </div>
+          <div>
             <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Ordem</label>
             <input type="number" min={1} required value={formFaixa.ordem} onChange={e => setFormFaixa(f => ({ ...f, ordem: Number(e.target.value) }))} style={{ ...estiloInput, width: 70 }} />
           </div>
@@ -225,8 +277,28 @@ export default function Configuracoes() {
             <div key={a.id} style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{a.nome}</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {fs.map(f => (
-                  <span key={f.id} style={{ background: f.cor, border: '1px solid #ddd', padding: '4px 12px', borderRadius: 20, fontSize: 12, color: '#333' }}>
+                {fs.map(f => faixaEditandoId === f.id ? (
+                  <div key={f.id} style={{ display: 'flex', gap: 6, alignItems: 'center', border: '1px solid #ddd', borderRadius: 20, padding: '4px 10px' }}>
+                    <input value={edicaoFaixa.nome} onChange={e => setEdicaoFaixa(v => ({ ...v, nome: e.target.value }))} style={{ ...estiloInput, width: 100, padding: '2px 6px' }} />
+                    <input type="color" value={edicaoFaixa.cor} onChange={e => setEdicaoFaixa(v => ({ ...v, cor: e.target.value }))} style={{ height: 26, width: 32, border: '1px solid #ddd', borderRadius: 4, padding: 1 }} />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11 }}>
+                      <input type="checkbox" checked={duasCoresEdicao} onChange={e => setDuasCoresEdicao(e.target.checked)} /> 2ª
+                    </label>
+                    <input type="color" value={edicaoFaixa.cor_secundaria || '#ffffff'} onChange={e => setEdicaoFaixa(v => ({ ...v, cor_secundaria: e.target.value }))}
+                      disabled={!duasCoresEdicao} style={{ height: 26, width: 32, border: '1px solid #ddd', borderRadius: 4, padding: 1, opacity: duasCoresEdicao ? 1 : 0.4 }} />
+                    <input type="number" min={1} value={edicaoFaixa.ordem} onChange={e => setEdicaoFaixa(v => ({ ...v, ordem: Number(e.target.value) }))} style={{ ...estiloInput, width: 48, padding: '2px 6px' }} />
+                    <button onClick={() => salvarEdicaoFaixa(f)} style={{ background: '#2e7d32', color: '#fff', border: 'none', borderRadius: 4, padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}>✓</button>
+                    <button onClick={cancelarEdicaoFaixa} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 11 }}>✕</button>
+                  </div>
+                ) : (
+                  <span key={f.id} onClick={() => iniciarEdicaoFaixa(f)} title="Clique para editar" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ddd', padding: '4px 12px 4px 6px',
+                    borderRadius: 20, fontSize: 12, color: '#333', cursor: 'pointer',
+                  }}>
+                    <span style={{
+                      width: 16, height: 16, borderRadius: '50%', display: 'inline-block', border: '1px solid rgba(0,0,0,0.2)', flexShrink: 0,
+                      background: f.cor_secundaria ? `linear-gradient(90deg, ${f.cor} 50%, ${f.cor_secundaria} 50%)` : f.cor,
+                    }} />
                     {f.ordem}. {f.nome}
                   </span>
                 ))}
@@ -271,10 +343,11 @@ export default function Configuracoes() {
                   {label}{sortColCriterio === col ? (sortDirCriterio === 'asc' ? ' ▲' : ' ▼') : ''}
                 </th>
               ))}
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}></th>
             </tr>
           </thead>
           <tbody>
-            {criterios.length === 0 && <tr><td colSpan={3} style={{ padding: '8px 12px', color: '#888', fontSize: 13 }}>Nenhum criterio cadastrado.</td></tr>}
+            {criterios.length === 0 && <tr><td colSpan={4} style={{ padding: '8px 12px', color: '#888', fontSize: 13 }}>Nenhum criterio cadastrado.</td></tr>}
             {[...criterios].sort((a, b) => {
               const dir = sortDirCriterio === 'asc' ? 1 : -1;
               if (sortColCriterio === 'arte_marcial') {
@@ -287,7 +360,23 @@ export default function Configuracoes() {
               <tr key={c.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                 <td style={{ padding: '8px 12px', fontSize: 14 }}>{c.ArteMarcial?.nome}</td>
                 <td style={{ padding: '8px 12px', fontSize: 14, color: '#555' }}>{c.Faixa?.nome}</td>
-                <td style={{ padding: '8px 12px', fontSize: 14, color: '#555' }}>{c.min_aulas} aulas</td>
+                <td style={{ padding: '8px 12px', fontSize: 14, color: '#555' }}>
+                  {criterioEditandoId === c.id
+                    ? <input type="number" min={1} autoFocus value={edicaoCriterio.min_aulas}
+                        onChange={e => setEdicaoCriterio({ min_aulas: Number(e.target.value) })}
+                        style={{ ...estiloInput, width: 70, padding: '2px 6px' }} />
+                    : `${c.min_aulas} aulas`}
+                </td>
+                <td style={{ padding: '8px 12px', fontSize: 12, whiteSpace: 'nowrap' }}>
+                  {criterioEditandoId === c.id ? (
+                    <>
+                      <button onClick={() => salvarEdicaoCriterio(c)} style={{ background: 'none', border: 'none', color: '#2e7d32', cursor: 'pointer', fontSize: 12, padding: 0, marginRight: 10 }}>Salvar</button>
+                      <button onClick={cancelarEdicaoCriterio} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 12, padding: 0 }}>Cancelar</button>
+                    </>
+                  ) : (
+                    <button onClick={() => iniciarEdicaoCriterio(c)} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: 0 }}>Editar</button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

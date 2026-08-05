@@ -6,7 +6,7 @@ const listar = async (req, res) => {
       where: { escola_id: req.usuario.escola_id },
       include: [
         { model: ArteMarcial, attributes: ['id', 'nome'] },
-        { model: Faixa, attributes: ['id', 'nome', 'cor', 'ordem'] },
+        { model: Faixa, attributes: ['id', 'nome', 'cor', 'cor_secundaria', 'ordem'] },
       ],
       order: [[{ model: Faixa }, 'ordem', 'ASC']],
     });
