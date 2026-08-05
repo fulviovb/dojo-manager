@@ -187,8 +187,10 @@ function CardPresencaMinima({ artes }) {
   );
 }
 
-function CardFrequenciaPercentual({ artes }) {
+function CardFrequenciaPercentual({ artes, turmas }) {
   const [arteId, setArteId] = useState('');
+  const [turmaId, setTurmaId] = useState('');
+  const [ordenarPor, setOrdenarPor] = useState('percentual');
   return (
     <Card titulo="Frequência: % de Presença">
       <div>
@@ -198,8 +200,23 @@ function CardFrequenciaPercentual({ artes }) {
           {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
         </select>
       </div>
+      <div>
+        <span style={rotulo}>Turma</span>
+        <select value={turmaId} onChange={e => setTurmaId(e.target.value)} style={estiloInput}>
+          <option value="">Todas</option>
+          {turmas.map(t => <option key={t.id} value={t.id}>{t.nome.split('\n')[0]}</option>)}
+        </select>
+      </div>
+      <div>
+        <span style={rotulo}>Ordenar por</span>
+        <select value={ordenarPor} onChange={e => setOrdenarPor(e.target.value)} style={estiloInput}>
+          <option value="percentual">Percentual</option>
+          <option value="nome">Nome do aluno</option>
+          <option value="faixa">Graduação (faixa atual)</option>
+        </select>
+      </div>
       <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Todos os alunos ativos e o % de carência cumprida na faixa atual.</p>
-      <button style={btnVerde} onClick={() => abrirRelatorio('frequencia-percentual', { arte_marcial_id: arteId })}>+ Gerar Relatório</button>
+      <button style={btnVerde} onClick={() => abrirRelatorio('frequencia-percentual', { arte_marcial_id: arteId, turma_id: turmaId, ordenar_por: ordenarPor })}>+ Gerar Relatório</button>
     </Card>
   );
 }
@@ -226,7 +243,7 @@ export default function Relatorios() {
     { titulo: 'Aulas & Frequências (Alunos)', node: <CardFrequenciaAluno alunos={alunos} /> },
     { titulo: 'Aniversariantes por mês', node: <CardAniversariantes /> },
     { titulo: 'Frequência: Presença Mínima', node: <CardPresencaMinima artes={artes} /> },
-    { titulo: 'Frequência: % de Presença', node: <CardFrequenciaPercentual artes={artes} /> },
+    { titulo: 'Frequência: % de Presença', node: <CardFrequenciaPercentual artes={artes} turmas={turmas} /> },
   ];
   const filtrados = relatorios.filter(r => r.titulo.toLowerCase().includes(busca.toLowerCase()));
 

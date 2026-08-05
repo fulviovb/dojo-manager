@@ -250,16 +250,19 @@ const aniversariantes = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-// GET /api/relatorios/frequencia-percentual?arte_marcial_id= — % de carência
-// cumprida por cada aluno ativo em relação à FAIXA ATUAL (uma linha por
-// aluno+arte marcial): aulas presentes desde o início da graduação atual
-// dividido pelo min_aulas do CriterioGraduacao cadastrado pra essa faixa —
-// mesma base de cálculo de dashboardController.graduacao (usada no relatório
-// "Presença Mínima"), mas sem o corte de só mostrar quem já atingiu 100%.
+// GET /api/relatorios/frequencia-percentual?arte_marcial_id=&turma_id=&ordenar_por=
+// — % de carência cumprida por cada aluno ativo em relação à FAIXA ATUAL (uma
+// linha por aluno+arte marcial): aulas presentes desde o início da graduação
+// atual dividido pelo min_aulas do CriterioGraduacao cadastrado pra essa
+// faixa — mesma base de cálculo de dashboardController.graduacao (usada no
+// relatório "Presença Mínima"), mas sem o corte de só mostrar quem já
+// atingiu 100%. `turma_id` restringe a uma turma específica (senão, todas as
+// turmas, filtradas por `arte_marcial_id` se informado). `ordenar_por` aceita
+// 'nome', 'faixa' (ordem de graduação) ou 'percentual' (padrão).
 const frequenciaPercentual = async (req, res) => {
   try {
     const escola_id = req.usuario.escola_id;
-    const { arte_marcial_id } = req.query;
+    const { arte_marcial_id, turma_id, ordenar_por } = req.query;
 
     const criterios = await CriterioGraduacao.findAll({
       where: { escola_id },
@@ -271,7 +274,10 @@ const frequenciaPercentual = async (req, res) => {
       include: [
         { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'], where: { escola_id, role: 'aluno', ativo: true } },
         { model: Faixa, as: 'FaixaAtual', attributes: ['id', 'nome', 'cor', 'ordem', 'arte_marcial_id'] },
-        { model: Turma, attributes: ['id', 'nome', 'arte_marcial_id'] },
+        {
+          model: Turma, attributes: ['id', 'nome', 'arte_marcial_id'],
+          where: { ativa: true, ...(arte_marcial_id ? { arte_marcial_id } : {}), ...(turma_id ? { id: turma_id } : {}) },
+        },
       ],
     });
 
@@ -320,15 +326,20 @@ const frequenciaPercentual = async (req, res) => {
         turmas: [...new Set(grupo.turmaNomes)],
         faixa_atual: grupo.faixaAtual.nome,
         faixa_cor: grupo.faixaAtual.cor || null,
+        faixa_ordem: grupo.faixaAtual.ordem ?? 0,
         aulas_presentes: aulasPresentes,
         min_aulas_criterio: criterio ? criterio.min_aulas : null,
         percentual: criterio ? Math.round((aulasPresentes / criterio.min_aulas) * 100) : null,
       });
     }
 
-    alunosResp.sort((a, b) => (a.percentual ?? -1) - (b.percentual ?? -1) || a.nome.localeCompare(b.nome));
+    alunosResp.sort((a, b) => {
+      if (ordenar_por === 'nome') return a.nome.localeCompare(b.nome);
+      if (ordenar_por === 'faixa') return a.faixa_ordem - b.faixa_ordem || a.nome.localeCompare(b.nome);
+      return (a.percentual ?? -1) - (b.percentual ?? -1) || a.nome.localeCompare(b.nome);
+    });
 
-    res.json({ arte_marcial_id: arte_marcial_id || null, alunos: alunosResp });
+    res.json({ arte_marcial_id: arte_marcial_id || null, turma_id: turma_id || null, ordenar_por: ordenar_por || 'percentual', alunos: alunosResp });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
