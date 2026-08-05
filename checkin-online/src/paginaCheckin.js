@@ -25,6 +25,13 @@ function paginaCheckin() {
   .ok { text-align: center; }
   .ok .check { font-size: 64px; }
   .ok h2 { color: #2e7d32; }
+  .confirma { text-align: center; }
+  .confirma .icone { font-size: 48px; }
+  .confirma .nome { font-size: 20px; font-weight: bold; color: #1e2a38; margin: 4px 0 24px; }
+  .confirma .botoes { display: flex; gap: 10px; justify-content: center; }
+  .confirma button { padding: 12px 20px; border-radius: 8px; font-size: 15px; cursor: pointer; }
+  .btn-cancelar { border: 2px solid #ddd; background: #fff; color: #555; }
+  .btn-confirmar { border: none; background: #2e7d32; color: #fff; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -51,6 +58,17 @@ function paginaCheckin() {
         '<p style="color:#888;font-size:14px">Aula: ' + escapeHtml(turma) + '</p></div>';
     }
 
+    function renderConfirmacao(aluno, dados) {
+      app.innerHTML = '<div class="confirma"><div class="icone">🥋</div><h2>Confirma o check-in de</h2>' +
+        '<p class="nome">' + escapeHtml(aluno.nome) + '?</p>' +
+        '<div class="botoes">' +
+        '<button class="btn-cancelar" id="btnCancelar">Cancelar</button>' +
+        '<button class="btn-confirmar" id="btnConfirmar">Sim, confirmar</button>' +
+        '</div></div>';
+      document.getElementById('btnCancelar').onclick = () => renderLista(dados);
+      document.getElementById('btnConfirmar').onclick = () => fazerCheckin(aluno.id, aluno.nome, dados.turma_nome);
+    }
+
     function renderLista(dados) {
       const pendentes = dados.alunos.filter(a => !a.checkin_feito);
       let html = '<h2 style="text-align:center">🥋 ' + escapeHtml(dados.turma_nome) + '</h2>' +
@@ -65,7 +83,7 @@ function paginaCheckin() {
         const btn = document.createElement('button');
         btn.className = 'aluno';
         btn.textContent = aluno.nome;
-        btn.onclick = () => fazerCheckin(aluno.id, aluno.nome, dados.turma_nome);
+        btn.onclick = () => renderConfirmacao(aluno, dados);
         lista.appendChild(btn);
       });
     }

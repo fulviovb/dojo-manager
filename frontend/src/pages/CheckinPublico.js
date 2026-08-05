@@ -6,6 +6,7 @@ export default function CheckinPublico({ qrToken }) {
   const [erro, setErro] = useState('');
   const [checkinFeito, setCheckinFeito] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [alunoSelecionado, setAlunoSelecionado] = useState(null);
 
   useEffect(() => {
     axios.get(`/checkin/${qrToken}`)
@@ -15,6 +16,7 @@ export default function CheckinPublico({ qrToken }) {
   }, [qrToken]);
 
   const fazerCheckin = async (alunoId, nomeAluno) => {
+    setAlunoSelecionado(null);
     try {
       await axios.post(`/checkin/${qrToken}`, { aluno_id: alunoId });
       setCheckinFeito(nomeAluno);
@@ -42,6 +44,26 @@ export default function CheckinPublico({ qrToken }) {
     </Tela>
   );
 
+  if (alunoSelecionado) return (
+    <Tela>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>🥋</div>
+        <h2 style={{ margin: '8px 0' }}>Confirma o check-in de</h2>
+        <p style={{ fontSize: 20, fontWeight: 'bold', color: '#1e2a38', margin: '4px 0 24px' }}>{alunoSelecionado.nome}?</p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <button onClick={() => setAlunoSelecionado(null)}
+            style={{ padding: '12px 20px', borderRadius: 8, fontSize: 15, border: '2px solid #ddd', background: '#fff', color: '#555', cursor: 'pointer' }}>
+            Cancelar
+          </button>
+          <button onClick={() => fazerCheckin(alunoSelecionado.id, alunoSelecionado.nome)}
+            style={{ padding: '12px 20px', borderRadius: 8, fontSize: 15, border: 'none', background: '#2e7d32', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>
+            Sim, confirmar
+          </button>
+        </div>
+      </div>
+    </Tela>
+  );
+
   const pendentes = dados.alunos.filter((a) => !a.checkin_feito);
 
   return (
@@ -55,7 +77,7 @@ export default function CheckinPublico({ qrToken }) {
         : (
           <div>
             {pendentes.map((aluno) => (
-              <button key={aluno.id} onClick={() => fazerCheckin(aluno.id, aluno.nome)}
+              <button key={aluno.id} onClick={() => setAlunoSelecionado(aluno)}
                 style={{
                   display: 'block', width: '100%', padding: '14px 16px', marginBottom: 10,
                   background: '#fff', border: '2px solid #ddd',
