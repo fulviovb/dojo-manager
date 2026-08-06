@@ -10,7 +10,14 @@ const gerarAulasPorData = async (data) => {
   const dataStr = dataLocalISO(date);
   const diaSemana = date.getDay(); // 0=Dom ... 6=Sab
 
-  const horarios = await HorarioTurma.findAll({ where: { dia_semana: diaSemana } });
+  // Turma inativa não pode gerar aula nova — ela não deveria aparecer em
+  // nada até ser reativada. Aula antiga (de quando a turma ainda estava
+  // ativa) continua existindo por ser histórico real, mas nenhuma NOVA é
+  // criada pra uma turma desativada.
+  const horarios = await HorarioTurma.findAll({
+    where: { dia_semana: diaSemana },
+    include: [{ model: Turma, attributes: [], where: { ativa: true } }],
+  });
 
   const resultados = await Promise.all(
     horarios.map(async (h) => {

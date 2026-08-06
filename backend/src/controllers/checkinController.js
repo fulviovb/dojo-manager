@@ -5,38 +5,58 @@ const { dataLocalISO } = require('../utils/data');
 
 const TOLERANCIA_MINUTOS = 20;
 
+const minutos = (h) => {
+  const [hh, mm] = h.split(':').map(Number);
+  return hh * 60 + mm;
+};
+
+// Entre as aulas candidatas (mesma sala, mesmo dia), escolhe a que faz mais
+// sentido pro instante dado — necessário porque duas turmas consecutivas na
+// mesma sala (ex: 19h e 20h) têm janelas de ±20min que se sobrepõem entre
+// si (19h vai até 20h20, 20h já é válida desde 19h40). Sem isso, a primeira
+// aula encontrada no banco "ganhava" mesmo já tendo terminado de verdade.
+function escolherMelhorAula(aulas, minutosAlvo) {
+  const candidatas = aulas
+    .map((aula) => {
+      const inicio = minutos(aula.hora_inicio);
+      const fim = minutos(aula.hora_fim);
+      return {
+        aula,
+        dentroDoNucleo: minutosAlvo >= inicio && minutosAlvo <= fim,
+        distancia: Math.min(Math.abs(minutosAlvo - inicio), Math.abs(minutosAlvo - fim)),
+        valida: minutosAlvo >= inicio - TOLERANCIA_MINUTOS && minutosAlvo <= fim + TOLERANCIA_MINUTOS,
+      };
+    })
+    .filter((c) => c.valida);
+
+  if (candidatas.length === 0) return null;
+
+  // Prioriza quem está dentro do horário "de verdade" da aula (não só na
+  // margem de tolerância); entre empates, a mais próxima do instante.
+  candidatas.sort((a, b) => {
+    if (a.dentroDoNucleo !== b.dentroDoNucleo) return a.dentroDoNucleo ? -1 : 1;
+    return a.distancia - b.distancia;
+  });
+
+  return candidatas[0].aula;
+}
+
 const getAulaAtiva = async (sala) => {
   const agora = new Date();
   const dataHoje = dataLocalISO(agora);
-  const horaAgora = agora.toTimeString().split(' ')[0]; // HH:MM:SS
-
-  const minutos = (h) => {
-    const [hh, mm] = h.split(':').map(Number);
-    return hh * 60 + mm;
-  };
-
-  const agorMin = minutos(horaAgora);
+  const agorMin = minutos(agora.toTimeString().split(' ')[0]);
 
   // Geração lazy: garante que as Aulas de hoje existam antes de consultar
   await gerarAulasPorData(dataHoje);
 
-  const aula = await Aula.findOne({
-    where: {
-      sala_id: sala.id,
-      data: dataHoje,
-      status: 'aberta',
-    },
-    include: [{ model: Turma }],
+  // Turma inativa não deve mais aparecer no check-in — mesmo que uma Aula
+  // antiga dela ainda exista no banco (histórico de quando estava ativa).
+  const aulas = await Aula.findAll({
+    where: { sala_id: sala.id, data: dataHoje, status: 'aberta' },
+    include: [{ model: Turma, where: { ativa: true } }],
   });
 
-  if (!aula) return null;
-
-  const inicioMin = minutos(aula.hora_inicio) - TOLERANCIA_MINUTOS;
-  const fimMin = minutos(aula.hora_fim) + TOLERANCIA_MINUTOS;
-
-  if (agorMin < inicioMin || agorMin > fimMin) return null;
-
-  return aula;
+  return escolherMelhorAula(aulas, agorMin);
 };
 
 // GET /api/checkin/:qr_token — retorna aula ativa + alunos matriculados

@@ -60,10 +60,37 @@ const minutosDoDia = (hhmm) => {
   return h * 60 + m;
 };
 
+// Mesmo critério de desempate de `checkinController.escolherMelhorAula`:
+// entre aulas candidatas da mesma sala/dia, prioriza quem está dentro do
+// horário "de verdade" (não só na margem de tolerância) e, por fim, a mais
+// próxima do instante — necessário porque duas turmas consecutivas na
+// mesma sala têm janelas de ±20min que se sobrepõem entre si.
+function escolherMelhorAula(aulas, minutosEvento) {
+  const candidatas = aulas
+    .map((a) => {
+      const inicio = minutosDoDia(a.hora_inicio.slice(0, 5));
+      const fim = minutosDoDia(a.hora_fim.slice(0, 5));
+      return {
+        aula: a,
+        dentroDoNucleo: minutosEvento >= inicio && minutosEvento <= fim,
+        distancia: Math.min(Math.abs(minutosEvento - inicio), Math.abs(minutosEvento - fim)),
+        valida: minutosEvento >= inicio - TOLERANCIA_MINUTOS && minutosEvento <= fim + TOLERANCIA_MINUTOS,
+      };
+    })
+    .filter((c) => c.valida);
+  if (candidatas.length === 0) return null;
+  candidatas.sort((a, b) => {
+    if (a.dentroDoNucleo !== b.dentroDoNucleo) return a.dentroDoNucleo ? -1 : 1;
+    return a.distancia - b.distancia;
+  });
+  return candidatas[0].aula;
+}
+
 // Variação de `checkinController.getAulaAtiva`, mas pra um instante do
 // passado (o momento em que o aluno tocou o nome no módulo online) em vez
 // de "agora". Gera as Aulas do dia primeiro — se ninguém abriu o sistema
-// local hoje, elas ainda não existiriam.
+// local hoje, elas ainda não existiriam (turma inativa não gera aula nova,
+// ver aulasController.gerarAulasPorData).
 async function encontrarAulaPorInstante(sala_id, timestampISO) {
   const instante = new Date(timestampISO);
   const data = dataLocalISO(instante);
@@ -71,12 +98,13 @@ async function encontrarAulaPorInstante(sala_id, timestampISO) {
 
   await gerarAulasPorData(data);
 
-  const aulas = await Aula.findAll({ where: { sala_id, data } });
-  return aulas.find((a) => {
-    const inicio = minutosDoDia(a.hora_inicio.slice(0, 5)) - TOLERANCIA_MINUTOS;
-    const fim = minutosDoDia(a.hora_fim.slice(0, 5)) + TOLERANCIA_MINUTOS;
-    return minutosEvento >= inicio && minutosEvento <= fim;
-  }) || null;
+  // Turma inativa não deve reconciliar check-in nenhum, mesmo que uma Aula
+  // antiga dela ainda exista no banco.
+  const aulas = await Aula.findAll({
+    where: { sala_id, data },
+    include: [{ model: Turma, attributes: [], where: { ativa: true } }],
+  });
+  return escolherMelhorAula(aulas, minutosEvento);
 }
 
 async function buscarEReconciliarCheckins(escola_id) {
