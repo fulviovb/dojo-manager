@@ -32,6 +32,7 @@ function statusFatura(f) {
 const STATUS_FATURA_COR = { pendente: '#ef6c00', vencida: '#c62828', pago: '#2e7d32', cancelado: '#888' };
 const STATUS_FATURA_BG = { pendente: '#fff3e0', vencida: '#ffebee', pago: '#e8f5e9', cancelado: '#f0f0f0' };
 const STATUS_FATURA_LABEL = { pendente: 'Pendente', vencida: 'Vencida', pago: 'Pago', cancelado: 'Cancelado' };
+const ORDEM_STATUS_FATURA = { vencida: 0, pendente: 1, pago: 2, cancelado: 3 };
 
 function Modal({ titulo, onFechar, children, largura = 440 }) {
   return (
@@ -503,7 +504,7 @@ function ListaFaturas({ onVerAluno }) {
   const [pagina, setPagina] = useState(1);
   const [modalPagar, setModalPagar] = useState(null);
   const [modalGerar, setModalGerar] = useState(false);
-  const [sortCol, setSortCol] = useState('data_vencimento');
+  const [sortCol, setSortCol] = useState('status');
   const [sortDir, setSortDir] = useState('asc');
   const POR_PAG = 10;
 
@@ -537,17 +538,18 @@ function ListaFaturas({ onVerAluno }) {
     data_vencimento: f => f.data_vencimento || '',
     total_devido: f => parseFloat(f.valor) - parseFloat(f.desconto || 0) + parseFloat(f.juros || 0),
     data_pagamento: f => f.Pagamentos?.[0]?.data_pagamento || '',
-    status: f => statusFatura(f),
+    status: f => ORDEM_STATUS_FATURA[statusFatura(f)] ?? 99,
   };
   const ordenadas = [...filtradas].sort((a, b) => {
     const va = SORT_ACCESSORES_FATURA[sortCol](a);
     const vb = SORT_ACCESSORES_FATURA[sortCol](b);
-    if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
-    const sa = va.toString().toLowerCase();
-    const sb = vb.toString().toLowerCase();
-    if (sa < sb) return sortDir === 'asc' ? -1 : 1;
-    if (sa > sb) return sortDir === 'asc' ? 1 : -1;
-    return 0;
+    let cmp;
+    if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
+    else cmp = va.toString().toLowerCase().localeCompare(vb.toString().toLowerCase());
+    // Dentro do mesmo status, desempata por nome do aluno (alfabético) —
+    // independe da direção da coluna Status, sempre A-Z.
+    if (cmp === 0 && sortCol === 'status') cmp = (a.Aluno?.nome || '').localeCompare(b.Aluno?.nome || '');
+    return sortDir === 'asc' ? cmp : -cmp;
   });
   const totalPaginas = Math.max(1, Math.ceil(ordenadas.length / POR_PAG));
   const slice = ordenadas.slice((pagina - 1) * POR_PAG, pagina * POR_PAG);
