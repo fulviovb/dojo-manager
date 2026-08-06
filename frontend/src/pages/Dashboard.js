@@ -22,6 +22,8 @@ export default function Dashboard({ onVerAluno }) {
   const [resumo, setResumo] = useState(null);
   const [semaforo, setSemaforo] = useState([]);
   const [semaforoGraduacao, setSemaforoGraduacao] = useState([]);
+  const [artes, setArtes] = useState([]);
+  const [filtroArte, setFiltroArte] = useState('');
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -29,7 +31,8 @@ export default function Dashboard({ onVerAluno }) {
       axios.get('/dashboard').then(r => r.data),
       axios.get('/dashboard/semaforo').then(r => r.data.alertas),
       axios.get('/dashboard/semaforo-graduacao').then(r => r.data.alertas),
-    ]).then(([r, s, sg]) => { setResumo(r); setSemaforo(s); setSemaforoGraduacao(sg); })
+      axios.get('/artes-marciais').then(r => r.data),
+    ]).then(([r, s, sg, a]) => { setResumo(r); setSemaforo(s); setSemaforoGraduacao(sg); setArtes(a); })
       .catch(() => {})
       .finally(() => setCarregando(false));
   }, []);
@@ -71,22 +74,29 @@ export default function Dashboard({ onVerAluno }) {
         </div>
 
         <div style={{ background: '#fff', borderRadius: 8, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: 4 }}>Semáforo de Graduação</h3>
-          <p style={{ color: '#888', fontSize: 12, marginTop: 0, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0 }}>Semáforo de Graduação</h3>
+            <select value={filtroArte} onChange={e => setFiltroArte(e.target.value)}
+              style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}>
+              <option value="">Todas as artes</option>
+              {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+          </div>
+          <p style={{ color: '#888', fontSize: 12, marginTop: 8, marginBottom: 16 }}>
             % de presença que o aluno precisa manter dali pra frente pra bater a carência da faixa a tempo do
             próximo exame. Sem data de exame cadastrada (Configurações → Artes Marciais), a arte fica de fora.
           </p>
-          {semaforoGraduacao.length === 0 ? (
-            <p style={{ color: '#888' }}>✅ Nenhum aluno em risco de não bater a carência a tempo.</p>
-          ) : (
-            semaforoGraduacao.map((a, i) => (
+          {(() => {
+            const lista = filtroArte ? semaforoGraduacao.filter(a => a.arte_marcial_id === filtroArte) : semaforoGraduacao;
+            if (lista.length === 0) return <p style={{ color: '#888' }}>✅ Nenhum aluno em risco de não bater a carência a tempo.</p>;
+            return lista.map((a, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 6, marginBottom: 8, background: BG_SEMAFORO[a.cor], border: "1px solid " + COR_SEMAFORO[a.cor] }}>
                 <span style={{ fontSize: 20 }}>{a.cor === 'amarelo' ? '🟡' : a.cor === 'laranja' ? '🟠' : '🔴'}</span>
                 <div style={{ flex: 1 }}>
                   <button onClick={() => onVerAluno?.(a.aluno.id)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: '#1565c0', fontWeight: 'bold' }}>
                     {a.aluno.nome}
-                  </button> <span style={{ color: '#666', fontSize: 13 }}>— faixa {a.faixa_atual}</span>
+                  </button> <span style={{ color: '#666', fontSize: 13 }}>— {a.arte_marcial_nome}, faixa {a.faixa_atual}</span>
                   <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>
                     {a.percentual_necessario === null
                       ? `Faltam ${a.aulas_faltando} aulas e não há mais nenhuma programada antes do exame (${formatData(a.data_exame)}).`
@@ -94,8 +104,8 @@ export default function Dashboard({ onVerAluno }) {
                   </div>
                 </div>
               </div>
-            ))
-          )}
+            ));
+          })()}
         </div>
       </div>
 

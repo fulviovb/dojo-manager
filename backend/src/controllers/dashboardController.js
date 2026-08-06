@@ -257,10 +257,14 @@ const semaforoGraduacao = async (req, res) => {
   try {
     const escola_id = req.usuario.escola_id;
     const hoje = dataLocalISO(new Date());
+    const { arte_marcial_id: filtroArteId } = req.query;
 
     const artes = await ArteMarcial.findAll({ where: { escola_id } });
+    const nomePorArte = new Map(artes.map((a) => [a.id, a.nome]));
     const dataExamePorArte = new Map(
-      artes.filter((a) => a.data_proximo_exame).map((a) => [a.id, a.data_proximo_exame])
+      artes
+        .filter((a) => a.data_proximo_exame && (!filtroArteId || a.id === filtroArteId))
+        .map((a) => [a.id, a.data_proximo_exame])
     );
     if (dataExamePorArte.size === 0) return res.json({ total: 0, alertas: [] });
 
@@ -338,6 +342,7 @@ const semaforoGraduacao = async (req, res) => {
       alertas.push({
         aluno: { id: grupo.aluno.id, nome: grupo.aluno.nome },
         arte_marcial_id: grupo.faixaAtual.arte_marcial_id,
+        arte_marcial_nome: nomePorArte.get(grupo.faixaAtual.arte_marcial_id) || null,
         faixa_atual: grupo.faixaAtual.nome,
         faixa_cor: grupo.faixaAtual.cor || null,
         aulas_faltando: aulasFaltando,
