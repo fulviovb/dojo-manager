@@ -180,6 +180,14 @@ Ela busca todo `HorarioTurma` cujo `dia_semana` bate com a data pedida e faz
   `hora_inicio`/`hora_fim`.
 - Check-in duplicado é idempotente: `Chamada.findOrCreate({ aula_id, aluno_id })` —
   repetir o check-in não cria registro novo (resposta traz `novo: false`).
+- Tocar o nome não registra na hora — mostra uma tela de confirmação ("Confirma o
+  check-in de {nome}?") antes. Mesma UX nas duas telas de check-in (local e a do
+  módulo satélite).
+- Turma inativa não gera aula nova nem recebe check-in (mesmo que uma `Aula`
+  antiga dela ainda exista no banco de quando estava ativa). Quando duas turmas
+  consecutivas dividem a mesma sala (ex: 19h e 20h — janelas de ±20min se
+  sobrepõem), o sistema prioriza a aula cujo horário "de verdade" contém o
+  instante, não a primeira encontrada no banco.
 
 ### Semáforo de ausência
 
@@ -205,6 +213,28 @@ lista abre edição inline (nome, cor, ordem); `Faixa.cor_secundaria` (opcional)
 permite marcar uma faixa com duas cores (ex: Cinza-Branca), mostradas como um
 círculo dividido ao meio. Critérios de Graduação têm botão "Editar" por linha
 pra atualizar o Min. aulas.
+
+### Semáforo de Graduação
+
+Complementar ao Semáforo de Ausência (lado a lado no Dashboard, grid de 2
+colunas) — em vez de olhar só a frequência já realizada, faz uma prospecção:
+quantas aulas de verdade ainda restam entre hoje e o próximo exame de faixa
+(`ArteMarcial.data_proximo_exame`, editável em Configurações → Artes
+Marciais) versus quantas presenças ainda faltam pro aluno fechar a carência
+da faixa atual. O indicador é o **% dessas aulas restantes que ele precisa
+comparecer daqui pra frente**.
+
+`GET /api/dashboard/semaforo-graduacao` (aceita `?arte_marcial_id=` opcional)
+cruza `HorarioTurma` das turmas **ativas** em que o aluno está matriculado com
+o calendário até a data do exame, descontando feriados nacionais
+(`backend/src/utils/feriados.js` — datas fixas + Sexta-feira Santa via
+cálculo de Páscoa; não cobre feriados municipais nem pontos facultativos tipo
+Carnaval/Corpus Christi). Cores: 🔴 impossível bater a tempo (ou não sobra
+mais nenhuma aula antes do exame), 🟠 precisa de 80%+ das aulas restantes,
+🟡 precisa de 50%+. Cada linha mostra a arte marcial (um aluno pode ter
+alertas de mais de uma, com dias da semana e data de exame diferentes — daí
+números de "aulas restantes" bem diferentes entre alunos mesmo se parecerem
+estar "na mesma turma"); o card tem um filtro pra ver só uma arte específica.
 
 ### Histórico de frequência (presenças **e** ausências)
 
@@ -333,7 +363,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes`                                                          | autenticado             |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
-| Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`) | autenticado      |
+| Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`), `GET /dashboard/semaforo-graduacao` (`?arte_marcial_id=`) | autenticado |
 | Check-in online       | `POST /checkin-online/sincronizar` (sincroniza roster + reconcilia check-ins do módulo satélite, ver seção própria acima) | admin |
 | Health check          | `GET /health`                                                                          | público                 |
 | Uploads (estático)    | `GET /uploads/fotos/:arquivo`                                                          | público (sem JWT)       |
@@ -415,7 +445,9 @@ nova aba, imprimível. A assinatura que aparece no recibo é **por escola**
 Recibos" (`AssinaturaPad`, canvas) e salva no servidor — sem isso, o recibo
 simplesmente não mostra assinatura (sem quebrar o resto). Cabeçalho da tabela
 de Faturas é clicável e ordenável (mesmo padrão de `Alunos.js`), com avatar
-do aluno na coluna Nome.
+do aluno na coluna Nome. Ordenação padrão é por **Status** — Vencida primeiro,
+depois Pendente (em aberto), por último Paga —, com nome do aluno como
+critério de desempate dentro do mesmo status.
 
 ### Relatórios
 
@@ -443,7 +475,7 @@ pra não subcontar quem trocou de turma/horário no meio do caminho.
 ## Status
 
 Todas as 15 tarefas do MVP (T-01 a T-15) descritas no PRD estão concluídas.
-Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 9):
+Trabalho atual é refinamento pós-MVP — ver `Progress.txt` (FASE 2 a FASE 10):
 reescrita da tela de Chamadas, módulo de Gestão Financeira completo (planos,
 assinaturas recorrentes, faturas com geração automática, recibo imprimível),
 módulo de Relatórios (8 relatórios básicos inspirados no iDojo), foto do aluno,
@@ -454,12 +486,16 @@ compartilhando o e-mail dos pais), módulo satélite de check-in online
 Cloud, faltando só a reimpressão física dos QR Codes das salas — e
 assinatura do recibo passando a ser desenhada e salva por escola (sem mais
 depender de um arquivo local no repositório), essencial pra outras escolas
-usarem o sistema, e ajustes pós-lançamento (fatura gerada com 5 dias de
-antecedência do vencimento, tabela de Faturas ordenável, avatar do aluno
-em Chamadas e Faturas, cabeçalho ordenável em Critérios de Graduação,
-botão "Validar Todos" nos check-ins QR pendentes, relatório novo
-"Frequência: % de Presença", faixas com edição e duas cores, critérios
-de graduação editáveis).
+usarem o sistema, ajustes pós-lançamento (fatura gerada com 5 dias de
+antecedência do vencimento, tabela de Faturas ordenável por status,
+avatar do aluno em Chamadas e Faturas, cabeçalho ordenável em Critérios
+de Graduação, botão "Validar Todos" nos check-ins QR pendentes, relatório
+novo "Frequência: % de Presença", faixas com edição e duas cores,
+critérios de graduação editáveis, confirmação antes do check-in, correção
+de turma inativa aparecendo em aula), e o novo **Semáforo de Graduação**
+(ver seção própria acima) — indicador de risco pra bater a carência da
+faixa a tempo do próximo exame, com data de exame configurável por arte
+marcial e cálculo de feriados nacionais.
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

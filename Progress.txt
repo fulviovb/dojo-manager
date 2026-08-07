@@ -377,6 +377,61 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     em cada linha atualiza o Min. aulas inline. Os endpoints `PUT
     /faixas/:id` e `PUT /criterios-graduacao/:id` já existiam prontos no
     backend — só faltava a UI.
+[x] Botão "Sim, confirmar"/"Cancelar" antes de registrar o check-in do
+    aluno — tocar o nome não registra mais na hora, mostra "Confirma o
+    check-in de {nome}?" primeiro. Aplicado nas duas telas de check-in
+    (`CheckinPublico.js` local e `paginaCheckin.js` do módulo satélite,
+    já reimplantado na VM de produção).
+[x] Bug real (2 reportados juntos): (1) turma inativa continuava gerando
+    aula nova todo dia e podia até receber check-in — `gerarAulasPorData`
+    não filtrava `Turma.ativa`; corrigido na raiz (HorarioTurma só gera
+    aula se a turma dele estiver ativa) e reforçado em `getAulaAtiva`/
+    `encontrarAulaPorInstante` pra também ignorar Aula antiga de turma já
+    desativada. (2) Aluno não aparecia na lista de check-in da turma
+    certa — duas turmas consecutivas na mesma sala (ex: 19h e 20h) têm
+    janelas de ±20min que se sobrepõem entre si; a escolha de qual aula
+    usar pegava a primeira do banco sem ordem definida. Corrigido nos três
+    lugares que fazem esse casamento sala+horário (local, reconciliação do
+    módulo satélite, e o próprio `janela.js` do módulo satélite — também
+    reimplantado em produção) pra priorizar a aula "de verdade" no horário,
+    não só na margem de tolerância.
+[x] Tabela de Faturas (Financeiro) passou a ordenar por padrão por Status
+    — Vencida primeiro, depois Pendente (em aberto), por último Paga —
+    com nome do aluno como critério de desempate dentro do mesmo status
+    (antes ordenava por vencimento).
+
+=== FASE 10: Semáforo de Graduação (indicador de risco pro exame de faixa) ===
+[x] Novo indicador complementar ao Semáforo de Ausência (mantido intacto,
+    agora lado a lado no Dashboard em grid de 2 colunas): em vez de olhar
+    só a frequência já realizada, prospecta quantas aulas de verdade ainda
+    restam entre hoje e o próximo exame de faixa, versus quantas presenças
+    ainda faltam pro aluno fechar a carência da faixa atual — o indicador é
+    o % dessas aulas restantes que ele precisa comparecer daqui pra frente.
+[x] Campo novo `ArteMarcial.data_proximo_exame` (script one-off, já
+    executado), editável em Configurações → Artes Marciais. Sem data
+    cadastrada pra uma arte, os alunos dela ficam de fora do indicador.
+[x] `backend/src/utils/feriados.js` (novo): feriados nacionais brasileiros
+    (datas fixas + Sexta-feira Santa via cálculo de Páscoa) — a projeção de
+    aulas restantes desconta esses dias, já que não teria aula de verdade.
+[x] `GET /api/dashboard/semaforo-graduacao`: cruza `HorarioTurma` das
+    turmas ativas em que o aluno está matriculado com o calendário até a
+    data do exame. Cores: 🔴 impossível (ou sem mais aulas antes do
+    exame), 🟠 >=80% necessário, 🟡 >=50%. Reaproveita a mesma base de
+    cálculo de carência já corrigida em `graduacao` (extraída pra
+    `presencasDesdeGraduacao`, compartilhada entre as duas).
+[x] Bug real: a consulta de matrículas não filtrava a Turma por `ativa`,
+    só a matrícula em si — turma desativada continuava contando seu
+    horário semanal como "aula restante" até o exame. Corrigido exigindo
+    `Turma.ativa: true` também; testado ao vivo (desativei uma turma real,
+    confirmei que o aluno afetado saiu do indicador, reativei e voltou).
+[x] Dúvida real do usuário: por que dois alunos "nas mesmas turmas"
+    mostravam quantidades diferentes de aulas restantes? Investigado com
+    dados reais — não estavam nas mesmas turmas, cada alerta era de uma
+    arte marcial diferente (dias da semana e data de exame diferentes), e
+    um aluno pode ter mais de uma arte mas só a mais crítica aparecer (a
+    outra pode estar com folga suficiente pra não entrar em nenhuma cor).
+    Corrigido mostrando a arte marcial em cada linha e adicionando um
+    filtro "Todas as artes"/arte específica no card.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
