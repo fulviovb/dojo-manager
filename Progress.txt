@@ -433,6 +433,58 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Corrigido mostrando a arte marcial em cada linha e adicionando um
     filtro "Todas as artes"/arte específica no card.
 
+=== FASE 11: Módulo de Exame de Faixa ===
+[x] Especificação original em `modulo-exame-faixa.txt` (+ referência visual
+    `ficha-exame-faixa.jpeg`). Módulo 100% opcional — quem não usar continua
+    graduando aluno do jeito manual de sempre (`GraduacaoAluno`).
+[x] Modelo em duas camadas: template reutilizável por arte marcial
+    (`FaseExameModelo`/`CriterioExameModelo`/`CriterioExameModeloFaixa`,
+    configurado em Configurações → "Exame de Faixa — Roteiro de Avaliação",
+    mesmo padrão de Critérios de Graduação) + instância por exame
+    (`Exame`/`FaseExame`/`CriterioExame`/`CriterioExameFaixa`), que tira uma
+    cópia (snapshot) do template no momento da criação — editar o template
+    depois não afeta exame já em andamento.
+[x] Regra de nota (2.3/2.4 da spec): cada fase converge pra 100, dividido
+    igualmente entre seus critérios; critério sem a faixa pretendida do
+    aluno marcada como aplicável recebe nota cheia automática. Nota final =
+    média simples entre as fases (decisão alinhada com o usuário — todas as
+    fases pesam igual). Lógica centralizada em
+    `backend/src/utils/notaExame.js`.
+[x] `ExameParticipante`, `AvaliadorExame` (PIN numérico de 6 dígitos, sem
+    Usuario/bcrypt — login descartável só pro exame do dia), `AvaliacaoAluno`
+    (1 avaliador sorteado por fase+aluno, índice único) e `RespostaCriterio`.
+[x] `POST /api/exames/:id/sorteio`: sorteia avaliador por aluno numa fase,
+    excluindo quem já avaliou aquele aluno em QUALQUER fase do exame (regra
+    3.4). Loop sequencial (não Promise.all), mesmo cuidado anti-deadlock já
+    usado em `chamadasController.fecharAula`.
+[x] Fluxo público do avaliador: `middleware/autenticacaoAvaliador.js` (JWT
+    próprio, `tipo:'avaliador'`, não aceito nas rotas de staff) +
+    `routes/avaliacaoPublica.js` — login por PIN, listar minhas avaliações,
+    responder critério (+/+-/-), finalizar (bloqueia se sobrar critério
+    aplicável sem resposta). Reabertura de avaliação finalizada (regra 3.7)
+    só pelo staff (`PATCH /api/exames/:id/avaliacoes/:avid/reabrir`).
+[x] Frontend: `Exames.js` (lista/criação) + `ExameDetalhe.js` (participantes,
+    avaliadores com PIN visível, sorteio por fase, grid de progresso,
+    relatório final com botão "Confirmar graduação" que grava direto em
+    `GraduacaoAluno`) + `AvaliadorExame.js` — página pública
+    (`/exame-avaliador/:exame_id`) com instância própria do axios (token do
+    avaliador fica isolado do `token` de staff no localStorage, pra não ser
+    sobrescrito pelo interceptor global se os dois convivessem no mesmo
+    navegador) + `ExameFichaPage.js`/`ExameRelatorioPage.js` (impressão,
+    mesmo padrão de `RelatorioPage.js`/`ReciboPage.js`).
+[x] `GraduacaoAluno` ganhou 2 colunas opcionais (`exame_participante_id`,
+    `nota_exame`) via script one-off
+    `backend/src/scripts/2026-08-graduacao-exame-faixa.js` — fluxo manual de
+    graduação continua idêntico, sem essas colunas.
+[x] Testado ponta a ponta com dados reais (arte marcial e aluno já
+    cadastrados): fase com 1 critério aplicável só à faixa testada + 1
+    critério sem nenhuma faixa marcada (deve dar nota cheia automática) →
+    exame → participante → 2 avaliadores → sorteio → login por PIN →
+    responder → tentar finalizar sem responder tudo (rejeitado) → responder
+    → finalizar (nota 100, como esperado) → relatório → ficha (critério não
+    aplicável aparece "N/A") → reabrir avaliação → confirmar graduação
+    (nota_exame gravada). Dados de teste removidos ao final.
+
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Não observado

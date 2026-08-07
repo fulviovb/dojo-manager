@@ -21,7 +21,10 @@ const listar = async (req, res) => {
 
 const criar = async (req, res) => {
   try {
-    const { aluno_id, arte_marcial_id, faixa_id, data_inicio, data_fim, atual, observacao } = req.body;
+    const {
+      aluno_id, arte_marcial_id, faixa_id, data_inicio, data_fim, atual, observacao,
+      exame_participante_id, nota_exame,
+    } = req.body;
 
     if (atual) {
       // Desmarca a graduação atual anterior nessa arte
@@ -35,6 +38,10 @@ const criar = async (req, res) => {
       escola_id: req.usuario.escola_id,
       aluno_id, arte_marcial_id, faixa_id,
       data_inicio, data_fim, atual: atual || false, observacao,
+      // Preenchidos quando a graduação vem confirmada a partir do relatório
+      // do Módulo de Exame de Faixa (opcionais — fluxo manual não muda).
+      exame_participante_id: exame_participante_id || null,
+      nota_exame: nota_exame ?? null,
     });
 
     if (atual) {

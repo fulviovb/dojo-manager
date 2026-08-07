@@ -15,6 +15,17 @@ const PlanoMensalidade = require('./PlanoMensalidade');
 const AssinaturaAluno = require('./AssinaturaAluno');
 const Mensalidade = require('./Mensalidade');
 const Pagamento = require('./Pagamento');
+const FaseExameModelo = require('./FaseExameModelo');
+const CriterioExameModelo = require('./CriterioExameModelo');
+const CriterioExameModeloFaixa = require('./CriterioExameModeloFaixa');
+const Exame = require('./Exame');
+const FaseExame = require('./FaseExame');
+const CriterioExame = require('./CriterioExame');
+const CriterioExameFaixa = require('./CriterioExameFaixa');
+const ExameParticipante = require('./ExameParticipante');
+const AvaliadorExame = require('./AvaliadorExame');
+const AvaliacaoAluno = require('./AvaliacaoAluno');
+const RespostaCriterio = require('./RespostaCriterio');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -120,9 +131,73 @@ AssinaturaAluno.belongsTo(PlanoMensalidade, { foreignKey: 'plano_id', as: 'Plano
 AssinaturaAluno.hasMany(Mensalidade, { foreignKey: 'assinatura_id' });
 Mensalidade.belongsTo(AssinaturaAluno, { foreignKey: 'assinatura_id', as: 'Assinatura' });
 
+// Módulo de Exame de Faixa — template (por arte marcial)
+ArteMarcial.hasMany(FaseExameModelo, { foreignKey: 'arte_marcial_id' });
+FaseExameModelo.belongsTo(ArteMarcial, { foreignKey: 'arte_marcial_id' });
+
+FaseExameModelo.hasMany(CriterioExameModelo, { foreignKey: 'fase_modelo_id' });
+CriterioExameModelo.belongsTo(FaseExameModelo, { foreignKey: 'fase_modelo_id' });
+
+CriterioExameModelo.hasMany(CriterioExameModeloFaixa, { foreignKey: 'criterio_modelo_id' });
+CriterioExameModeloFaixa.belongsTo(CriterioExameModelo, { foreignKey: 'criterio_modelo_id' });
+
+Faixa.hasMany(CriterioExameModeloFaixa, { foreignKey: 'faixa_id' });
+CriterioExameModeloFaixa.belongsTo(Faixa, { foreignKey: 'faixa_id' });
+
+// Módulo de Exame de Faixa — instância (snapshot do template)
+Escola.hasMany(Exame, { foreignKey: 'escola_id' });
+Exame.belongsTo(Escola, { foreignKey: 'escola_id' });
+ArteMarcial.hasMany(Exame, { foreignKey: 'arte_marcial_id' });
+Exame.belongsTo(ArteMarcial, { foreignKey: 'arte_marcial_id' });
+
+Exame.hasMany(FaseExame, { foreignKey: 'exame_id' });
+FaseExame.belongsTo(Exame, { foreignKey: 'exame_id' });
+
+FaseExame.hasMany(CriterioExame, { foreignKey: 'fase_exame_id' });
+CriterioExame.belongsTo(FaseExame, { foreignKey: 'fase_exame_id' });
+
+CriterioExame.hasMany(CriterioExameFaixa, { foreignKey: 'criterio_exame_id' });
+CriterioExameFaixa.belongsTo(CriterioExame, { foreignKey: 'criterio_exame_id' });
+
+Faixa.hasMany(CriterioExameFaixa, { foreignKey: 'faixa_id' });
+CriterioExameFaixa.belongsTo(Faixa, { foreignKey: 'faixa_id' });
+
+Exame.hasMany(ExameParticipante, { foreignKey: 'exame_id' });
+ExameParticipante.belongsTo(Exame, { foreignKey: 'exame_id' });
+Usuario.hasMany(ExameParticipante, { foreignKey: 'aluno_id' });
+ExameParticipante.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno' });
+Faixa.hasMany(ExameParticipante, { foreignKey: 'faixa_atual_id', as: 'ParticipantesFaixaAtual' });
+ExameParticipante.belongsTo(Faixa, { foreignKey: 'faixa_atual_id', as: 'FaixaAtual' });
+Faixa.hasMany(ExameParticipante, { foreignKey: 'faixa_pretendida_id', as: 'ParticipantesFaixaPretendida' });
+ExameParticipante.belongsTo(Faixa, { foreignKey: 'faixa_pretendida_id', as: 'FaixaPretendida' });
+
+Exame.hasMany(AvaliadorExame, { foreignKey: 'exame_id' });
+AvaliadorExame.belongsTo(Exame, { foreignKey: 'exame_id' });
+
+Exame.hasMany(AvaliacaoAluno, { foreignKey: 'exame_id' });
+AvaliacaoAluno.belongsTo(Exame, { foreignKey: 'exame_id' });
+FaseExame.hasMany(AvaliacaoAluno, { foreignKey: 'fase_exame_id' });
+AvaliacaoAluno.belongsTo(FaseExame, { foreignKey: 'fase_exame_id' });
+ExameParticipante.hasMany(AvaliacaoAluno, { foreignKey: 'exame_participante_id' });
+AvaliacaoAluno.belongsTo(ExameParticipante, { foreignKey: 'exame_participante_id' });
+AvaliadorExame.hasMany(AvaliacaoAluno, { foreignKey: 'avaliador_id' });
+AvaliacaoAluno.belongsTo(AvaliadorExame, { foreignKey: 'avaliador_id', as: 'Avaliador' });
+
+AvaliacaoAluno.hasMany(RespostaCriterio, { foreignKey: 'avaliacao_id' });
+RespostaCriterio.belongsTo(AvaliacaoAluno, { foreignKey: 'avaliacao_id' });
+CriterioExame.hasMany(RespostaCriterio, { foreignKey: 'criterio_exame_id' });
+RespostaCriterio.belongsTo(CriterioExame, { foreignKey: 'criterio_exame_id' });
+
+// Exame → Graduação (rastreabilidade da nota quando a graduação é confirmada)
+ExameParticipante.hasOne(GraduacaoAluno, { foreignKey: 'exame_participante_id' });
+GraduacaoAluno.belongsTo(ExameParticipante, { foreignKey: 'exame_participante_id' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
   Turma, Sala, HorarioTurma, Aula, Chamada, MatriculaAluno,
   PlanoMensalidade, AssinaturaAluno, Mensalidade, Pagamento,
+  FaseExameModelo, CriterioExameModelo, CriterioExameModeloFaixa,
+  Exame, FaseExame, CriterioExame, CriterioExameFaixa,
+  ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
 };

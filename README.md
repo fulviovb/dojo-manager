@@ -144,8 +144,18 @@ Aula   *―1 Turma, *―1 Sala
 Aula   1―* Chamada *―1 Usuario (Aluno)
 
 MatriculaAluno → graduacao_atual_faixa_id, aulas_desde_graduacao (contador p/ graduação)
-GraduacaoAluno → histórico de faixas por aluno + arte marcial
+GraduacaoAluno → histórico de faixas por aluno + arte marcial (+ exame_participante_id/
+                 nota_exame opcionais, quando confirmada a partir de um Exame de Faixa)
 Ocorrencia     → anotações do professor sobre um aluno
+
+ArteMarcial 1―* FaseExameModelo 1―* CriterioExameModelo *―* Faixa (via
+            CriterioExameModeloFaixa)                    [template do Exame de Faixa]
+Exame  *―1 ArteMarcial, 1―* FaseExame 1―* CriterioExame *―* Faixa (via CriterioExameFaixa)
+            [cópia/snapshot do template no momento da criação do Exame]
+Exame  1―* ExameParticipante *―1 Usuario (Aluno)
+Exame  1―* AvaliadorExame (login por PIN, sem Usuario/bcrypt)
+Exame  1―* AvaliacaoAluno *―1 FaseExame, *―1 ExameParticipante, *―1 AvaliadorExame
+AvaliacaoAluno 1―* RespostaCriterio *―1 CriterioExame  (conceito: + | +- | -)
 
 PlanoMensalidade 1―* AssinaturaAluno *―1 Usuario (Aluno)   [vínculo recorrente: dia de
                  vencimento + status ativa/pausada/finalizada]
@@ -235,6 +245,45 @@ mais nenhuma aula antes do exame), 🟠 precisa de 80%+ das aulas restantes,
 alertas de mais de uma, com dias da semana e data de exame diferentes — daí
 números de "aulas restantes" bem diferentes entre alunos mesmo se parecerem
 estar "na mesma turma"); o card tem um filtro pra ver só uma arte específica.
+
+### Módulo de Exame de Faixa
+
+Módulo **opcional** (especificação original em `modulo-exame-faixa.txt`) pra
+apoiar a avaliação no dia do exame — quem não usar continua graduando aluno
+do jeito manual de sempre. Duas camadas:
+
+- **Template**, por arte marcial, configurado em Configurações → "Exame de
+  Faixa — Roteiro de Avaliação" (mesmo padrão de Critérios de Graduação):
+  fases (provas) com critérios de avaliação, cada critério marcado como
+  aplicável a um subconjunto de faixas.
+- **Instância**: ao criar um `Exame` (`POST /api/exames`), o sistema tira uma
+  cópia (snapshot) do template ativo da arte marcial — editar o template
+  depois não afeta exame já em andamento.
+
+**Nota**: cada fase converge pra 100, dividido igualmente entre seus
+critérios; um critério sem a faixa pretendida do aluno marcada como
+aplicável recebe nota cheia automática (não faz sentido cobrar, por
+exemplo, um conceito avançado de quem presta exame pra faixa branca).
+Nota final do aluno = média simples entre as fases finalizadas (lógica em
+`backend/src/utils/notaExame.js`).
+
+**Sorteio de avaliadores** (`POST /api/exames/:id/sorteio`): o professor
+seleciona a fase em andamento e os alunos sendo avaliados naquele momento;
+o sistema sorteia um avaliador por aluno, excluindo quem já avaliou aquele
+aluno em **qualquer** fase do exame. Avaliadores são login descartável por
+**PIN numérico** (`AvaliadorExame`, sem `Usuario`/bcrypt) — acessam
+`/exame-avaliador/:exame_id` (página pública) com um JWT de escopo restrito
+(`middleware/autenticacaoAvaliador.js`, `tipo: 'avaliador'`, não aceito nas
+rotas de staff). Cada critério é avaliado como `+` (apresenta o conceito),
+`+-` (parcial) ou `-` (não apresenta); finalizar uma avaliação exige
+resposta em todo critério aplicável. Avaliação finalizada só pode ser
+corrigida via reabertura pelo staff (`PATCH
+/api/exames/:id/avaliacoes/:avid/reabrir`).
+
+O relatório final do exame (`GET /api/exames/:id/relatorio`) tem um botão
+**"Confirmar graduação"** por aluno que grava direto em `GraduacaoAluno`
+(com `nota_exame` preenchida) — sem isso, o exame não altera a graduação
+de ninguém automaticamente.
 
 ### Histórico de frequência (presenças **e** ausências)
 
@@ -361,7 +410,10 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Pagamentos            | `GET /pagamentos` (`?mensalidade_id=`, `?aluno_id=`), `POST`, `DELETE /:id` (desfazer)| autenticado / admin     |
 | Financeiro            | `GET /financeiro/painel` (`?ano=` — indicadores + série mensal ganhos vs a receber)   | autenticado              |
 | Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes` | autenticado |
-| Graduações            | `GET,POST,DELETE /graduacoes`                                                          | autenticado             |
+| Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
+| Exame de Faixa — template | `GET /fase-exame-modelos` (`?arte_marcial_id=`), `POST,PUT,DELETE /fase-exame-modelos(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` | autenticado / admin |
+| Exame de Faixa — exames | `GET,POST /exames`, `GET /exames/:id`, `PATCH /exames/:id/status`, `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
+| Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:exame_id/login` (PIN), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
 | Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`), `GET /dashboard/semaforo-graduacao` (`?arte_marcial_id=`) | autenticado |
 | Check-in online       | `POST /checkin-online/sincronizar` (sincroniza roster + reconcilia check-ins do módulo satélite, ver seção própria acima) | admin |
@@ -379,13 +431,21 @@ componentes por estado local (sidebar). Três rotas são detectadas por
 | `/checkin/:qr_token`| `CheckinPublico`     | pública, sem JWT — auto check-in do aluno |
 | `/recibo/:id`       | `ReciboPage`         | aberta em nova aba a partir de Financeiro → Faturas; imprimível |
 | `/relatorio/:tipo`  | `RelatorioPage`      | aberta em nova aba a partir de Relatórios; imprimível |
+| `/exame-avaliador/:exame_id` | `AvaliadorExame` | pública de verdade — login por PIN, JWT próprio (ver Exame de Faixa) |
+| `/exame/:exame_id/ficha/:participante_id` | `ExameFichaPage` | aberta em nova aba a partir de Exames; imprimível |
+| `/exame/:exame_id/relatorio-impressao` | `ExameRelatorioPage` | aberta em nova aba a partir de Exames; imprimível |
 
-`ReciboPage`/`RelatorioPage` reaproveitam o token já salvo no `localStorage` (mesma
-origem/aba do navegador) — não são páginas públicas de verdade, só não têm sidebar.
+`ReciboPage`/`RelatorioPage`/`ExameFichaPage`/`ExameRelatorioPage` reaproveitam o
+token já salvo no `localStorage` (mesma origem/aba do navegador) — não são páginas
+públicas de verdade, só não têm sidebar. `AvaliadorExame` é a exceção: usa uma
+instância própria do axios com o token do avaliador guardado numa chave separada
+do localStorage, pra não ser sobrescrito pelo interceptor global do `token` de
+staff se os dois convivessem no mesmo navegador.
 
 Páginas (`frontend/src/pages/`): `Login`, `Dashboard`, `Alunos` / `AlunoDetalhe`,
-`Turmas` / `TurmaDetalhe`, `Chamadas`, `Financeiro`, `Relatorios` / `RelatorioPage`,
-`Configuracoes`, `CheckinPublico`, `ReciboPage`.
+`Turmas` / `TurmaDetalhe`, `Chamadas`, `Financeiro`, `Exames` / `ExameDetalhe`,
+`Relatorios` / `RelatorioPage`, `Configuracoes`, `CheckinPublico`, `ReciboPage`,
+`AvaliadorExame`, `ExameFichaPage`, `ExameRelatorioPage`.
 
 Componentes compartilhados (`frontend/src/components/`): `Avatar` (foto do aluno com
 fallback de iniciais), `GraficoArea` (gráfico de área em SVG puro, sem dependência
@@ -449,6 +509,16 @@ do aluno na coluna Nome. Ordenação padrão é por **Status** — Vencida prime
 depois Pendente (em aberto), por último Paga —, com nome do aluno como
 critério de desempate dentro do mesmo status.
 
+### Exames
+
+Lista de exames (`Exames.js`) com status (Planejamento / Em andamento /
+Finalizado); "+ Novo Exame" escolhe a arte marcial e copia o template de
+fases/critérios pra dentro do exame. `ExameDetalhe.js` reúne participantes,
+avaliadores (com PIN visível pra repassar), sorteio por fase, uma grade de
+progresso (status/nota por aluno × fase, com botão "reabrir" nas
+finalizadas) e o relatório final com "Confirmar graduação" por aluno. Ver
+"Módulo de Exame de Faixa" acima pras regras completas.
+
 ### Relatórios
 
 Grid de cards com filtro próprio por relatório (campo de busca no topo pra achar
@@ -495,7 +565,12 @@ critérios de graduação editáveis, confirmação antes do check-in, correçã
 de turma inativa aparecendo em aula), e o novo **Semáforo de Graduação**
 (ver seção própria acima) — indicador de risco pra bater a carência da
 faixa a tempo do próximo exame, com data de exame configurável por arte
-marcial e cálculo de feriados nacionais.
+marcial e cálculo de feriados nacionais, e o novo **Módulo de Exame de
+Faixa** (ver seção própria acima) — ferramenta opcional pra apoiar a
+avaliação no dia do exame, com roteiro customizável de fases/critérios por
+arte marcial, sorteio de avaliadores (login descartável por PIN), cálculo
+automático de nota, ficha e relatório imprimíveis, e confirmação de
+graduação integrada ao histórico do aluno.
 
 Fora de escopo do MVP: gateway de pagamento, app mobile nativo, portal do aluno
 com login, comunicação automática (WhatsApp/e-mail) e gestão de campeonatos.

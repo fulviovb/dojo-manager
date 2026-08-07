@@ -7,6 +7,8 @@ const CHECKIN_ONLINE_PUBLIC_URL = process.env.REACT_APP_CHECKIN_ONLINE_PUBLIC_UR
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
+const btnLink = (cor) => ({ background: 'none', border: 'none', color: cor, cursor: 'pointer', fontSize: 12, padding: 0, marginRight: 10 });
+const thStyleExame = { padding: '6px 10px', textAlign: 'left', fontSize: 12 };
 
 const formProfessorVazio = { nome: '', email: '', senha: '' };
 
@@ -46,6 +48,17 @@ export default function Configuracoes() {
   const [erro, setErro] = useState('');
   const [erroProfessor, setErroProfessor] = useState('');
   const [qrCodes, setQrCodes] = useState({});
+
+  // Exame de Faixa — roteiro (fases/critérios) por arte marcial
+  const [exameArteId, setExameArteId] = useState('');
+  const [fasesExame, setFasesExame] = useState([]);
+  const [faixasExameArte, setFaixasExameArte] = useState([]);
+  const [formFaseExame, setFormFaseExame] = useState({ nome: '', ordem: 1 });
+  const [faseExameEditandoId, setFaseExameEditandoId] = useState(null);
+  const [edicaoFaseExame, setEdicaoFaseExame] = useState({ nome: '', ordem: 1 });
+  const [formCriterioPorFase, setFormCriterioPorFase] = useState({});
+  const [criterioExameEditandoId, setCriterioExameEditandoId] = useState(null);
+  const [edicaoCriterioExame, setEdicaoCriterioExame] = useState({ nome: '', ordem: 1, faixa_ids: [] });
 
   const carregar = () => {
     axios.get('/escolas').then(r => { if (r.data[0]) { setEscola(r.data[0]); setThreshold(r.data[0].threshold_falta_vermelho); } });
@@ -95,6 +108,66 @@ export default function Configuracoes() {
     if (formFaixa.arte_marcial_id) axios.get('/faixas?arte_marcial_id=' + formFaixa.arte_marcial_id).then(r => setFaixas(r.data));
     if (formCriterio.arte_marcial_id) axios.get('/faixas?arte_marcial_id=' + formCriterio.arte_marcial_id).then(r => setFaixas(r.data));
   }, [formFaixa.arte_marcial_id, formCriterio.arte_marcial_id]);
+
+  const carregarFasesExame = (arteId) => {
+    if (!arteId) { setFasesExame([]); return; }
+    axios.get('/fase-exame-modelos?arte_marcial_id=' + arteId).then(r => setFasesExame(r.data));
+  };
+  useEffect(() => { carregarFasesExame(exameArteId); }, [exameArteId]);
+  useEffect(() => {
+    if (exameArteId) axios.get('/faixas?arte_marcial_id=' + exameArteId).then(r => setFaixasExameArte(r.data));
+    else setFaixasExameArte([]);
+  }, [exameArteId]);
+
+  const addFaseExame = async (e) => {
+    e.preventDefault(); setErro('');
+    try {
+      await axios.post('/fase-exame-modelos', { arte_marcial_id: exameArteId, ...formFaseExame });
+      setFormFaseExame(f => ({ nome: '', ordem: f.ordem + 1 }));
+      carregarFasesExame(exameArteId);
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
+  };
+
+  const iniciarEdicaoFaseExame = (fase) => { setFaseExameEditandoId(fase.id); setEdicaoFaseExame({ nome: fase.nome, ordem: fase.ordem }); };
+  const salvarEdicaoFaseExame = async (fase) => {
+    setErro('');
+    try {
+      await axios.put(`/fase-exame-modelos/${fase.id}`, edicaoFaseExame);
+      setFaseExameEditandoId(null);
+      carregarFasesExame(exameArteId);
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar fase'); }
+  };
+  const removerFaseExame = async (fase) => {
+    if (!window.confirm(`Remover a fase "${fase.nome}" e todos os seus critérios?`)) return;
+    await axios.delete(`/fase-exame-modelos/${fase.id}`);
+    carregarFasesExame(exameArteId);
+  };
+
+  const addCriterioExame = async (e, fase) => {
+    e.preventDefault(); setErro('');
+    const dados = formCriterioPorFase[fase.id] || { nome: '', ordem: 1, faixa_ids: [] };
+    try {
+      await axios.post(`/fase-exame-modelos/${fase.id}/criterios`, dados);
+      setFormCriterioPorFase(v => ({ ...v, [fase.id]: { nome: '', ordem: (dados.ordem || 1) + 1, faixa_ids: [] } }));
+      carregarFasesExame(exameArteId);
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
+  };
+
+  const iniciarEdicaoCriterioExame = (c) => { setCriterioExameEditandoId(c.id); setEdicaoCriterioExame({ nome: c.nome, ordem: c.ordem, faixa_ids: c.faixa_ids }); };
+  const salvarEdicaoCriterioExame = async (c) => {
+    setErro('');
+    try {
+      await axios.put(`/fase-exame-modelos/criterios/${c.id}`, { nome: edicaoCriterioExame.nome, ordem: edicaoCriterioExame.ordem });
+      await axios.put(`/fase-exame-modelos/criterios/${c.id}/faixas`, { faixa_ids: edicaoCriterioExame.faixa_ids });
+      setCriterioExameEditandoId(null);
+      carregarFasesExame(exameArteId);
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar critério'); }
+  };
+  const removerCriterioExame = async (c) => {
+    if (!window.confirm(`Remover o critério "${c.nome}"?`)) return;
+    await axios.delete(`/fase-exame-modelos/criterios/${c.id}`);
+    carregarFasesExame(exameArteId);
+  };
 
   const salvarThreshold = async () => {
     try {
@@ -415,6 +488,135 @@ export default function Configuracoes() {
             ))}
           </tbody>
         </table>
+      </Secao>
+
+      <Secao titulo="Exame de Faixa — Roteiro de Avaliação">
+        <p style={{ fontSize: 13, color: '#888', marginTop: -8, marginBottom: 16 }}>
+          Módulo opcional (tela "Exames" no menu). Defina as fases/provas do exame e os critérios avaliados em cada
+          uma. Critério sem nenhuma faixa marcada não bloqueia ninguém — quem presta exame pra uma faixa não
+          incluída recebe nota cheia automática nesse critério.
+        </p>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Arte Marcial</label>
+          <select value={exameArteId} onChange={e => setExameArteId(e.target.value)} style={{ ...estiloInput, width: 220 }}>
+            <option value="">Selecione...</option>
+            {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+          </select>
+        </div>
+
+        {exameArteId && (
+          <>
+            <form onSubmit={addFaseExame} style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Nova fase (prova)</label>
+                <input required placeholder="Ex: Kihon" value={formFaseExame.nome} onChange={e => setFormFaseExame(f => ({ ...f, nome: e.target.value }))} style={{ ...estiloInput, width: 180 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Ordem</label>
+                <input type="number" min={1} value={formFaseExame.ordem} onChange={e => setFormFaseExame(f => ({ ...f, ordem: Number(e.target.value) }))} style={{ ...estiloInput, width: 70 }} />
+              </div>
+              <button type="submit" style={estiloBtnPrimario}>Adicionar fase</button>
+            </form>
+
+            {fasesExame.length === 0 && <p style={{ fontSize: 13, color: '#888' }}>Nenhuma fase cadastrada pra essa arte marcial ainda.</p>}
+
+            {[...fasesExame].sort((a, b) => a.ordem - b.ordem).map(fase => (
+              <div key={fase.id} style={{ border: '1px solid #eee', borderRadius: 6, padding: 12, marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  {faseExameEditandoId === fase.id ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <input value={edicaoFaseExame.nome} onChange={e => setEdicaoFaseExame(v => ({ ...v, nome: e.target.value }))} style={{ ...estiloInput, width: 160 }} />
+                      <input type="number" min={1} value={edicaoFaseExame.ordem} onChange={e => setEdicaoFaseExame(v => ({ ...v, ordem: Number(e.target.value) }))} style={{ ...estiloInput, width: 60 }} />
+                      <button onClick={() => salvarEdicaoFaseExame(fase)} style={btnLink('#2e7d32')}>Salvar</button>
+                      <button onClick={() => setFaseExameEditandoId(null)} style={btnLink('#888')}>Cancelar</button>
+                    </div>
+                  ) : (
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{fase.ordem}. {fase.nome}</div>
+                  )}
+                  <div>
+                    <button onClick={() => iniciarEdicaoFaseExame(fase)} style={btnLink('#1565c0')}>Editar</button>
+                    <button onClick={() => removerFaseExame(fase)} style={btnLink('#c62828')}>Remover</button>
+                  </div>
+                </div>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f9f9f9' }}>
+                      <th style={thStyleExame}>Critério</th>
+                      <th style={thStyleExame}>Faixas aplicáveis</th>
+                      <th style={thStyleExame}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fase.criterios.length === 0 && <tr><td colSpan={3} style={{ padding: '6px 10px', fontSize: 12, color: '#888' }}>Nenhum critério.</td></tr>}
+                    {[...fase.criterios].sort((a, b) => a.ordem - b.ordem).map(c => (
+                      <tr key={c.id} style={{ borderTop: '1px solid #f5f5f5' }}>
+                        {criterioExameEditandoId === c.id ? (
+                          <>
+                            <td style={{ padding: '6px 10px' }}>
+                              <input value={edicaoCriterioExame.nome} onChange={e => setEdicaoCriterioExame(v => ({ ...v, nome: e.target.value }))} style={{ ...estiloInput, width: 140, padding: '2px 6px' }} />
+                            </td>
+                            <td style={{ padding: '6px 10px' }}>
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {faixasExameArte.map(fx => (
+                                  <label key={fx.id} style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <input type="checkbox" checked={edicaoCriterioExame.faixa_ids.includes(fx.id)}
+                                      onChange={e => setEdicaoCriterioExame(v => ({
+                                        ...v,
+                                        faixa_ids: e.target.checked ? [...v.faixa_ids, fx.id] : v.faixa_ids.filter(id => id !== fx.id),
+                                      }))} />
+                                    {fx.nome}
+                                  </label>
+                                ))}
+                              </div>
+                            </td>
+                            <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}>
+                              <button onClick={() => salvarEdicaoCriterioExame(c)} style={btnLink('#2e7d32')}>Salvar</button>
+                              <button onClick={() => setCriterioExameEditandoId(null)} style={btnLink('#888')}>Cancelar</button>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td style={{ padding: '6px 10px', fontSize: 13 }}>{c.nome}</td>
+                            <td style={{ padding: '6px 10px', fontSize: 12, color: '#555' }}>
+                              {c.faixa_ids.length === 0
+                                ? <em style={{ color: '#aaa' }}>nenhuma (nota cheia automática pra todos)</em>
+                                : faixasExameArte.filter(fx => c.faixa_ids.includes(fx.id)).map(fx => fx.nome).join(', ')}
+                            </td>
+                            <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}>
+                              <button onClick={() => iniciarEdicaoCriterioExame(c)} style={btnLink('#1565c0')}>Editar</button>
+                              <button onClick={() => removerCriterioExame(c)} style={btnLink('#c62828')}>Remover</button>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <form onSubmit={e => addCriterioExame(e, fase)} style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <input required placeholder="Novo critério" value={formCriterioPorFase[fase.id]?.nome || ''}
+                    onChange={e => setFormCriterioPorFase(v => ({ ...v, [fase.id]: { ...(v[fase.id] || { ordem: 1, faixa_ids: [] }), nome: e.target.value } }))}
+                    style={{ ...estiloInput, width: 160 }} />
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 340 }}>
+                    {faixasExameArte.map(fx => (
+                      <label key={fx.id} style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <input type="checkbox" checked={(formCriterioPorFase[fase.id]?.faixa_ids || []).includes(fx.id)}
+                          onChange={e => setFormCriterioPorFase(v => {
+                            const atual = v[fase.id] || { nome: '', ordem: 1, faixa_ids: [] };
+                            const faixa_ids = e.target.checked ? [...atual.faixa_ids, fx.id] : atual.faixa_ids.filter(id => id !== fx.id);
+                            return { ...v, [fase.id]: { ...atual, faixa_ids } };
+                          })} />
+                        {fx.nome}
+                      </label>
+                    ))}
+                  </div>
+                  <button type="submit" style={{ ...estiloBtnPrimario, fontSize: 12, padding: '6px 12px' }}>Adicionar critério</button>
+                </form>
+              </div>
+            ))}
+          </>
+        )}
       </Secao>
 
       <Secao titulo="Professores">

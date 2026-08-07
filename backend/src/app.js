@@ -46,6 +46,11 @@ app.use('/api/financeiro', require('./routes/financeiro'));
 app.use('/api/graduacoes', require('./routes/graduacoes'));
 app.use('/api/ocorrencias', require('./routes/ocorrencias'));
 
+// Módulo de Exame de Faixa
+app.use('/api/fase-exame-modelos', require('./routes/faseExameModelos'));
+app.use('/api/exames', require('./routes/exames'));
+app.use('/api/avaliacao-publica', require('./routes/avaliacaoPublica'));  // público, sem JWT no login
+
 // Dashboard
 app.use('/api/dashboard', require('./routes/dashboard'));
 

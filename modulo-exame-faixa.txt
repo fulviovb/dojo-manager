@@ -1,0 +1,24 @@
+Módulo de EXAME DE FAIXA.
+
+1. DEFINIÇÃO
+1.1 O módulo é uma funcionalidade que o usuário do sistema PODE utilizar se quiser. Caso não queira, o usuário pode seguir passando seus alunos de faixa (subindo de faixa, trocando de faixa, evoluindo) da maneira como acontece atualmente. 
+1.2 O módulo é uma ferramenta que busca ajudar o usuário do sistema no processo de avaliação dos alunos no dia do exame de faixa. 
+
+2. PARAMETRIZAÇÃO e UTILIZAÇÃO
+2.1 A interface de avaliação deve ser 100% customizável. Ou seja, o professor responsável pelo exame define quantas fases tem o exame e quais são os critérios avaliados em cada uma das fases. Na pasta raiz do projeto, disponibilizei uma folha de avaliação de exame bastante completa e que contém 3 fases/provas (ficha-exame-faixa.jpeg). 
+2.2 Diferentes critérios de avaliação são considerados para diferentes graduações. Assim sendo, quando uma fase é adicionada e um critério de avaliação é incluído, o usuário do sistema pode definir para quais faixas/graduações aquele critério deve abrir para que o avaliador adicione uma nota/conceito. 
+2.3 Dependendo da quantidade de fases e critérios que o usuário incluir, o sistema deve automaticamente ser capaz de calcular uma nota/média, considerando todas as fases (provas) e critérios. Considere a convenção de notas convergindo para 100.  
+2.4 Se um conceito não for considerado um ponto a ser avaliado para determinada faixa, o sistema deverá (para aquele conceito) dar a nota máxima para o avaliado. Ex: Na fase (prova) chamada KIHON foram adicionados 10 conceitos de avaliação, e dentre eles um conceito chamado KIME. Porém, para o exame da faixa BRANCA, foi definido que esse conceito não é avaliável. Assim sendo, dado que são 10 itens a serem avaliados (conceitos), o aluno que estiver prestando o exame da faixa branca, já deve receber a nota 1 para o conceito KIME (pois não faz sentido avaliar esse conceito de um faixa branca). E porque nota 10? Porque a nota deve convergir para 100 e num cenário de 10 conceitos para a prova, concluímos que um conceito vale 10. 
+2.5 Os conceitos devem ser avaliador como: + (apresenta o conceito), +- (não apresenta 100% do conceito) e - (não apresenta o conceito). 
+
+3. OPERACIONALIZAÇÃO
+3.1 No dia do exame, deve ser possível criar LOGIN para os avaliadores dos alunos.
+3.2 O professor, no momento em que o exame está acontecendo, irá selecionar qual fase (prova) está sendo realizada, e quais alunos estão sendo avaliador naquele INSTANTE! (Isso porque um exame de faixa pode ter mais de 50 alunos, porém, eles são avaliador em grupos menores, dada a quantidade limitada de avaliadores).  
+3.3 O sistema deve sortear um avaliador para cada prova de cada aluno e apresentar para este avaliador a prova do aluno, com os devidos conceitos a serem avaliados.
+3.4 Um avaliador não pode avaliar um mesmo alunos 2x.  
+3.5 Ao finalizar uma avaliação, o avaliador deve clicar em algum botão que sinalize que ele FINALIZOU a avaliação. 
+3.6 A nota deve ser computada e salva para futura consolidação de todas as provas.
+3.7 Deve ser possível voltar para analisar e corrigir eventuais erros de avaliação. 
+3.8 A ficha de avaliação completa de uma aluno deve ser possível ser consultada e impressa. Com todas as provas, conceitos, avaliações, notas e o nome do avaliador. 
+3.9 Um relatório final do exame deve ser possível de ser emitido. 
+3.10 Se utilizado para avaliação do aluno no dia do exame de faixa, o sistema irá registrar a nota que o aluno recebeu e essa nota será exibida no histórico de graduação do aluno. 

@@ -13,6 +13,11 @@ import CheckinPublico from './pages/CheckinPublico';
 import ReciboPage from './pages/ReciboPage';
 import Relatorios from './pages/Relatorios';
 import RelatorioPage from './pages/RelatorioPage';
+import Exames from './pages/Exames';
+import ExameDetalhe from './pages/ExameDetalhe';
+import AvaliadorExame from './pages/AvaliadorExame';
+import ExameFichaPage from './pages/ExameFichaPage';
+import ExameRelatorioPage from './pages/ExameRelatorioPage';
 
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 axios.interceptors.request.use((config) => {
@@ -27,11 +32,12 @@ const MENU = [
   { id: 'turmas', label: 'Turmas', icon: '🥋' },
   { id: 'chamadas', label: 'Chamadas', icon: '✅' },
   { id: 'financeiro', label: 'Financeiro', icon: '💰' },
+  { id: 'exames', label: 'Exames', icon: '🎖️' },
   { id: 'relatorios', label: 'Relatórios', icon: '📄' },
   { id: 'configuracoes', label: 'Configurações', icon: '⚙️' },
 ];
 
-const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, relatorios: Relatorios, configuracoes: Configuracoes };
+const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, exames: Exames, relatorios: Relatorios, configuracoes: Configuracoes };
 
 export default function App() {
   const checkinMatch = window.location.pathname.match(/^\/checkin\/([^/]+)/);
@@ -40,6 +46,12 @@ export default function App() {
   if (reciboMatch) return <ReciboPage mensalidadeId={reciboMatch[1]} />;
   const relatorioMatch = window.location.pathname.match(/^\/relatorio\/([^/]+)/);
   if (relatorioMatch) return <RelatorioPage tipo={relatorioMatch[1]} />;
+  const avaliadorMatch = window.location.pathname.match(/^\/exame-avaliador\/([^/]+)/);
+  if (avaliadorMatch) return <AvaliadorExame exameId={avaliadorMatch[1]} />;
+  const fichaMatch = window.location.pathname.match(/^\/exame\/([^/]+)\/ficha\/([^/]+)/);
+  if (fichaMatch) return <ExameFichaPage exameId={fichaMatch[1]} participanteId={fichaMatch[2]} />;
+  const relatorioExameMatch = window.location.pathname.match(/^\/exame\/([^/]+)\/relatorio-impressao/);
+  if (relatorioExameMatch) return <ExameRelatorioPage exameId={relatorioExameMatch[1]} />;
   return <AppInterna />;
 }
 
@@ -50,11 +62,14 @@ function AppInterna() {
   const [menuAberto, setMenuAberto] = useState(true);
   const [alunoSelecionadoId, setAlunoSelecionadoId] = useState(null);
   const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(null);
+  const [exameSelecionadoId, setExameSelecionadoId] = useState(null);
 
   const navegarParaAluno = (id) => setAlunoSelecionadoId(id);
   const voltarDaAluno = () => setAlunoSelecionadoId(null);
   const navegarParaTurma = (id) => setTurmaSelecionadaId(id);
   const voltarDaTurma = () => setTurmaSelecionadaId(null);
+  const navegarParaExame = (id) => setExameSelecionadoId(id);
+  const voltarDoExame = () => setExameSelecionadoId(null);
 
   const handleLogin = (data) => {
     localStorage.setItem('token', data.token);
@@ -78,6 +93,7 @@ function AppInterna() {
     setPaginaAtiva(id);
     setAlunoSelecionadoId(null);
     setTurmaSelecionadaId(null);
+    setExameSelecionadoId(null);
   };
 
   return (
@@ -111,6 +127,7 @@ function AppInterna() {
           {MENU.find((m) => m.id === paginaAtiva)?.label}
           {alunoSelecionadoId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Perfil</span>}
           {!alunoSelecionadoId && paginaAtiva === 'turmas' && turmaSelecionadaId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Turma</span>}
+          {!alunoSelecionadoId && paginaAtiva === 'exames' && exameSelecionadoId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Exame</span>}
         </header>
         <main style={{ flex: 1, overflow: 'auto', padding: 24, background: '#f5f5f5' }}>
           {/* O perfil do aluno pode ser aberto a partir de qualquer tela (nomes
@@ -120,7 +137,9 @@ function AppInterna() {
             ? <AlunoDetalhe alunoId={alunoSelecionadoId} onVoltar={voltarDaAluno} />
             : paginaAtiva === 'turmas' && turmaSelecionadaId
             ? <TurmaDetalhe turmaId={turmaSelecionadaId} onVoltar={voltarDaTurma} onVerAluno={navegarParaAluno} />
-            : <PaginaAtual usuario={usuario} onVerAluno={navegarParaAluno} onVerTurma={navegarParaTurma} />
+            : paginaAtiva === 'exames' && exameSelecionadoId
+            ? <ExameDetalhe exameId={exameSelecionadoId} onVoltar={voltarDoExame} />
+            : <PaginaAtual usuario={usuario} onVerAluno={navegarParaAluno} onVerTurma={navegarParaTurma} onVerExame={navegarParaExame} />
           }
         </main>
       </div>
