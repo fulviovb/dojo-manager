@@ -542,6 +542,27 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Branca (`#ffffff`) usa contorno cinza (`#ccc`) em vez da própria cor,
     senão o botão fica invisível no fundo branco. Testado no navegador com
     4 alunos de faixas diferentes (Amarela, Verde, Vermelha, Branca).
+[x] Achado o motivo real de "Sortear avaliadores não funcionou": pra um
+    aluno de faixa Branca, o botão de seleção ficava **branco tanto
+    selecionado quanto não selecionado** (o preenchimento ativo usava a
+    própria cor da faixa, que é branca) — clicar não dava nenhum feedback
+    visual, então na prática funcionava mas parecia travado. Corrigido
+    extraindo o estilo de chip pra uma função só (`estiloChipFaixa`,
+    reaproveitada também nos botões Avalia/Não avalia do roteiro — item
+    acima): faixa branca ativa agora preenche de cinza claro (`#e0e0e0`)
+    em vez de continuar branca, e todo botão selecionado ganha um prefixo
+    "✓ " no texto como segundo sinal, independente de cor. Corrigido
+    também um critério (`Conclusão Perfeita do Movimento Técnico`, fase
+    Kihon do Roteiro Padrão) que tinha só 4 faixas marcadas em vez de 12 —
+    causa não identificada com certeza, dado isolado, corrigido
+    manualmente; nenhum outro critério do exame tinha o mesmo problema.
+[x] Ficha de exame fornecida pelo usuário revisada: a coluna esquerda da
+    3ª prova (Kumitê) — "Tipos de Combate": San Bom-Kumite, Go Ron-Kumite,
+    Kihon-Ippon-Kumite, Jyu Ippon-Kumite, Shiai-Kumite — não são critérios
+    de avaliação, só a coluna direita ("Avaliação") é. Removidos os 5
+    critérios errados do Roteiro Padrão — Kumitê ficou só com os 8 reais
+    (Maai, Deai, Foco Atenção, Eficiência na Conclusão, Kyo e Jitsu,
+    Base/Postura, Desenvolvimento, Ângulo dos Golpes).
 [x] Testado ponta a ponta via API com dados reais (arte marcial e aluno já
     cadastrados): fase com 1 critério aplicável só à faixa testada + 1
     critério sem nenhuma faixa marcada (deve dar nota cheia automática) →

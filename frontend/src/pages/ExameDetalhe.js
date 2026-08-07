@@ -12,6 +12,25 @@ const STATUS_LABEL = { planejamento: 'Planejamento', em_andamento: 'Em andamento
 const STATUS_AVALIACAO_LABEL = { pendente: 'Pendente', em_andamento: 'Em andamento', finalizada: 'Finalizada' };
 const STATUS_AVALIACAO_COR = { pendente: '#888', em_andamento: '#1565c0', finalizada: '#2e7d32' };
 
+// Estilo de "chip" colorido com a cor da faixa — usado tanto no roteiro
+// (Avalia/Não avalia este critério) quanto no sorteio (aluno
+// selecionado/não). Faixa branca (#ffffff) some no fundo branco, então
+// usa contorno cinza como fallback e, quando "ativo", preenche de cinza
+// claro em vez de continuar branco — senão os estados ativo/inativo ficam
+// visualmente idênticos e parece que o clique não fez nada.
+function estiloChipFaixa(faixa, ativo) {
+  const cor = faixa ? corDaFaixa(faixa.nome, faixa.cor) : '#ccc';
+  const ehBranca = cor.toLowerCase() === '#ffffff';
+  const corBorda = ehBranca ? '#bbb' : cor;
+  const corPreenchimento = ehBranca ? '#e0e0e0' : cor;
+  const textoEscuro = !faixa || ehBranca || faixa.nome?.toLowerCase().includes('amarela');
+  return {
+    border: `2px solid ${corBorda}`,
+    background: ativo ? corPreenchimento : '#fff',
+    color: ativo ? (textoEscuro ? '#333' : '#fff') : '#555',
+  };
+}
+
 function FaixaBadge({ faixa }) {
   if (!faixa) return <span style={{ color: '#aaa', fontSize: 12 }}>—</span>;
   const cor = corDaFaixa(faixa.nome, faixa.cor);
@@ -319,8 +338,8 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
                         {avalia.map((fx) => (
                           <button key={fx.id} disabled={!roteiroEditavel} onClick={() => toggleFaixaCriterio(criterio, fx.id, false)}
                             style={{
-                              fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid #2e7d32',
-                              background: '#e8f5e9', color: '#2e7d32', cursor: roteiroEditavel ? 'pointer' : 'default',
+                              fontSize: 11, padding: '3px 10px', borderRadius: 20, cursor: roteiroEditavel ? 'pointer' : 'default',
+                              ...estiloChipFaixa(fx, true),
                             }}>
                             {fx.nome}{roteiroEditavel ? ' ✕' : ''}
                           </button>
@@ -333,8 +352,8 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
                         {naoAvalia.map((fx) => (
                           <button key={fx.id} disabled={!roteiroEditavel} onClick={() => toggleFaixaCriterio(criterio, fx.id, true)}
                             style={{
-                              fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid #ddd',
-                              background: '#fafafa', color: '#888', cursor: roteiroEditavel ? 'pointer' : 'default',
+                              fontSize: 11, padding: '3px 10px', borderRadius: 20, cursor: roteiroEditavel ? 'pointer' : 'default',
+                              ...estiloChipFaixa(fx, false),
                             }}>
                             {fx.nome}{roteiroEditavel ? ' +' : ''}
                           </button>
@@ -438,18 +457,14 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {(exame.participantes || []).map((p) => {
               const faixa = p.FaixaAtual || p.FaixaPretendida;
-              const cor = faixa ? corDaFaixa(faixa.nome, faixa.cor) : '#ccc';
-              const corBorda = cor.toLowerCase() === '#ffffff' ? '#ccc' : cor;
-              const textoEscuro = !faixa || ['branca', 'amarela'].some((k) => faixa.nome?.toLowerCase().includes(k));
               const selecionado = participantesSelecionados.includes(p.id);
               return (
                 <button key={p.id} type="button" onClick={() => toggleParticipanteSorteio(p.id)}
                   style={{
-                    fontSize: 13, padding: '6px 14px', borderRadius: 20, cursor: 'pointer',
-                    border: `2px solid ${corBorda}`, background: selecionado ? cor : '#fff',
-                    color: selecionado ? (textoEscuro ? '#333' : '#fff') : '#333',
+                    fontSize: 13, padding: '6px 14px', borderRadius: 20, cursor: 'pointer', fontWeight: selecionado ? 600 : 400,
+                    ...estiloChipFaixa(faixa, selecionado),
                   }}>
-                  {p.Aluno?.nome}
+                  {selecionado ? '✓ ' : ''}{p.Aluno?.nome}
                 </button>
               );
             })}

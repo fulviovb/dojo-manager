@@ -262,7 +262,10 @@ editável, sem afetar exames passados ou futuros). Cada critério tem duas
 listas de faixas ("Avalia este critério" / "Não avalia") com clique único
 pra mover uma faixa de uma lista pra outra — mesmo padrão visual de
 Presentes/Ausentes da tela de Chamadas, sem checkbox e sempre editável (sem
-modo "Editar" separado).
+modo "Editar" separado). Cada chip é colorido com a cor real da faixa
+(`estiloChipFaixa()`, reaproveitado também nos botões de aluno do sorteio
+de avaliadores) — faixa branca usa contorno/preenchimento cinza como
+fallback, senão o botão fica invisível no fundo branco.
 
 **Roteiro Padrão** (`Exame.tipo = 'roteiro_padrao'`): um exame pode ser
 marcado como o roteiro padrão da sua arte marcial (botão em
