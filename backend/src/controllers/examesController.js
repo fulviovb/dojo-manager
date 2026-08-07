@@ -98,6 +98,20 @@ const copiarRoteiro = async (origemExameId, destinoExameId) => {
   }
 };
 
+const ALFABETO_CODIGO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem I, O, 0, 1 (ambíguos)
+
+// Código curto pra URL pública do avaliador (/exame-avaliador/:codigo) —
+// bem mais fácil de digitar no celular que o UUID do exame.
+const gerarCodigoUnico = async () => {
+  for (let tentativa = 0; tentativa < 20; tentativa++) {
+    let codigo = '';
+    for (let i = 0; i < 6; i++) codigo += ALFABETO_CODIGO[crypto.randomInt(ALFABETO_CODIGO.length)];
+    const existe = await Exame.findOne({ where: { codigo } });
+    if (!existe) return codigo;
+  }
+  throw new Error('Não foi possível gerar um código único pro exame');
+};
+
 // POST /api/exames — cria o exame já copiando o roteiro (fases/critérios)
 // do exame mais recente da mesma arte marcial, se existir — só um ponto de
 // partida editável, não um template compartilhado: mudar aqui depois não
@@ -108,8 +122,9 @@ const criar = async (req, res) => {
     const arte = await ArteMarcial.findOne({ where: { id: arte_marcial_id, escola_id: req.usuario.escola_id } });
     if (!arte) return res.status(404).json({ erro: 'Arte marcial não encontrada' });
 
+    const codigo = await gerarCodigoUnico();
     const exame = await Exame.create({
-      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento',
+      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo,
     });
 
     const exameAnterior = await Exame.findOne({
@@ -137,8 +152,9 @@ const comecarComRoteiroPadrao = async (req, res) => {
     });
     if (!roteiroPadrao) return res.status(404).json({ erro: 'Nenhum Roteiro Padrão definido pra essa arte marcial ainda.' });
 
+    const codigo = await gerarCodigoUnico();
     const exame = await Exame.create({
-      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento',
+      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo,
     });
     await copiarRoteiro(roteiroPadrao.id, exame.id);
 

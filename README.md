@@ -294,8 +294,9 @@ aluno em **qualquer** fase do exame, e **distribuindo a carga igualmente**
 agora (empate quebrado por sorteio), então com N alunos e N avaliadores
 disponíveis cada um fecha com exatamente 1. Avaliadores são login descartável por
 **PIN numérico** (`AvaliadorExame`, sem `Usuario`/bcrypt) — acessam
-`/exame-avaliador/:exame_id` (página pública) com um JWT de escopo restrito
-(`middleware/autenticacaoAvaliador.js`, `tipo: 'avaliador'`, não aceito nas
+`/exame-avaliador/:codigo` (página pública, `Exame.codigo` — código curto
+de 6 caracteres gerado na criação do exame, não o UUID) com um JWT de
+escopo restrito (`middleware/autenticacaoAvaliador.js`, `tipo: 'avaliador'`, não aceito nas
 rotas de staff). Cada critério é avaliado como `+` (apresenta o conceito),
 `+-` (parcial) ou `-` (não apresenta); finalizar uma avaliação exige
 resposta em todo critério aplicável. Avaliação finalizada só pode ser
@@ -434,7 +435,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
 | Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
-| Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:exame_id/login` (PIN), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
+| Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:codigo/login` (PIN, `:codigo` = `Exame.codigo`), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
 | Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`), `GET /dashboard/semaforo-graduacao` (`?arte_marcial_id=`) | autenticado |
 | Check-in online       | `POST /checkin-online/sincronizar` (sincroniza roster + reconcilia check-ins do módulo satélite, ver seção própria acima) | admin |
@@ -452,7 +453,7 @@ componentes por estado local (sidebar). Três rotas são detectadas por
 | `/checkin/:qr_token`| `CheckinPublico`     | pública, sem JWT — auto check-in do aluno |
 | `/recibo/:id`       | `ReciboPage`         | aberta em nova aba a partir de Financeiro → Faturas; imprimível |
 | `/relatorio/:tipo`  | `RelatorioPage`      | aberta em nova aba a partir de Relatórios; imprimível |
-| `/exame-avaliador/:exame_id` | `AvaliadorExame` | pública de verdade — login por PIN, JWT próprio (ver Exame de Faixa) |
+| `/exame-avaliador/:codigo` | `AvaliadorExame` | pública de verdade — `:codigo` é `Exame.codigo` (6 caracteres, não o UUID); login por PIN, JWT próprio (ver Exame de Faixa) |
 | `/exame/:exame_id/ficha/:participante_id` | `ExameFichaPage` | aberta em nova aba a partir de Exames; imprimível |
 | `/exame/:exame_id/relatorio-impressao` | `ExameRelatorioPage` | aberta em nova aba a partir de Exames; imprimível |
 

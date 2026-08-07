@@ -427,7 +427,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
       <div style={cardEstilo}>
         <h3 style={{ marginTop: 0 }}>Avaliadores</h3>
         <p style={{ fontSize: 12, color: '#888', marginTop: -8 }}>
-          Repasse o PIN pro avaliador acessar <code>/exame-avaliador/{exameId}</code> no celular dele.
+          Repasse o PIN pro avaliador acessar <code>/exame-avaliador/{exame.codigo}</code> no celular dele.
         </p>
         <form onSubmit={addAvaliador} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <input required placeholder="Nome do avaliador" value={formAvaliadorNome} onChange={(e) => setFormAvaliadorNome(e.target.value)} style={{ ...estiloInput, maxWidth: 240 }} />

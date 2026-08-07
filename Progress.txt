@@ -596,6 +596,17 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
        preflight `OPTIONS` (retorna 200 incondicional) — só no clique real
        do navegador, que bloqueia a requisição de verdade após o
        preflight. Corrigido adicionando `PATCH` à lista.
+[x] `Exame.codigo` — código curto (6 caracteres, alfabeto sem
+    letras/dígitos ambíguos: sem I/O/0/1) pra URL pública do avaliador
+    (`/exame-avaliador/:codigo`) em vez do UUID inteiro do exame, bem mais
+    fácil de digitar/ler no celular. Gerado na criação do exame
+    (`gerarCodigoUnico()`, mesmo padrão do PIN do avaliador), único entre
+    todas as escolas. Login por código é case-insensitive (`toUpperCase()`
+    no backend). Coluna adicionada via script one-off
+    `backend/src/scripts/2026-08-exame-codigo-curto.js`, que também gera o
+    código pros exames já existentes. Testado via API: login com código em
+    minúsculo funciona, login com o UUID antigo agora dá 404 (era o
+    comportamento anterior, intencionalmente descontinuado).
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

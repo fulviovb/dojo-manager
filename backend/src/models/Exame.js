@@ -20,6 +20,10 @@ const Exame = sequelize.define('Exame', {
     allowNull: false,
     defaultValue: 'normal',
   },
+  // Código curto (6 caracteres, alfabeto sem letras/dígitos ambíguos) pra
+  // montar a URL pública do avaliador — bem mais fácil de digitar no
+  // celular do que o UUID do exame. Único entre todas as escolas.
+  codigo: { type: DataTypes.STRING(8), allowNull: false, unique: true },
 }, { tableName: 'exames' });
 
 module.exports = Exame;

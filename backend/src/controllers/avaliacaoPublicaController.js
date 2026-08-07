@@ -6,16 +6,18 @@ const {
 } = require('../models');
 const { calcularNotaFase } = require('../utils/notaExame');
 
-// POST /api/avaliacao-publica/exames/:exame_id/login
+// POST /api/avaliacao-publica/exames/:codigo/login — :codigo é o código
+// curto do exame (Exame.codigo), não o UUID.
 const login = async (req, res) => {
   try {
     const { pin } = req.body;
+    const exame = await Exame.findOne({ where: { codigo: req.params.codigo.toUpperCase() } });
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+
     const avaliador = await AvaliadorExame.findOne({
-      where: { exame_id: req.params.exame_id, pin, ativo: true },
+      where: { exame_id: exame.id, pin, ativo: true },
     });
     if (!avaliador) return res.status(401).json({ erro: 'PIN inválido' });
-
-    const exame = await Exame.findByPk(avaliador.exame_id);
 
     const token = jwt.sign(
       { tipo: 'avaliador', avaliador_id: avaliador.id, exame_id: avaliador.exame_id, escola_id: avaliador.escola_id },
