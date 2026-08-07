@@ -534,6 +534,14 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     receber 1 aluno"). Testado via API: caso 5/5 dá 1 pra cada; caso mais
     complexo (2 fases, 6 alunos, 5 avaliadores) mantém a carga acumulada
     sempre com diferença máxima de 1 entre o mais e o menos carregado.
+[x] Lista de "Alunos sendo avaliados neste momento" (Sorteio de
+    avaliadores) trocou de checkbox pra botão colorido com a cor da faixa
+    do aluno (`FaixaAtual` ou, na falta dela, `FaixaPretendida`) — mesmo
+    espírito visual do toggle Presente/Ausente de Chamadas: contorno
+    colorido quando não selecionado, preenchido quando selecionado. Faixa
+    Branca (`#ffffff`) usa contorno cinza (`#ccc`) em vez da própria cor,
+    senão o botão fica invisível no fundo branco. Testado no navegador com
+    4 alunos de faixas diferentes (Amarela, Verde, Vermelha, Branca).
 [x] Testado ponta a ponta via API com dados reais (arte marcial e aluno já
     cadastrados): fase com 1 critério aplicável só à faixa testada + 1
     critério sem nenhuma faixa marcada (deve dar nota cheia automática) →

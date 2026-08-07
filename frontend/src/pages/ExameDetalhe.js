@@ -435,13 +435,24 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
         </div>
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Alunos sendo avaliados neste momento</label>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {(exame.participantes || []).map((p) => (
-              <label key={p.id} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <input type="checkbox" checked={participantesSelecionados.includes(p.id)} onChange={() => toggleParticipanteSorteio(p.id)} />
-                {p.Aluno?.nome}
-              </label>
-            ))}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {(exame.participantes || []).map((p) => {
+              const faixa = p.FaixaAtual || p.FaixaPretendida;
+              const cor = faixa ? corDaFaixa(faixa.nome, faixa.cor) : '#ccc';
+              const corBorda = cor.toLowerCase() === '#ffffff' ? '#ccc' : cor;
+              const textoEscuro = !faixa || ['branca', 'amarela'].some((k) => faixa.nome?.toLowerCase().includes(k));
+              const selecionado = participantesSelecionados.includes(p.id);
+              return (
+                <button key={p.id} type="button" onClick={() => toggleParticipanteSorteio(p.id)}
+                  style={{
+                    fontSize: 13, padding: '6px 14px', borderRadius: 20, cursor: 'pointer',
+                    border: `2px solid ${corBorda}`, background: selecionado ? cor : '#fff',
+                    color: selecionado ? (textoEscuro ? '#333' : '#fff') : '#333',
+                  }}>
+                  {p.Aluno?.nome}
+                </button>
+              );
+            })}
           </div>
         </div>
         <button style={estiloBtnPrimario} onClick={sortear}>Sortear avaliadores</button>
