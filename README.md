@@ -286,7 +286,10 @@ Nota final do aluno = média simples entre as fases finalizadas (lógica em
 **Sorteio de avaliadores** (`POST /api/exames/:id/sorteio`): o professor
 seleciona a fase em andamento e os alunos sendo avaliados naquele momento;
 o sistema sorteia um avaliador por aluno, excluindo quem já avaliou aquele
-aluno em **qualquer** fase do exame. Avaliadores são login descartável por
+aluno em **qualquer** fase do exame, e **distribuindo a carga igualmente**
+— cada aluno vai pro avaliador elegível com menos avaliações no exame até
+agora (empate quebrado por sorteio), então com N alunos e N avaliadores
+disponíveis cada um fecha com exatamente 1. Avaliadores são login descartável por
 **PIN numérico** (`AvaliadorExame`, sem `Usuario`/bcrypt) — acessam
 `/exame-avaliador/:exame_id` (página pública) com um JWT de escopo restrito
 (`middleware/autenticacaoAvaliador.js`, `tipo: 'avaliador'`, não aceito nas

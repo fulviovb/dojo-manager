@@ -422,7 +422,10 @@ const revogarAvaliador = async (req, res) => {
 
 // POST /api/exames/:id/sorteio — sorteia um avaliador pra cada aluno na
 // fase informada, evitando repetir avaliador que já avaliou aquele aluno em
-// QUALQUER fase deste exame (regra 3.4).
+// QUALQUER fase deste exame (regra 3.4) e distribuindo a carga igualmente:
+// cada aluno vai pro avaliador elegível com MENOS avaliações no exame até
+// agora (empate quebrado por sorteio) — com N alunos e N avaliadores
+// disponíveis, cada um fecha com exatamente 1.
 const sortear = async (req, res) => {
   try {
     const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
@@ -434,16 +437,29 @@ const sortear = async (req, res) => {
 
     const avaliadoresAtivos = await AvaliadorExame.findAll({ where: { exame_id: exame.id, ativo: true } });
 
+    // Carrega de uma vez só a situação atual do exame inteiro (todas as
+    // fases) — carga por avaliador pra balancear, e quem já avaliou quem
+    // pra respeitar a regra 3.4.
+    const avaliacoesDoExame = await AvaliacaoAluno.findAll({
+      where: { exame_id: exame.id },
+      attributes: ['avaliador_id', 'exame_participante_id'],
+    });
+    const cargaPorAvaliador = new Map(avaliadoresAtivos.map((a) => [a.id, 0]));
+    const avaliadoresPorParticipante = new Map();
+    for (const av of avaliacoesDoExame) {
+      cargaPorAvaliador.set(av.avaliador_id, (cargaPorAvaliador.get(av.avaliador_id) || 0) + 1);
+      if (!avaliadoresPorParticipante.has(av.exame_participante_id)) {
+        avaliadoresPorParticipante.set(av.exame_participante_id, new Set());
+      }
+      avaliadoresPorParticipante.get(av.exame_participante_id).add(av.avaliador_id);
+    }
+
     const resultado = [];
     // Loop sequencial (não Promise.all) — evita deadlock no MySQL em
     // escritas concorrentes na mesma tabela, mesmo padrão usado em
     // chamadasController.fecharAula.
     for (const participanteId of participante_ids) {
-      const jaAvaliaramEsseAluno = await AvaliacaoAluno.findAll({
-        where: { exame_participante_id: participanteId },
-        attributes: ['avaliador_id'],
-      });
-      const usados = new Set(jaAvaliaramEsseAluno.map((a) => a.avaliador_id));
+      const usados = avaliadoresPorParticipante.get(participanteId) || new Set();
       const elegiveis = avaliadoresAtivos.filter((a) => !usados.has(a.id));
 
       if (elegiveis.length === 0) {
@@ -451,11 +467,20 @@ const sortear = async (req, res) => {
         continue;
       }
 
-      const escolhido = elegiveis[crypto.randomInt(elegiveis.length)];
+      const menorCarga = Math.min(...elegiveis.map((a) => cargaPorAvaliador.get(a.id)));
+      const candidatos = elegiveis.filter((a) => cargaPorAvaliador.get(a.id) === menorCarga);
+      const escolhido = candidatos[crypto.randomInt(candidatos.length)];
+
       const [avaliacao, criada] = await AvaliacaoAluno.findOrCreate({
         where: { fase_exame_id, exame_participante_id: participanteId },
         defaults: { exame_id: exame.id, avaliador_id: escolhido.id, status: 'pendente' },
       });
+
+      if (criada) {
+        cargaPorAvaliador.set(escolhido.id, cargaPorAvaliador.get(escolhido.id) + 1);
+        if (!avaliadoresPorParticipante.has(participanteId)) avaliadoresPorParticipante.set(participanteId, new Set());
+        avaliadoresPorParticipante.get(participanteId).add(escolhido.id);
+      }
 
       resultado.push({
         participante_id: participanteId,

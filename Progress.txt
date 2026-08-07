@@ -525,6 +525,15 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     chamada direta à API (`curl`) e usar o navegador só pra conferir o
     resultado final. Recuperação: forçar uma navegação (`navigate`) destrava
     a aba.
+[x] Sorteio de avaliadores passou a **distribuir a carga igualmente**, não
+    só sortear cada aluno de forma independente: pra cada aluno, escolhe
+    entre os avaliadores elegíveis o(s) com MENOS avaliações no exame até
+    agora (todas as fases somadas), empate quebrado por sorteio — com N
+    alunos e N avaliadores disponíveis, cada um fecha com exatamente 1
+    (pedido explícito do usuário: "5 alunos e 5 avaliadores, cada um deve
+    receber 1 aluno"). Testado via API: caso 5/5 dá 1 pra cada; caso mais
+    complexo (2 fases, 6 alunos, 5 avaliadores) mantém a carga acumulada
+    sempre com diferença máxima de 1 entre o mais e o menos carregado.
 [x] Testado ponta a ponta via API com dados reais (arte marcial e aluno já
     cadastrados): fase com 1 critério aplicável só à faixa testada + 1
     critério sem nenhuma faixa marcada (deve dar nota cheia automática) →
