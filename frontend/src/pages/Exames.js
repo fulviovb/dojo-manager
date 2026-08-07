@@ -3,6 +3,7 @@ import axios from 'axios';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
+const estiloBtnSecundario = { background: '#fff', color: '#1e2a38', border: '1px solid #1e2a38', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
 
 const STATUS_LABEL = { planejamento: 'Planejamento', em_andamento: 'Em andamento', finalizado: 'Finalizado' };
 const STATUS_COR = { planejamento: '#888', em_andamento: '#1565c0', finalizado: '#2e7d32' };
@@ -24,7 +25,8 @@ function Modal({ titulo, onFechar, children }) {
 export default function Exames({ onVerExame }) {
   const [exames, setExames] = useState([]);
   const [artes, setArtes] = useState([]);
-  const [modalAberto, setModalAberto] = useState(false);
+  // null | 'novo' | 'roteiro-padrao' — os dois fluxos de criação reaproveitam o mesmo formulário
+  const [modalTipo, setModalTipo] = useState(null);
   const [form, setForm] = useState({ arte_marcial_id: '', nome: '', data: '' });
   const [erro, setErro] = useState('');
 
@@ -32,12 +34,14 @@ export default function Exames({ onVerExame }) {
   useEffect(() => { carregar(); }, []);
   useEffect(() => { axios.get('/artes-marciais').then(r => setArtes(r.data)); }, []);
 
+  const abrirModal = (tipo) => { setModalTipo(tipo); setErro(''); setForm({ arte_marcial_id: '', nome: '', data: '' }); };
+
   const salvar = async (e) => {
     e.preventDefault(); setErro('');
+    const endpoint = modalTipo === 'roteiro-padrao' ? '/exames/comecar-com-roteiro-padrao' : '/exames';
     try {
-      const { data } = await axios.post('/exames', form);
-      setModalAberto(false);
-      setForm({ arte_marcial_id: '', nome: '', data: '' });
+      const { data } = await axios.post(endpoint, form);
+      setModalTipo(null);
       carregar();
       onVerExame?.(data.id);
     } catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
@@ -45,12 +49,15 @@ export default function Exames({ onVerExame }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center', gap: 12 }}>
         <p style={{ color: '#888', fontSize: 13, margin: 0 }}>
           Módulo opcional pra apoiar a avaliação no dia do exame de faixa. O roteiro (fases/critérios) é montado
           dentro de cada exame, enquanto ele está em planejamento.
         </p>
-        <button style={estiloBtnPrimario} onClick={() => setModalAberto(true)}>+ Novo Exame</button>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <button style={estiloBtnSecundario} onClick={() => abrirModal('roteiro-padrao')}>🌟 Começar com base em roteiro padrão</button>
+          <button style={estiloBtnPrimario} onClick={() => abrirModal('novo')}>+ Novo Exame</button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gap: 16 }}>
@@ -63,6 +70,9 @@ export default function Exames({ onVerExame }) {
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#1565c0' }}>
                   {ex.nome}
                 </button>
+                {ex.tipo === 'roteiro_padrao' && (
+                  <span style={{ marginLeft: 8, fontSize: 11, color: '#a15c00', background: '#fff3cd', padding: '2px 8px', borderRadius: 20 }}>🌟 Roteiro Padrão</span>
+                )}
                 <div style={{ color: '#555', fontSize: 13, marginTop: 4 }}>
                   {ex.ArteMarcial?.nome} · {new Date(ex.data + 'T00:00:00').toLocaleDateString('pt-BR')}
                 </div>
@@ -75,8 +85,8 @@ export default function Exames({ onVerExame }) {
         ))}
       </div>
 
-      {modalAberto && (
-        <Modal titulo="Novo Exame de Faixa" onFechar={() => setModalAberto(false)}>
+      {modalTipo && (
+        <Modal titulo={modalTipo === 'roteiro-padrao' ? 'Começar exame com base em Roteiro Padrão' : 'Novo Exame de Faixa'} onFechar={() => setModalTipo(null)}>
           <form onSubmit={salvar}>
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Arte Marcial</label>
@@ -94,11 +104,13 @@ export default function Exames({ onVerExame }) {
               <input required type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} style={estiloInput} />
             </div>
             <p style={{ fontSize: 12, color: '#888' }}>
-              O roteiro (fases/critérios) do exame mais recente dessa arte marcial, se existir, será copiado pra cá — é só um ponto de partida, dá pra ajustar livremente depois.
+              {modalTipo === 'roteiro-padrao'
+                ? 'O roteiro (fases/critérios) do Roteiro Padrão dessa arte marcial será copiado pra cá — dá pra ajustar livremente depois.'
+                : 'O roteiro (fases/critérios) do exame mais recente dessa arte marcial, se existir, será copiado pra cá — é só um ponto de partida, dá pra ajustar livremente depois.'}
             </p>
             {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button type="button" onClick={() => setModalAberto(false)} style={{ padding: '8px 16px', borderRadius: 4, border: '1px solid #ddd', cursor: 'pointer' }}>Cancelar</button>
+              <button type="button" onClick={() => setModalTipo(null)} style={{ padding: '8px 16px', borderRadius: 4, border: '1px solid #ddd', cursor: 'pointer' }}>Cancelar</button>
               <button type="submit" style={estiloBtnPrimario}>Criar</button>
             </div>
           </form>

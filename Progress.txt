@@ -489,6 +489,42 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     (`faixasArte` ordenado por `ordem`) como pretendida — o professor só
     ajusta manualmente em casos fora do padrão. Testado com aluno real
     (Lourenço Roehr Herman, Branca → sugeriu Cinza corretamente).
+[x] Exclusão de exame (`DELETE /api/exames/:id`, botão "Excluir" em
+    `ExameDetalhe.js`) — cascade manual (respostas, avaliações, avaliadores,
+    participantes, critérios/faixas, fases) e desvincula
+    `GraduacaoAluno.exame_participante_id` das graduações já confirmadas a
+    partir dali (a `nota_exame` já copiada continua intacta, só perde o
+    rastro pro exame apagado).
+[x] Novo tipo especial de exame: `Exame.tipo` (`'normal'` |
+    `'roteiro_padrao'`, coluna nova via script one-off
+    `backend/src/scripts/2026-08-exame-tipo-roteiro-padrao.js`). Só um
+    roteiro padrão por arte marcial — marcar um novo (`PATCH
+    /api/exames/:id/tipo`) rebaixa automaticamente o anterior pra
+    `'normal'`. Protegido contra exclusão (`remover` rejeita com 400 se
+    `tipo === 'roteiro_padrao'`; precisa desmarcar primeiro).
+[x] Botão novo "🌟 Começar exame com base em roteiro padrão" em
+    `Exames.js` — `POST /api/exames/comecar-com-roteiro-padrao` copia o
+    roteiro especificamente do exame `roteiro_padrao` da arte marcial
+    escolhida (404 se a arte ainda não tiver um definido), diferente do
+    "+ Novo Exame" que continua copiando do exame mais recente por data
+    (comportamento antigo inalterado). Lógica de cópia extraída pra
+    `copiarRoteiro()`, compartilhada pelos dois fluxos.
+[x] Primeiro roteiro real montado via API pro Karatê Shotokan a partir da
+    ficha de exame que o usuário forneceu (`ficha-exame-faixa.jpeg`): 3
+    fases (Kihon 11 critérios, Kata 10, Kumitê 13 — os 5 "Tipos de Combate"
+    da ficha + os 8 da coluna "Avaliação"), todos os 34 critérios com as 12
+    faixas marcadas em "Avalia este critério" (usuário ajusta manualmente
+    depois). Esse exame ("Roteiro Padrão — Karatê Shotokan") foi marcado
+    como `tipo: 'roteiro_padrao'` — é a fonte permanente do botão acima.
+[x] Testado no Chrome de verdade — achado um cuidado a documentar: o botão
+    "Marcar como Roteiro Padrão" chama `window.confirm()`, que é um diálogo
+    nativo e trava a sessão do MCP de automação de navegador (input não
+    responde mais). Não é bug do app — é o mesmo padrão de confirmação já
+    usado em outras ações destrutivas do projeto —, só não dá pra clicar
+    nesses botões especificamente via automação; validar esses fluxos por
+    chamada direta à API (`curl`) e usar o navegador só pra conferir o
+    resultado final. Recuperação: forçar uma navegação (`navigate`) destrava
+    a aba.
 [x] Testado ponta a ponta via API com dados reais (arte marcial e aluno já
     cadastrados): fase com 1 critério aplicável só à faixa testada + 1
     critério sem nenhuma faixa marcada (deve dar nota cheia automática) →

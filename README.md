@@ -264,6 +264,18 @@ pra mover uma faixa de uma lista pra outra — mesmo padrão visual de
 Presentes/Ausentes da tela de Chamadas, sem checkbox e sempre editável (sem
 modo "Editar" separado).
 
+**Roteiro Padrão** (`Exame.tipo = 'roteiro_padrao'`): um exame pode ser
+marcado como o roteiro padrão da sua arte marcial (botão em
+`ExameDetalhe.js`, só um por arte — marcar um novo rebaixa o anterior pra
+`'normal'` automaticamente) para servir de fonte fixa e nunca precisa
+"rodar" de verdade (fica parado em planejamento). O botão "🌟 Começar com
+base em roteiro padrão" em `Exames.js` cria um exame novo copiando
+especificamente dele (`POST /api/exames/comecar-com-roteiro-padrao`, 404 se
+a arte ainda não tiver um definido) — diferente do "+ Novo Exame" comum,
+que copia do exame mais recente por data. Roteiro Padrão é protegido contra
+exclusão (`DELETE /api/exames/:id` rejeita com 400; precisa desmarcar
+primeiro).
+
 **Nota**: cada fase converge pra 100, dividido igualmente entre seus
 critérios; um critério sem a faixa pretendida do aluno marcada como
 aplicável recebe nota cheia automática (não faz sentido cobrar, por
@@ -415,7 +427,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Financeiro            | `GET /financeiro/painel` (`?ano=` — indicadores + série mensal ganhos vs a receber)   | autenticado              |
 | Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
-| Exame de Faixa — exames | `GET,POST /exames`, `GET /exames/:id`, `PATCH /exames/:id/status`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
+| Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:exame_id/login` (PIN), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
 | Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`), `GET /dashboard/semaforo-graduacao` (`?arte_marcial_id=`) | autenticado |
@@ -515,13 +527,19 @@ critério de desempate dentro do mesmo status.
 ### Exames
 
 Lista de exames (`Exames.js`) com status (Planejamento / Em andamento /
-Finalizado); "+ Novo Exame" escolhe a arte marcial e copia o roteiro do
-exame mais recente dela, se existir. `ExameDetalhe.js` reúne o "Roteiro do
-Exame" (fases/critérios, editável só em planejamento), participantes,
-avaliadores (com PIN visível pra repassar), sorteio por fase, uma grade de
-progresso (status/nota por aluno × fase, com botão "reabrir" nas
-finalizadas) e o relatório final com "Confirmar graduação" por aluno. Ver
-"Módulo de Exame de Faixa" acima pras regras completas.
+Finalizado). Dois jeitos de criar: "+ Novo Exame" copia o roteiro do exame
+mais recente da arte marcial, se existir; "🌟 Começar com base em roteiro
+padrão" copia especificamente do exame marcado como **Roteiro Padrão**
+daquela arte (`Exame.tipo = 'roteiro_padrao'`, só um por arte marcial —
+marcar um novo rebaixa o anterior automaticamente). `ExameDetalhe.js` reúne
+o "Roteiro do Exame" (fases/critérios, editável só em planejamento),
+participantes, avaliadores (com PIN visível pra repassar), sorteio por
+fase, uma grade de progresso (status/nota por aluno × fase, com botão
+"reabrir" nas finalizadas), o relatório final com "Confirmar graduação"
+por aluno, e botões pra marcar/desmarcar o exame como Roteiro Padrão e
+excluí-lo — **Roteiro Padrão nunca pode ser excluído** direto, precisa ser
+desmarcado primeiro. Ver "Módulo de Exame de Faixa" acima pras regras
+completas.
 
 ### Relatórios
 

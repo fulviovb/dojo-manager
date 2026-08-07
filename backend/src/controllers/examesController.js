@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const {
   Exame, FaseExame, CriterioExame, CriterioExameFaixa,
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
-  ArteMarcial, Faixa, Usuario,
+  ArteMarcial, Faixa, Usuario, GraduacaoAluno,
 } = require('../models');
 const { calcularNotaFinal } = require('../utils/notaExame');
 
@@ -77,6 +77,27 @@ const detalhar = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
+// Copia fases/critérios/faixas-aplicáveis de um exame de origem pra um
+// exame de destino recém-criado — usado tanto pelo "+ Novo Exame" (copia
+// do mais recente) quanto por "Começar exame com base em roteiro padrão"
+// (copia especificamente do exame tipo='roteiro_padrao' da arte).
+const copiarRoteiro = async (origemExameId, destinoExameId) => {
+  const fasesOrigem = await buscarFasesDoExame(origemExameId);
+  for (const faseOrigem of fasesOrigem) {
+    const fase = await FaseExame.create({ exame_id: destinoExameId, nome: faseOrigem.nome, ordem: faseOrigem.ordem });
+    for (const criterioOrigem of faseOrigem.criterios) {
+      const criterio = await CriterioExame.create({
+        fase_exame_id: fase.id, nome: criterioOrigem.nome, ordem: criterioOrigem.ordem,
+      });
+      if (criterioOrigem.faixa_ids.length > 0) {
+        await CriterioExameFaixa.bulkCreate(
+          criterioOrigem.faixa_ids.map((faixa_id) => ({ criterio_exame_id: criterio.id, faixa_id }))
+        );
+      }
+    }
+  }
+};
+
 // POST /api/exames — cria o exame já copiando o roteiro (fases/critérios)
 // do exame mais recente da mesma arte marcial, se existir — só um ponto de
 // partida editável, não um template compartilhado: mudar aqui depois não
@@ -95,23 +116,31 @@ const criar = async (req, res) => {
       where: { arte_marcial_id, escola_id: req.usuario.escola_id, id: { [Op.ne]: exame.id } },
       order: [['data', 'DESC']],
     });
+    if (exameAnterior) await copiarRoteiro(exameAnterior.id, exame.id);
 
-    if (exameAnterior) {
-      const fasesAnteriores = await buscarFasesDoExame(exameAnterior.id);
-      for (const faseAnterior of fasesAnteriores) {
-        const fase = await FaseExame.create({ exame_id: exame.id, nome: faseAnterior.nome, ordem: faseAnterior.ordem });
-        for (const criterioAnterior of faseAnterior.criterios) {
-          const criterio = await CriterioExame.create({
-            fase_exame_id: fase.id, nome: criterioAnterior.nome, ordem: criterioAnterior.ordem,
-          });
-          if (criterioAnterior.faixa_ids.length > 0) {
-            await CriterioExameFaixa.bulkCreate(
-              criterioAnterior.faixa_ids.map((faixa_id) => ({ criterio_exame_id: criterio.id, faixa_id }))
-            );
-          }
-        }
-      }
-    }
+    const completo = await Exame.findByPk(exame.id, { include: [{ model: ArteMarcial, attributes: ['id', 'nome'] }] });
+    res.status(201).json({ ...completo.toJSON(), fases: await buscarFasesDoExame(exame.id) });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+// POST /api/exames/comecar-com-roteiro-padrao — cria o exame copiando
+// especificamente do exame marcado como Roteiro Padrão dessa arte marcial
+// (ignora qual foi o exame mais recente).
+const comecarComRoteiroPadrao = async (req, res) => {
+  try {
+    const { arte_marcial_id, nome, data } = req.body;
+    const arte = await ArteMarcial.findOne({ where: { id: arte_marcial_id, escola_id: req.usuario.escola_id } });
+    if (!arte) return res.status(404).json({ erro: 'Arte marcial não encontrada' });
+
+    const roteiroPadrao = await Exame.findOne({
+      where: { arte_marcial_id, escola_id: req.usuario.escola_id, tipo: 'roteiro_padrao' },
+    });
+    if (!roteiroPadrao) return res.status(404).json({ erro: 'Nenhum Roteiro Padrão definido pra essa arte marcial ainda.' });
+
+    const exame = await Exame.create({
+      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento',
+    });
+    await copiarRoteiro(roteiroPadrao.id, exame.id);
 
     const completo = await Exame.findByPk(exame.id, { include: [{ model: ArteMarcial, attributes: ['id', 'nome'] }] });
     res.status(201).json({ ...completo.toJSON(), fases: await buscarFasesDoExame(exame.id) });
@@ -133,6 +162,62 @@ const atualizarStatus = async (req, res) => {
 };
 
 const buscarExameDaEscola = (id, escolaId) => Exame.findOne({ where: { id, escola_id: escolaId } });
+
+// PATCH /api/exames/:id/tipo — marca/desmarca um exame como Roteiro Padrão
+// da arte marcial dele. Só um por arte: marcar um novo rebaixa o anterior
+// pra 'normal' automaticamente.
+const marcarComoRoteiroPadrao = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+
+    const { tipo } = req.body;
+    if (!['normal', 'roteiro_padrao'].includes(tipo)) {
+      return res.status(400).json({ erro: 'Tipo inválido' });
+    }
+
+    if (tipo === 'roteiro_padrao') {
+      await Exame.update(
+        { tipo: 'normal' },
+        { where: { arte_marcial_id: exame.arte_marcial_id, escola_id: req.usuario.escola_id, tipo: 'roteiro_padrao' } }
+      );
+    }
+    await exame.update({ tipo });
+    res.json(exame);
+  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+// DELETE /api/exames/:id — Roteiro Padrão nunca pode ser excluído (precisa
+// primeiro ser rebaixado pra 'normal' via PATCH .../tipo).
+const remover = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    if (exame.tipo === 'roteiro_padrao') {
+      return res.status(400).json({ erro: 'Não é possível excluir o Roteiro Padrão. Desmarque-o primeiro se realmente quiser apagar.' });
+    }
+
+    const participantes = await ExameParticipante.findAll({ where: { exame_id: exame.id }, attributes: ['id'] });
+    const participanteIds = participantes.map((p) => p.id);
+    const avaliacoes = await AvaliacaoAluno.findAll({ where: { exame_id: exame.id }, attributes: ['id'] });
+    const fases = await FaseExame.findAll({ where: { exame_id: exame.id }, attributes: ['id'] });
+    const criterios = await CriterioExame.findAll({ where: { fase_exame_id: fases.map((f) => f.id) }, attributes: ['id'] });
+
+    // Graduações já confirmadas a partir desse exame perdem só o rastro
+    // (exame_participante_id), a nota_exame já copiada fica intacta.
+    await GraduacaoAluno.update({ exame_participante_id: null }, { where: { exame_participante_id: { [Op.in]: participanteIds } } });
+    await RespostaCriterio.destroy({ where: { avaliacao_id: avaliacoes.map((a) => a.id) } });
+    await AvaliacaoAluno.destroy({ where: { exame_id: exame.id } });
+    await AvaliadorExame.destroy({ where: { exame_id: exame.id } });
+    await ExameParticipante.destroy({ where: { exame_id: exame.id } });
+    await CriterioExameFaixa.destroy({ where: { criterio_exame_id: criterios.map((c) => c.id) } });
+    await CriterioExame.destroy({ where: { fase_exame_id: fases.map((f) => f.id) } });
+    await FaseExame.destroy({ where: { exame_id: exame.id } });
+    await exame.destroy();
+
+    res.json({ mensagem: 'Exame removido' });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
 
 // Roteiro (fases/critérios/faixas aplicáveis) só é editável enquanto o
 // exame está em planejamento — depois de "Iniciar exame" ele trava, pra não
@@ -503,7 +588,8 @@ const relatorio = async (req, res) => {
 };
 
 module.exports = {
-  listar, detalhar, criar, atualizarStatus,
+  listar, detalhar, criar, comecarComRoteiroPadrao, atualizarStatus,
+  marcarComoRoteiroPadrao, remover,
   criarFase, atualizarFase, removerFase,
   criarCriterio, atualizarCriterio, removerCriterio, definirFaixasAplicaveis,
   adicionarParticipante, removerParticipante,

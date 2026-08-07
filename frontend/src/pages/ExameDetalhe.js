@@ -113,6 +113,22 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
     catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao mudar status'); }
   };
 
+  const mudarTipo = async (tipo) => {
+    setErro('');
+    if (tipo === 'roteiro_padrao' && !window.confirm(
+      `Marcar "${exame.nome}" como Roteiro Padrão de ${exame.ArteMarcial?.nome}? Se já existir outro, ele deixa de ser.`
+    )) return;
+    try { await axios.patch(`/exames/${exameId}/tipo`, { tipo }); carregar(); }
+    catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao mudar tipo'); }
+  };
+
+  const excluirExame = async () => {
+    if (!window.confirm(`Excluir o exame "${exame.nome}"? Participantes, avaliadores e avaliações dele somem junto. Essa ação não pode ser desfeita.`)) return;
+    setErro('');
+    try { await axios.delete(`/exames/${exameId}`); onVoltar?.(); }
+    catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao excluir exame'); }
+  };
+
   // Ao escolher o aluno, já puxa a faixa atual dele (GraduacaoAluno com
   // atual=true nessa arte marcial) e sugere a próxima faixa da sequência
   // como pretendida — o professor só ajusta se for um caso fora do padrão.
@@ -210,15 +226,28 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <h2 style={{ margin: 0 }}>{exame.nome}</h2>
+          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {exame.nome}
+            {exame.tipo === 'roteiro_padrao' && (
+              <span style={{ fontSize: 12, color: '#a15c00', background: '#fff3cd', padding: '2px 10px', borderRadius: 20 }}>🌟 Roteiro Padrão</span>
+            )}
+          </h2>
           <div style={{ color: '#555', fontSize: 13, marginTop: 4 }}>
             {exame.ArteMarcial?.nome} · {new Date(exame.data + 'T00:00:00').toLocaleDateString('pt-BR')} · {STATUS_LABEL[exame.status]}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {exame.tipo === 'roteiro_padrao'
+            ? <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('normal')}>Desmarcar como Roteiro Padrão</button>
+            : <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('roteiro_padrao')}>🌟 Marcar como Roteiro Padrão</button>}
           {exame.status === 'planejamento' && <button style={estiloBtnPrimario} onClick={() => mudarStatus('em_andamento')}>Iniciar exame</button>}
           {exame.status === 'em_andamento' && <button style={{ ...estiloBtnPrimario, background: '#2e7d32' }} onClick={() => mudarStatus('finalizado')}>Finalizar exame</button>}
           {exame.status === 'finalizado' && <button style={{ ...estiloBtnPrimario, background: '#888' }} onClick={() => mudarStatus('em_andamento')}>Reabrir exame</button>}
+          {exame.tipo !== 'roteiro_padrao' && (
+            <button title="Excluir exame" style={{ background: 'none', border: '1px solid #c62828', color: '#c62828', padding: '8px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={excluirExame}>
+              Excluir
+            </button>
+          )}
         </div>
       </div>
 

@@ -7,8 +7,11 @@ const staff = autorizarRole(['admin', 'professor']);
 
 router.get('/', autenticar, staff, ctrl.listar);
 router.post('/', autenticar, staff, ctrl.criar);
+router.post('/comecar-com-roteiro-padrao', autenticar, staff, ctrl.comecarComRoteiroPadrao);
 router.get('/:id', autenticar, staff, ctrl.detalhar);
+router.delete('/:id', autenticar, staff, ctrl.remover);
 router.patch('/:id/status', autenticar, staff, ctrl.atualizarStatus);
+router.patch('/:id/tipo', autenticar, staff, ctrl.marcarComoRoteiroPadrao);
 
 router.post('/:id/fases', autenticar, staff, ctrl.criarFase);
 router.put('/:id/fases/:fase_id', autenticar, staff, ctrl.atualizarFase);

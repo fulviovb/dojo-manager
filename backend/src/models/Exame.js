@@ -12,6 +12,14 @@ const Exame = sequelize.define('Exame', {
     allowNull: false,
     defaultValue: 'planejamento',
   },
+  // 'roteiro_padrao': exame especial que nunca roda de verdade (fica em
+  // planejamento) e serve só como fonte pro botão "Começar exame com base
+  // em roteiro padrão" — só um por arte marcial, protegido contra exclusão.
+  tipo: {
+    type: DataTypes.ENUM('normal', 'roteiro_padrao'),
+    allowNull: false,
+    defaultValue: 'normal',
+  },
 }, { tableName: 'exames' });
 
 module.exports = Exame;
