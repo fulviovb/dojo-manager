@@ -19,7 +19,11 @@ import AvaliadorExame from './pages/AvaliadorExame';
 import ExameFichaPage from './pages/ExameFichaPage';
 import ExameRelatorioPage from './pages/ExameRelatorioPage';
 
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Nunca fixar "localhost" aqui: acessando de outro dispositivo pelo IP da
+// rede (ex: celular do avaliador), "localhost" apontaria pro próprio
+// dispositivo, não pra esta máquina. window.location.hostname acompanha o
+// host que o navegador realmente usou pra abrir a página.
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000/api`;
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;

@@ -1,8 +1,10 @@
 import React from 'react';
 
 // foto_url vem do backend como caminho relativo (/uploads/fotos/xxx.jpg) —
-// precisa da origem do servidor (sem o /api do axios.baseURL) pra virar URL completa.
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// precisa da origem do servidor (sem o /api do axios.baseURL) pra virar URL
+// completa. Nunca fixar "localhost": acessando de outro dispositivo pelo IP
+// da rede, "localhost" apontaria pro próprio dispositivo, não pro servidor.
+const API_BASE = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000/api`;
 export const SERVER_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
 
 export default function Avatar({ fotoUrl, nome = '', tamanho = 40, corFundo = '#1e2a38' }) {

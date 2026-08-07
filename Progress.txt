@@ -607,6 +607,24 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     código pros exames já existentes. Testado via API: login com código em
     minúsculo funciona, login com o UUID antigo agora dá 404 (era o
     comportamento anterior, intencionalmente descontinuado).
+[x] Bug real reportado pelo usuário: PIN do avaliador dava "Erro ao
+    entrar" ao acessar de outro dispositivo (celular na mesma rede) — já
+    tinham visto o mesmo problema no competicao-manager. Causa:
+    `REACT_APP_API_URL=http://localhost:5000/api` fixado no
+    `docker-compose.yml` ficava embutido no bundle JS; "localhost" no
+    celular aponta pro próprio celular, não pra máquina rodando o backend
+    — a página carregava normal (HTML/JS estático) mas toda chamada à API
+    falhava sem resposta HTTP nenhuma (por isso caía no fallback genérico
+    "Erro ao entrar" em vez de uma mensagem específica do backend).
+    Corrigido em 3 lugares (`App.js`, `AvaliadorExame.js`,
+    `components/Avatar.js`) trocando o fallback fixo por
+    `` `http://${window.location.hostname}:5000/api` `` — acompanha
+    automaticamente o host que o navegador usou pra abrir a página, local
+    ou pela rede — e removida a variável do `docker-compose.yml` (senão
+    ela sempre ganha do fallback dinâmico). Testado de verdade: abri
+    `http://192.168.100.121:3000/exame-avaliador/...` (mesmo padrão de
+    acesso do celular do avaliador) e o login por PIN funcionou; conferido
+    também que o app principal via `localhost` continua normal.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

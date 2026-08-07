@@ -101,8 +101,15 @@ Ver `backend/.env.example`. Principais:
 | `CHECKIN_ONLINE_URL` | URL do módulo satélite `checkin-online/` (opcional — ver seção própria abaixo) |
 | `CHECKIN_ONLINE_API_KEY` | segredo compartilhado com o `checkin-online/` (mesmo valor do `.env` de lá) |
 
-O frontend lê `REACT_APP_API_URL` (padrão `http://localhost:5000/api`), definida no
-`docker-compose.yml`.
+O frontend lê `REACT_APP_API_URL` se estiver definida; **de propósito não é
+setada** no `docker-compose.yml` — o fallback (`App.js`, `AvaliadorExame.js`,
+`components/Avatar.js`) monta a URL a partir de `window.location.hostname`
+em tempo de execução (`http://${window.location.hostname}:5000/api`). Fixar
+`http://localhost:5000/api` aqui quebra o acesso de qualquer dispositivo que
+não seja a própria máquina (ex: celular do avaliador na rede local —
+"localhost" ali aponta pro próprio celular, não pro servidor; sintoma:
+página carrega mas toda chamada à API falha). Só defina essa variável se o
+backend estiver atrás de um domínio público fixo.
 
 ## Autenticação e papéis (roles)
 

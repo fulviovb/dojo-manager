@@ -6,7 +6,11 @@ import axios from 'axios';
 // Usar o axios global aqui deixaria o interceptor da SPA sobrescrever o
 // Authorization com o token de staff sempre que os dois convivessem no
 // mesmo navegador (ex: admin testando o fluxo do avaliador).
-const api = axios.create({ baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api' });
+// Nunca fixar "localhost": essa tela roda no celular do avaliador, num
+// dispositivo diferente de onde o backend está — "localhost" ali apontaria
+// pro próprio celular. window.location.hostname acompanha o IP/host real
+// usado pra abrir a página (mesmo bug já visto no competicao-manager).
+const api = axios.create({ baseURL: process.env.REACT_APP_API_URL || `http://${window.location.hostname}:5000/api` });
 
 const estiloInput = { width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 4, fontSize: 16, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '12px 20px', borderRadius: 4, cursor: 'pointer', fontSize: 15, width: '100%' };

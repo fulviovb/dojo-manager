@@ -59,7 +59,15 @@ services:
       - ./frontend:/app
       - frontend-modules:/app/node_modules
     environment:
-      - REACT_APP_API_URL=http://localhost:5000/api
+      # REACT_APP_API_URL não é setado de propósito: o frontend descobre o
+      # host da API sozinho a partir de window.location.hostname (ver
+      # App.js/AvaliadorExame.js) — se fixássemos "localhost" aqui, o app
+      # funcionaria só na própria máquina. Acessando de outro
+      # dispositivo (ex: celular do avaliador) pelo IP da rede, o
+      # "localhost" embutido no bundle apontaria pro próprio celular, não
+      # pra esta máquina — a página carrega (é só HTML/JS estático) mas
+      # toda chamada à API falha. Já vimos esse mesmo bug no
+      # competicao-manager.
       # URL pública do módulo satélite checkin-online/ — usada só para montar
       # a URL exibida na tela de QR Codes (Configurações). Sem ela, cai de
       # volta pro endereço local (não alcançável de fora da rede).
