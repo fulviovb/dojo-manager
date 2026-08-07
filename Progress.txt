@@ -437,13 +437,20 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 [x] Especificação original em `modulo-exame-faixa.txt` (+ referência visual
     `ficha-exame-faixa.jpeg`). Módulo 100% opcional — quem não usar continua
     graduando aluno do jeito manual de sempre (`GraduacaoAluno`).
-[x] Modelo em duas camadas: template reutilizável por arte marcial
-    (`FaseExameModelo`/`CriterioExameModelo`/`CriterioExameModeloFaixa`,
-    configurado em Configurações → "Exame de Faixa — Roteiro de Avaliação",
-    mesmo padrão de Critérios de Graduação) + instância por exame
-    (`Exame`/`FaseExame`/`CriterioExame`/`CriterioExameFaixa`), que tira uma
-    cópia (snapshot) do template no momento da criação — editar o template
-    depois não afeta exame já em andamento.
+[x] Roteiro (fases/critérios) é montado direto na tela do Exame, não em
+    Configurações — decisão revertida depois do teste em navegador real:
+    a primeira versão tinha uma camada de template separada
+    (`FaseExameModelo`/`CriterioExameModelo`/`CriterioExameModeloFaixa`) em
+    Configurações, mas o usuário pediu pra mover pra dentro do próprio
+    exame (evita poluir Configurações, e faz sentido como "passo antes da
+    operacionalização"). Reuso sem tela de template: ao criar um exame,
+    copia o roteiro do exame mais recente da mesma arte marcial, se
+    existir — só ponto de partida editável, não algo compartilhado. Editável
+    só enquanto `Exame.status === 'planejamento'` (trava ao "Iniciar
+    exame"). Faixas aplicáveis por critério usam clique único pra migrar
+    entre duas listas ("Avalia" / "Não avalia"), mesmo padrão visual de
+    Presentes/Ausentes da tela de Chamadas — sem checkbox, sempre editável,
+    sem modo "Editar" separado.
 [x] Regra de nota (2.3/2.4 da spec): cada fase converge pra 100, dividido
     igualmente entre seus critérios; critério sem a faixa pretendida do
     aluno marcada como aplicável recebe nota cheia automática. Nota final =
@@ -476,7 +483,7 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     `nota_exame`) via script one-off
     `backend/src/scripts/2026-08-graduacao-exame-faixa.js` — fluxo manual de
     graduação continua idêntico, sem essas colunas.
-[x] Testado ponta a ponta com dados reais (arte marcial e aluno já
+[x] Testado ponta a ponta via API com dados reais (arte marcial e aluno já
     cadastrados): fase com 1 critério aplicável só à faixa testada + 1
     critério sem nenhuma faixa marcada (deve dar nota cheia automática) →
     exame → participante → 2 avaliadores → sorteio → login por PIN →
@@ -484,6 +491,31 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     → finalizar (nota 100, como esperado) → relatório → ficha (critério não
     aplicável aparece "N/A") → reabrir avaliação → confirmar graduação
     (nota_exame gravada). Dados de teste removidos ao final.
+[x] Testado de novo direto no navegador (Chrome via MCP) depois do teste por
+    API — achou 3 bugs reais que os testes de API não pegavam:
+    1) `Exames.js` chamava `useEffect(carregar, [])` com `carregar` sendo
+       uma arrow function de expressão única (`() => axios.get(...).then(...)`,
+       sem chaves) — o retorno da Promise do `.then()` era interpretado pelo
+       React como função de cleanup do efeito, quebrando o componente ao
+       desmontar ("TypeError: destroy is not a function"). Corrigido
+       envolvendo a chamada num corpo de bloco (`() => { carregar(); }`).
+    2) Confirmar a graduação do exame de teste sobrescreveu de verdade a
+       graduação atual de um aluno real (Arthur Baptista Santos, Roxa →
+       Branca) — a rotina existente de `graduacoesController.criar`
+       desmarca a graduação anterior como não-atual e atualiza
+       `MatriculaAluno.graduacao_atual_faixa_id` nas turmas da arte, sem
+       diferenciar teste de produção. Corrigido manualmente restaurando o
+       registro (`atual=1`, `data_fim=NULL`) e o `graduacao_atual_faixa_id`
+       das matrículas — reforça o cuidado de nunca testar fluxos que
+       gravam em dado real sem plano de rollback.
+    3) `PATCH /api/exames/:id/status` e `PATCH .../avaliacoes/:id/reabrir`
+       (as duas únicas rotas do backend que usam `router.patch`) ficavam
+       bloqueadas por CORS no navegador de verdade — o middleware global em
+       `app.js` não incluía `PATCH` em `Access-Control-Allow-Methods`. Não
+       aparecia em teste via `curl` (curl não aplica CORS) nem no
+       preflight `OPTIONS` (retorna 200 incondicional) — só no clique real
+       do navegador, que bloqueia a requisição de verdade após o
+       preflight. Corrigido adicionando `PATCH` à lista.
 
 === BUGS CONHECIDOS ===
 [ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

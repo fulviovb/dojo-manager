@@ -29,7 +29,7 @@ export default function Exames({ onVerExame }) {
   const [erro, setErro] = useState('');
 
   const carregar = () => axios.get('/exames').then(r => setExames(r.data));
-  useEffect(carregar, []);
+  useEffect(() => { carregar(); }, []);
   useEffect(() => { axios.get('/artes-marciais').then(r => setArtes(r.data)); }, []);
 
   const salvar = async (e) => {
@@ -47,8 +47,8 @@ export default function Exames({ onVerExame }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
         <p style={{ color: '#888', fontSize: 13, margin: 0 }}>
-          Módulo opcional pra apoiar a avaliação no dia do exame de faixa. O roteiro (fases/critérios) é configurado
-          em Configurações → Exame de Faixa.
+          Módulo opcional pra apoiar a avaliação no dia do exame de faixa. O roteiro (fases/critérios) é montado
+          dentro de cada exame, enquanto ele está em planejamento.
         </p>
         <button style={estiloBtnPrimario} onClick={() => setModalAberto(true)}>+ Novo Exame</button>
       </div>
@@ -94,7 +94,7 @@ export default function Exames({ onVerExame }) {
               <input required type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} style={estiloInput} />
             </div>
             <p style={{ fontSize: 12, color: '#888' }}>
-              As fases/critérios cadastrados em Configurações pra essa arte marcial serão copiados pro exame.
+              O roteiro (fases/critérios) do exame mais recente dessa arte marcial, se existir, será copiado pra cá — é só um ponto de partida, dá pra ajustar livremente depois.
             </p>
             {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>

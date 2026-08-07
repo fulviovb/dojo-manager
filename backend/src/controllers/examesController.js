@@ -1,7 +1,7 @@
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 const {
   Exame, FaseExame, CriterioExame, CriterioExameFaixa,
-  FaseExameModelo, CriterioExameModelo, CriterioExameModeloFaixa,
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
   ArteMarcial, Faixa, Usuario,
 } = require('../models');
@@ -77,9 +77,10 @@ const detalhar = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-// POST /api/exames — cria o exame e tira uma cópia (snapshot) do template
-// ativo da arte marcial, pra editar o template depois não afetar exames em
-// andamento.
+// POST /api/exames — cria o exame já copiando o roteiro (fases/critérios)
+// do exame mais recente da mesma arte marcial, se existir — só um ponto de
+// partida editável, não um template compartilhado: mudar aqui depois não
+// afeta o exame de origem nem exames futuros.
 const criar = async (req, res) => {
   try {
     const { arte_marcial_id, nome, data } = req.body;
@@ -90,23 +91,24 @@ const criar = async (req, res) => {
       escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento',
     });
 
-    const fasesModelo = await FaseExameModelo.findAll({
-      where: { arte_marcial_id, escola_id: req.usuario.escola_id },
-      include: [{ model: CriterioExameModelo, include: [CriterioExameModeloFaixa] }],
-      order: [['ordem', 'ASC'], [CriterioExameModelo, 'ordem', 'ASC']],
+    const exameAnterior = await Exame.findOne({
+      where: { arte_marcial_id, escola_id: req.usuario.escola_id, id: { [Op.ne]: exame.id } },
+      order: [['data', 'DESC']],
     });
 
-    for (const faseModelo of fasesModelo) {
-      const fase = await FaseExame.create({ exame_id: exame.id, nome: faseModelo.nome, ordem: faseModelo.ordem });
-      for (const criterioModelo of faseModelo.CriterioExameModelos) {
-        const criterio = await CriterioExame.create({
-          fase_exame_id: fase.id, nome: criterioModelo.nome, ordem: criterioModelo.ordem,
-        });
-        const faixaIds = criterioModelo.CriterioExameModeloFaixas.map((f) => f.faixa_id);
-        if (faixaIds.length > 0) {
-          await CriterioExameFaixa.bulkCreate(
-            faixaIds.map((faixa_id) => ({ criterio_exame_id: criterio.id, faixa_id }))
-          );
+    if (exameAnterior) {
+      const fasesAnteriores = await buscarFasesDoExame(exameAnterior.id);
+      for (const faseAnterior of fasesAnteriores) {
+        const fase = await FaseExame.create({ exame_id: exame.id, nome: faseAnterior.nome, ordem: faseAnterior.ordem });
+        for (const criterioAnterior of faseAnterior.criterios) {
+          const criterio = await CriterioExame.create({
+            fase_exame_id: fase.id, nome: criterioAnterior.nome, ordem: criterioAnterior.ordem,
+          });
+          if (criterioAnterior.faixa_ids.length > 0) {
+            await CriterioExameFaixa.bulkCreate(
+              criterioAnterior.faixa_ids.map((faixa_id) => ({ criterio_exame_id: criterio.id, faixa_id }))
+            );
+          }
         }
       }
     }
@@ -131,6 +133,138 @@ const atualizarStatus = async (req, res) => {
 };
 
 const buscarExameDaEscola = (id, escolaId) => Exame.findOne({ where: { id, escola_id: escolaId } });
+
+// Roteiro (fases/critérios/faixas aplicáveis) só é editável enquanto o
+// exame está em planejamento — depois de "Iniciar exame" ele trava, pra não
+// bagunçar avaliações já em andamento.
+const exigirPlanejamento = (exame, res) => {
+  if (exame.status !== 'planejamento') {
+    res.status(400).json({ erro: 'O roteiro só pode ser editado enquanto o exame está em planejamento' });
+    return false;
+  }
+  return true;
+};
+
+const criarFase = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    if (!exigirPlanejamento(exame, res)) return;
+
+    const { nome, ordem } = req.body;
+    const fase = await FaseExame.create({ exame_id: exame.id, nome, ordem: ordem || 0 });
+    res.status(201).json({ ...fase.toJSON(), criterios: [] });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+const atualizarFase = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    if (!exigirPlanejamento(exame, res)) return;
+
+    const fase = await FaseExame.findOne({ where: { id: req.params.fase_id, exame_id: exame.id } });
+    if (!fase) return res.status(404).json({ erro: 'Fase não encontrada' });
+
+    const { nome, ordem } = req.body;
+    await fase.update({ nome, ordem });
+    res.json(fase);
+  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+const removerFase = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    if (!exigirPlanejamento(exame, res)) return;
+
+    const fase = await FaseExame.findOne({ where: { id: req.params.fase_id, exame_id: exame.id } });
+    if (!fase) return res.status(404).json({ erro: 'Fase não encontrada' });
+
+    const criterios = await CriterioExame.findAll({ where: { fase_exame_id: fase.id }, attributes: ['id'] });
+    await CriterioExameFaixa.destroy({ where: { criterio_exame_id: criterios.map((c) => c.id) } });
+    await CriterioExame.destroy({ where: { fase_exame_id: fase.id } });
+    await fase.destroy();
+
+    res.json({ mensagem: 'Fase removida' });
+  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+const criarCriterio = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    if (!exigirPlanejamento(exame, res)) return;
+
+    const fase = await FaseExame.findOne({ where: { id: req.params.fase_id, exame_id: exame.id } });
+    if (!fase) return res.status(404).json({ erro: 'Fase não encontrada' });
+
+    const { nome, ordem } = req.body;
+    const criterio = await CriterioExame.create({ fase_exame_id: fase.id, nome, ordem: ordem || 0 });
+    res.status(201).json({ ...criterio.toJSON(), faixa_ids: [] });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+// Garante que o critério pertence a um exame da escola do usuário logado
+const buscarCriterioDoExame = async (criterioId, exameId) => {
+  const criterio = await CriterioExame.findByPk(criterioId, { include: [FaseExame] });
+  if (!criterio || criterio.FaseExame.exame_id !== exameId) return null;
+  return criterio;
+};
+
+const atualizarCriterio = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    if (!exigirPlanejamento(exame, res)) return;
+
+    const criterio = await buscarCriterioDoExame(req.params.criterio_id, exame.id);
+    if (!criterio) return res.status(404).json({ erro: 'Critério não encontrado' });
+
+    const { nome, ordem } = req.body;
+    await criterio.update({ nome, ordem });
+    res.json(criterio);
+  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+const removerCriterio = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    if (!exigirPlanejamento(exame, res)) return;
+
+    const criterio = await buscarCriterioDoExame(req.params.criterio_id, exame.id);
+    if (!criterio) return res.status(404).json({ erro: 'Critério não encontrado' });
+
+    await CriterioExameFaixa.destroy({ where: { criterio_exame_id: criterio.id } });
+    await criterio.destroy();
+    res.json({ mensagem: 'Critério removido' });
+  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+// PUT /api/exames/:id/criterios/:criterio_id/faixas — substitui o conjunto
+// de faixas em que esse critério é aplicável (clique único, sem checkbox —
+// ver telas de Chamadas pro mesmo padrão de "duas listas")
+const definirFaixasAplicaveis = async (req, res) => {
+  try {
+    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
+    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    if (!exigirPlanejamento(exame, res)) return;
+
+    const criterio = await buscarCriterioDoExame(req.params.criterio_id, exame.id);
+    if (!criterio) return res.status(404).json({ erro: 'Critério não encontrado' });
+
+    const { faixa_ids } = req.body;
+    await CriterioExameFaixa.destroy({ where: { criterio_exame_id: criterio.id } });
+    if (Array.isArray(faixa_ids) && faixa_ids.length > 0) {
+      await CriterioExameFaixa.bulkCreate(
+        faixa_ids.map((faixa_id) => ({ criterio_exame_id: criterio.id, faixa_id }))
+      );
+    }
+
+    res.json({ faixa_ids: faixa_ids || [] });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
 
 const adicionarParticipante = async (req, res) => {
   try {
@@ -370,6 +504,8 @@ const relatorio = async (req, res) => {
 
 module.exports = {
   listar, detalhar, criar, atualizarStatus,
+  criarFase, atualizarFase, removerFase,
+  criarCriterio, atualizarCriterio, removerCriterio, definirFaixasAplicaveis,
   adicionarParticipante, removerParticipante,
   adicionarAvaliador, revogarAvaliador,
   sortear, reabrirAvaliacao, fichaParticipante, relatorio,

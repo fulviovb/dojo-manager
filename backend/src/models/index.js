@@ -15,9 +15,6 @@ const PlanoMensalidade = require('./PlanoMensalidade');
 const AssinaturaAluno = require('./AssinaturaAluno');
 const Mensalidade = require('./Mensalidade');
 const Pagamento = require('./Pagamento');
-const FaseExameModelo = require('./FaseExameModelo');
-const CriterioExameModelo = require('./CriterioExameModelo');
-const CriterioExameModeloFaixa = require('./CriterioExameModeloFaixa');
 const Exame = require('./Exame');
 const FaseExame = require('./FaseExame');
 const CriterioExame = require('./CriterioExame');
@@ -131,20 +128,10 @@ AssinaturaAluno.belongsTo(PlanoMensalidade, { foreignKey: 'plano_id', as: 'Plano
 AssinaturaAluno.hasMany(Mensalidade, { foreignKey: 'assinatura_id' });
 Mensalidade.belongsTo(AssinaturaAluno, { foreignKey: 'assinatura_id', as: 'Assinatura' });
 
-// Módulo de Exame de Faixa — template (por arte marcial)
-ArteMarcial.hasMany(FaseExameModelo, { foreignKey: 'arte_marcial_id' });
-FaseExameModelo.belongsTo(ArteMarcial, { foreignKey: 'arte_marcial_id' });
-
-FaseExameModelo.hasMany(CriterioExameModelo, { foreignKey: 'fase_modelo_id' });
-CriterioExameModelo.belongsTo(FaseExameModelo, { foreignKey: 'fase_modelo_id' });
-
-CriterioExameModelo.hasMany(CriterioExameModeloFaixa, { foreignKey: 'criterio_modelo_id' });
-CriterioExameModeloFaixa.belongsTo(CriterioExameModelo, { foreignKey: 'criterio_modelo_id' });
-
-Faixa.hasMany(CriterioExameModeloFaixa, { foreignKey: 'faixa_id' });
-CriterioExameModeloFaixa.belongsTo(Faixa, { foreignKey: 'faixa_id' });
-
-// Módulo de Exame de Faixa — instância (snapshot do template)
+// Módulo de Exame de Faixa — o roteiro (fases/critérios) é editado direto
+// na tela do Exame enquanto ele está em "planejamento"; ao criar um exame
+// novo, copia o roteiro do exame mais recente da mesma arte marcial (se
+// existir) como ponto de partida — sem tabela de template separada.
 Escola.hasMany(Exame, { foreignKey: 'escola_id' });
 Exame.belongsTo(Escola, { foreignKey: 'escola_id' });
 ArteMarcial.hasMany(Exame, { foreignKey: 'arte_marcial_id' });
@@ -197,7 +184,6 @@ module.exports = {
   GraduacaoAluno, Ocorrencia,
   Turma, Sala, HorarioTurma, Aula, Chamada, MatriculaAluno,
   PlanoMensalidade, AssinaturaAluno, Mensalidade, Pagamento,
-  FaseExameModelo, CriterioExameModelo, CriterioExameModeloFaixa,
   Exame, FaseExame, CriterioExame, CriterioExameFaixa,
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
 };

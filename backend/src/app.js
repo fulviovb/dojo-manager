@@ -9,7 +9,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
@@ -47,7 +47,6 @@ app.use('/api/graduacoes', require('./routes/graduacoes'));
 app.use('/api/ocorrencias', require('./routes/ocorrencias'));
 
 // Módulo de Exame de Faixa
-app.use('/api/fase-exame-modelos', require('./routes/faseExameModelos'));
 app.use('/api/exames', require('./routes/exames'));
 app.use('/api/avaliacao-publica', require('./routes/avaliacaoPublica'));  // público, sem JWT no login
 

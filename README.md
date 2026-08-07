@@ -148,10 +148,10 @@ GraduacaoAluno → histórico de faixas por aluno + arte marcial (+ exame_partic
                  nota_exame opcionais, quando confirmada a partir de um Exame de Faixa)
 Ocorrencia     → anotações do professor sobre um aluno
 
-ArteMarcial 1―* FaseExameModelo 1―* CriterioExameModelo *―* Faixa (via
-            CriterioExameModeloFaixa)                    [template do Exame de Faixa]
 Exame  *―1 ArteMarcial, 1―* FaseExame 1―* CriterioExame *―* Faixa (via CriterioExameFaixa)
-            [cópia/snapshot do template no momento da criação do Exame]
+            [roteiro editado direto no Exame enquanto em planejamento; ao criar
+            um exame novo, copia o roteiro do exame mais recente da mesma arte
+            marcial, se existir — só ponto de partida, não template compartilhado]
 Exame  1―* ExameParticipante *―1 Usuario (Aluno)
 Exame  1―* AvaliadorExame (login por PIN, sem Usuario/bcrypt)
 Exame  1―* AvaliacaoAluno *―1 FaseExame, *―1 ExameParticipante, *―1 AvaliadorExame
@@ -250,15 +250,19 @@ estar "na mesma turma"); o card tem um filtro pra ver só uma arte específica.
 
 Módulo **opcional** (especificação original em `modulo-exame-faixa.txt`) pra
 apoiar a avaliação no dia do exame — quem não usar continua graduando aluno
-do jeito manual de sempre. Duas camadas:
+do jeito manual de sempre.
 
-- **Template**, por arte marcial, configurado em Configurações → "Exame de
-  Faixa — Roteiro de Avaliação" (mesmo padrão de Critérios de Graduação):
-  fases (provas) com critérios de avaliação, cada critério marcado como
-  aplicável a um subconjunto de faixas.
-- **Instância**: ao criar um `Exame` (`POST /api/exames`), o sistema tira uma
-  cópia (snapshot) do template ativo da arte marcial — editar o template
-  depois não afeta exame já em andamento.
+**Roteiro (fases/provas + critérios de avaliação)** é montado direto na tela
+do Exame (seção "Roteiro do Exame" em `ExameDetalhe.js`), editável só
+enquanto `Exame.status === 'planejamento'` — trava ao clicar "Iniciar
+exame". Ao criar um `Exame` (`POST /api/exames`), o sistema copia o roteiro
+do exame mais recente da mesma arte marcial, se existir, como ponto de
+partida (não é um template compartilhado — cada exame tem sua própria cópia
+editável, sem afetar exames passados ou futuros). Cada critério tem duas
+listas de faixas ("Avalia este critério" / "Não avalia") com clique único
+pra mover uma faixa de uma lista pra outra — mesmo padrão visual de
+Presentes/Ausentes da tela de Chamadas, sem checkbox e sempre editável (sem
+modo "Editar" separado).
 
 **Nota**: cada fase converge pra 100, dividido igualmente entre seus
 critérios; um critério sem a faixa pretendida do aluno marcada como
@@ -411,8 +415,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Financeiro            | `GET /financeiro/painel` (`?ano=` — indicadores + série mensal ganhos vs a receber)   | autenticado              |
 | Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
-| Exame de Faixa — template | `GET /fase-exame-modelos` (`?arte_marcial_id=`), `POST,PUT,DELETE /fase-exame-modelos(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` | autenticado / admin |
-| Exame de Faixa — exames | `GET,POST /exames`, `GET /exames/:id`, `PATCH /exames/:id/status`, `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
+| Exame de Faixa — exames | `GET,POST /exames`, `GET /exames/:id`, `PATCH /exames/:id/status`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:exame_id/login` (PIN), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
 | Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`), `GET /dashboard/semaforo-graduacao` (`?arte_marcial_id=`) | autenticado |
@@ -512,8 +515,9 @@ critério de desempate dentro do mesmo status.
 ### Exames
 
 Lista de exames (`Exames.js`) com status (Planejamento / Em andamento /
-Finalizado); "+ Novo Exame" escolhe a arte marcial e copia o template de
-fases/critérios pra dentro do exame. `ExameDetalhe.js` reúne participantes,
+Finalizado); "+ Novo Exame" escolhe a arte marcial e copia o roteiro do
+exame mais recente dela, se existir. `ExameDetalhe.js` reúne o "Roteiro do
+Exame" (fases/critérios, editável só em planejamento), participantes,
 avaliadores (com PIN visível pra repassar), sorteio por fase, uma grade de
 progresso (status/nota por aluno × fase, com botão "reabrir" nas
 finalizadas) e o relatório final com "Confirmar graduação" por aluno. Ver

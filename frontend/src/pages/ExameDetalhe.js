@@ -35,6 +35,10 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
   const [resultadoSorteio, setResultadoSorteio] = useState(null);
   const [confirmadas, setConfirmadas] = useState([]);
   const [erro, setErro] = useState('');
+  const [formFase, setFormFase] = useState({ nome: '', ordem: 1 });
+  const [faseEditandoId, setFaseEditandoId] = useState(null);
+  const [edicaoFase, setEdicaoFase] = useState({ nome: '', ordem: 1 });
+  const [formCriterioPorFase, setFormCriterioPorFase] = useState({});
 
   const carregar = () => {
     axios.get(`/exames/${exameId}`).then((r) => setExame(r.data));
@@ -47,6 +51,61 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
   }, [exame?.arte_marcial_id]);
 
   if (!exame) return <p style={{ color: '#888' }}>Carregando...</p>;
+
+  const roteiroEditavel = exame.status === 'planejamento';
+
+  const addFase = async (e) => {
+    e.preventDefault(); setErro('');
+    try {
+      await axios.post(`/exames/${exameId}/fases`, formFase);
+      setFormFase((f) => ({ nome: '', ordem: f.ordem + 1 }));
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
+  };
+
+  const iniciarEdicaoFase = (fase) => { setFaseEditandoId(fase.id); setEdicaoFase({ nome: fase.nome, ordem: fase.ordem }); };
+  const salvarEdicaoFase = async (fase) => {
+    setErro('');
+    try {
+      await axios.put(`/exames/${exameId}/fases/${fase.id}`, edicaoFase);
+      setFaseEditandoId(null);
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar fase'); }
+  };
+  const removerFase = async (fase) => {
+    if (!window.confirm(`Remover a fase "${fase.nome}" e todos os seus critérios?`)) return;
+    await axios.delete(`/exames/${exameId}/fases/${fase.id}`);
+    carregar();
+  };
+
+  const addCriterio = async (e, fase) => {
+    e.preventDefault(); setErro('');
+    const dados = formCriterioPorFase[fase.id] || { nome: '', ordem: 1 };
+    try {
+      await axios.post(`/exames/${exameId}/fases/${fase.id}/criterios`, dados);
+      setFormCriterioPorFase((v) => ({ ...v, [fase.id]: { nome: '', ordem: (dados.ordem || 1) + 1 } }));
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
+  };
+
+  const removerCriterio = async (criterio) => {
+    if (!window.confirm(`Remover o critério "${criterio.nome}"?`)) return;
+    await axios.delete(`/exames/${exameId}/criterios/${criterio.id}`);
+    carregar();
+  };
+
+  // Clique único move a faixa entre as duas listas (mesmo padrão de
+  // Presentes/Ausentes da tela de Chamadas) — sem checkbox, sem modo de
+  // edição separado, sempre disponível enquanto o roteiro está editável.
+  const toggleFaixaCriterio = async (criterio, faixaId, incluir) => {
+    const novosFaixaIds = incluir
+      ? [...criterio.faixa_ids, faixaId]
+      : criterio.faixa_ids.filter((id) => id !== faixaId);
+    try {
+      await axios.put(`/exames/${exameId}/criterios/${criterio.id}/faixas`, { faixa_ids: novosFaixaIds });
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao atualizar faixas'); }
+  };
 
   const mudarStatus = async (status) => {
     setErro('');
@@ -145,6 +204,111 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
       </div>
 
       {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
+
+      <div style={cardEstilo}>
+        <h3 style={{ marginTop: 0 }}>Roteiro do Exame</h3>
+        <p style={{ fontSize: 12, color: '#888', marginTop: -8, marginBottom: 16 }}>
+          {roteiroEditavel
+            ? 'Fases (provas) e critérios de avaliação — copiado do exame mais recente dessa arte marcial, se existir. Ajuste livremente antes de iniciar o exame.'
+            : 'Roteiro travado: só é editável enquanto o exame está em Planejamento.'}
+        </p>
+
+        {roteiroEditavel && (
+          <form onSubmit={addFase} style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'flex-end' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Nova fase (prova)</label>
+              <input required placeholder="Ex: Kihon" value={formFase.nome} onChange={(e) => setFormFase((f) => ({ ...f, nome: e.target.value }))} style={{ ...estiloInput, width: 180 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Ordem</label>
+              <input type="number" min={1} value={formFase.ordem} onChange={(e) => setFormFase((f) => ({ ...f, ordem: Number(e.target.value) }))} style={{ ...estiloInput, width: 70 }} />
+            </div>
+            <button type="submit" style={estiloBtnPrimario}>Adicionar fase</button>
+          </form>
+        )}
+
+        {(exame.fases || []).length === 0 && <p style={{ fontSize: 13, color: '#888' }}>Nenhuma fase cadastrada ainda.</p>}
+
+        {[...(exame.fases || [])].sort((a, b) => a.ordem - b.ordem).map((fase) => (
+          <div key={fase.id} style={{ border: '1px solid #eee', borderRadius: 6, padding: 12, marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              {faseEditandoId === fase.id ? (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input value={edicaoFase.nome} onChange={(e) => setEdicaoFase((v) => ({ ...v, nome: e.target.value }))} style={{ ...estiloInput, width: 160 }} />
+                  <input type="number" min={1} value={edicaoFase.ordem} onChange={(e) => setEdicaoFase((v) => ({ ...v, ordem: Number(e.target.value) }))} style={{ ...estiloInput, width: 60 }} />
+                  <button onClick={() => salvarEdicaoFase(fase)} style={btnLink('#2e7d32')}>Salvar</button>
+                  <button onClick={() => setFaseEditandoId(null)} style={btnLink('#888')}>Cancelar</button>
+                </div>
+              ) : (
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{fase.ordem}. {fase.nome}</div>
+              )}
+              {roteiroEditavel && (
+                <div>
+                  <button onClick={() => iniciarEdicaoFase(fase)} style={btnLink('#1565c0')}>Editar</button>
+                  <button onClick={() => removerFase(fase)} style={btnLink('#c62828')}>Remover</button>
+                </div>
+              )}
+            </div>
+
+            {fase.criterios.length === 0 && <p style={{ fontSize: 12, color: '#888' }}>Nenhum critério.</p>}
+
+            {[...fase.criterios].sort((a, b) => a.ordem - b.ordem).map((criterio) => {
+              const avalia = faixasArte.filter((fx) => criterio.faixa_ids.includes(fx.id));
+              const naoAvalia = faixasArte.filter((fx) => !criterio.faixa_ids.includes(fx.id));
+              return (
+                <div key={criterio.id} style={{ borderTop: '1px solid #f5f5f5', paddingTop: 8, marginTop: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: 13 }}>{criterio.nome}</strong>
+                    {roteiroEditavel && (
+                      <button onClick={() => removerCriterio(criterio)} style={{ ...btnLink('#c62828'), marginRight: 0 }}>remover critério</button>
+                    )}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 6 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#2e7d32', marginBottom: 4 }}>✅ Avalia este critério</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {avalia.length === 0 && <span style={{ fontSize: 11, color: '#aaa' }}>nenhuma</span>}
+                        {avalia.map((fx) => (
+                          <button key={fx.id} disabled={!roteiroEditavel} onClick={() => toggleFaixaCriterio(criterio, fx.id, false)}
+                            style={{
+                              fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid #2e7d32',
+                              background: '#e8f5e9', color: '#2e7d32', cursor: roteiroEditavel ? 'pointer' : 'default',
+                            }}>
+                            {fx.nome}{roteiroEditavel ? ' ✕' : ''}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Não avalia (nota cheia automática)</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {naoAvalia.map((fx) => (
+                          <button key={fx.id} disabled={!roteiroEditavel} onClick={() => toggleFaixaCriterio(criterio, fx.id, true)}
+                            style={{
+                              fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid #ddd',
+                              background: '#fafafa', color: '#888', cursor: roteiroEditavel ? 'pointer' : 'default',
+                            }}>
+                            {fx.nome}{roteiroEditavel ? ' +' : ''}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {roteiroEditavel && (
+              <form onSubmit={(e) => addCriterio(e, fase)} style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'flex-end' }}>
+                <input required placeholder="Novo critério" value={formCriterioPorFase[fase.id]?.nome || ''}
+                  onChange={(e) => setFormCriterioPorFase((v) => ({ ...v, [fase.id]: { ...(v[fase.id] || { ordem: 1 }), nome: e.target.value } }))}
+                  style={{ ...estiloInput, width: 180 }} />
+                <button type="submit" style={{ ...estiloBtnPrimario, fontSize: 12, padding: '6px 12px' }}>Adicionar critério</button>
+              </form>
+            )}
+          </div>
+        ))}
+      </div>
 
       <div style={cardEstilo}>
         <h3 style={{ marginTop: 0 }}>Participantes</h3>
