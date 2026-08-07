@@ -113,6 +113,25 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
     catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao mudar status'); }
   };
 
+  // Ao escolher o aluno, já puxa a faixa atual dele (GraduacaoAluno com
+  // atual=true nessa arte marcial) e sugere a próxima faixa da sequência
+  // como pretendida — o professor só ajusta se for um caso fora do padrão.
+  const selecionarAluno = async (alunoId) => {
+    setFormParticipante({ aluno_id: alunoId, faixa_atual_id: '', faixa_pretendida_id: '' });
+    if (!alunoId) return;
+    try {
+      const { data } = await axios.get(`/graduacoes?aluno_id=${alunoId}`);
+      const atual = data.find((g) => g.arte_marcial_id === exame.arte_marcial_id && g.atual);
+      const faixaAtualId = atual?.faixa_id || '';
+      const ordenadas = [...faixasArte].sort((a, b) => a.ordem - b.ordem);
+      const idxAtual = ordenadas.findIndex((f) => f.id === faixaAtualId);
+      const faixaPretendidaId = faixaAtualId
+        ? (ordenadas[idxAtual + 1]?.id || '')
+        : (ordenadas[0]?.id || '');
+      setFormParticipante({ aluno_id: alunoId, faixa_atual_id: faixaAtualId, faixa_pretendida_id: faixaPretendidaId });
+    } catch (ex) { /* prefill é só conveniência — se falhar, professor escolhe manualmente */ }
+  };
+
   const addParticipante = async (e) => {
     e.preventDefault(); setErro('');
     try {
@@ -315,7 +334,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
         <form onSubmit={addParticipante} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'flex-end' }}>
           <div>
             <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Aluno</label>
-            <select required value={formParticipante.aluno_id} onChange={(e) => setFormParticipante((f) => ({ ...f, aluno_id: e.target.value }))} style={{ ...estiloInput, width: 200 }}>
+            <select required value={formParticipante.aluno_id} onChange={(e) => selecionarAluno(e.target.value)} style={{ ...estiloInput, width: 200 }}>
               <option value="">Selecione...</option>
               {alunos.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
             </select>

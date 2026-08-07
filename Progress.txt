@@ -483,6 +483,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     `nota_exame`) via script one-off
     `backend/src/scripts/2026-08-graduacao-exame-faixa.js` — fluxo manual de
     graduação continua idêntico, sem essas colunas.
+[x] Ao escolher o aluno em Participantes, "Faixa atual" e "Faixa pretendida"
+    já vêm preenchidas sozinhas: busca a `GraduacaoAluno` com `atual=true`
+    pra arte marcial do exame e sugere a próxima faixa da sequência
+    (`faixasArte` ordenado por `ordem`) como pretendida — o professor só
+    ajusta manualmente em casos fora do padrão. Testado com aluno real
+    (Lourenço Roehr Herman, Branca → sugeriu Cinza corretamente).
 [x] Testado ponta a ponta via API com dados reais (arte marcial e aluno já
     cadastrados): fase com 1 critério aplicável só à faixa testada + 1
     critério sem nenhuma faixa marcada (deve dar nota cheia automática) →
