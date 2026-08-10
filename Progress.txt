@@ -627,9 +627,17 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     também que o app principal via `localhost` continua normal.
 
 === BUGS CONHECIDOS ===
-[ ] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
-    no console ao desmontar componente na tela de Chamadas. Não observado
-    impacto funcional até agora — investigar se persistir em produção.
+[x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
+    no console ao desmontar componente na tela de Chamadas. Investigado:
+    o registro do erro (`erro-chamada.txt`) é de 25/07/2026, anterior à
+    reescrita completa da tela (commit `07e46ea`, 03/08/2026) — o código
+    atual de `Chamadas.js` já não tem o padrão que causa esse bug (arrow
+    function sem chaves passada direto pro `useEffect`, mesma causa raiz
+    corrigida em `Exames.js`, ver item acima). Reproduzido via navegador
+    (Chrome MCP) com StrictMode ativo: abri/fechei aulas repetidamente e
+    naveguei entre Chamadas ↔ outras telas várias vezes — console limpo,
+    sem nenhum erro. Considerado resolvido pela reescrita; sem ação
+    adicional necessária.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
