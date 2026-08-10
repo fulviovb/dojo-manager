@@ -57,6 +57,13 @@ escola-artes-marciais/
 Pré-requisito: Docker + Docker Compose.
 
 ```bash
+./start.sh                     # build + sobe tudo, espera o backend responder
+./start.sh --logs              # idem, e acompanha os logs
+```
+
+Ou manualmente:
+
+```bash
 docker compose up              # sobe mysql + backend + frontend + nginx
 docker compose up mysql        # só o banco
 docker compose ps               # status dos serviços
