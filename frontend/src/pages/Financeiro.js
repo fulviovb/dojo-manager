@@ -546,8 +546,9 @@ function ListaFaturas({ onVerAluno }) {
     let cmp;
     if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
     else cmp = va.toString().toLowerCase().localeCompare(vb.toString().toLowerCase());
-    // Dentro do mesmo status, desempata por nome do aluno (alfabético) —
-    // independe da direção da coluna Status, sempre A-Z.
+    // Dentro do mesmo status, desempata por vencimento e depois por nome do
+    // aluno (sempre crescente, independe da direção da coluna Status).
+    if (cmp === 0 && sortCol === 'status') cmp = (a.data_vencimento || '').localeCompare(b.data_vencimento || '');
     if (cmp === 0 && sortCol === 'status') cmp = (a.Aluno?.nome || '').localeCompare(b.Aluno?.nome || '');
     return sortDir === 'asc' ? cmp : -cmp;
   });

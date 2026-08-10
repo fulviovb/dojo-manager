@@ -399,6 +399,9 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     — Vencida primeiro, depois Pendente (em aberto), por último Paga —
     com nome do aluno como critério de desempate dentro do mesmo status
     (antes ordenava por vencimento).
+[x] Ajuste no desempate acima: dentro do mesmo status, agora ordena por
+    data de vencimento antes do nome do aluno (status → vencimento →
+    nome, como pedido pelo usuário).
 
 === FASE 10: Semáforo de Graduação (indicador de risco pro exame de faixa) ===
 [x] Novo indicador complementar ao Semáforo de Ausência (mantido intacto,
