@@ -1,6 +1,6 @@
 const { sincronizarRoster, buscarEReconciliarCheckins } = require('../services/checkinOnlineService');
 
-// POST /api/checkin-online/sincronizar (admin) — empurra a lista de hoje
+// POST /api/checkin-online/sincronizar (admin) — empurra a grade da semana
 // pro módulo online e traz de volta os check-ins pendentes, reconciliando
 // como Chamada de verdade.
 const sincronizar = async (req, res) => {

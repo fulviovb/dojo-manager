@@ -5,25 +5,27 @@ const storage = require('../storage');
 const { turmaAtivaAgora } = require('../janela');
 const { paginaCheckin } = require('../paginaCheckin');
 
-function rosterValidoDeHoje() {
-  const roster = storage.lerRoster();
-  if (!roster || roster.sincronizado_em !== storage.hojeISO()) return null;
-  return roster;
+// Turmas da sala que caem no dia da semana atual — o roster traz a grade
+// da semana inteira, então isso é recalculado a cada requisição em vez de
+// depender de quando foi a última sincronização.
+function turmasDeHoje(sala) {
+  const diaSemana = new Date().getDay();
+  return (sala.turmas || []).filter((t) => t.dia_semana === diaSemana);
 }
 
 // Monta { status, body } com o mesmo resultado de sempre — usado tanto pra
 // responder JSON puro (fetch da própria página, curl com Accept: application/
 // json) quanto como fonte de verdade única, sem duplicar a lógica.
 function calcularEstado(qr_token) {
-  const roster = rosterValidoDeHoje();
+  const roster = storage.lerRoster();
   if (!roster) {
-    return { status: 200, body: { aula_ativa: false, mensagem: 'Lista de alunos ainda não sincronizada hoje — avise a administração.' } };
+    return { status: 200, body: { aula_ativa: false, mensagem: 'Lista de alunos ainda não sincronizada — avise a administração.' } };
   }
 
   const sala = roster.salas.find((s) => s.qr_token === qr_token);
   if (!sala) return { status: 404, body: { erro: 'QR Code inválido' } };
 
-  const turma = turmaAtivaAgora(sala.turmas_hoje);
+  const turma = turmaAtivaAgora(turmasDeHoje(sala));
   if (!turma) return { status: 200, body: { aula_ativa: false, mensagem: 'Nenhuma aula em andamento no momento.' } };
 
   const idsCheckin = storage.lerCheckinsDoDia()
@@ -59,13 +61,13 @@ router.post('/:qr_token', (req, res) => {
   const { aluno_id } = req.body || {};
   if (!aluno_id) return res.status(400).json({ erro: 'aluno_id é obrigatório' });
 
-  const roster = rosterValidoDeHoje();
-  if (!roster) return res.status(400).json({ erro: 'Lista de alunos ainda não sincronizada hoje — avise a administração.' });
+  const roster = storage.lerRoster();
+  if (!roster) return res.status(400).json({ erro: 'Lista de alunos ainda não sincronizada — avise a administração.' });
 
   const sala = roster.salas.find((s) => s.qr_token === req.params.qr_token);
   if (!sala) return res.status(404).json({ erro: 'QR Code inválido' });
 
-  const turma = turmaAtivaAgora(sala.turmas_hoje);
+  const turma = turmaAtivaAgora(turmasDeHoje(sala));
   if (!turma) return res.status(400).json({ erro: 'Nenhuma aula em andamento no momento.' });
 
   if (!turma.alunos.some((a) => a.id === aluno_id)) {

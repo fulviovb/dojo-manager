@@ -17,39 +17,44 @@ const exigirConfiguracao = () => {
   if (!BASE_URL) throw new Error('CHECKIN_ONLINE_URL não configurado no .env');
 };
 
-async function montarRosterDeHoje(escola_id) {
-  const diaSemana = new Date().getDay();
+// Monta a grade da semana inteira (todos os dia_semana, não só o de hoje) —
+// assim uma única sincronização continua válida nos dias seguintes; o
+// módulo online é quem escolhe, a cada check-in, qual dia_semana usar (ver
+// checkin-online/src/routes/checkin.js). Só precisa sincronizar de novo
+// quando algo muda de verdade (matrícula, turma, horário).
+async function montarRoster(escola_id) {
   const salas = await Sala.findAll({ where: { escola_id } });
 
   const resultado = [];
   for (const sala of salas) {
     const horarios = await HorarioTurma.findAll({
-      where: { sala_id: sala.id, dia_semana: diaSemana },
+      where: { sala_id: sala.id },
       include: [{ model: Turma, where: { escola_id, ativa: true } }],
     });
     if (!horarios.length) continue;
 
-    const turmas_hoje = [];
+    const turmas = [];
     for (const h of horarios) {
       const matriculas = await MatriculaAluno.findAll({
         where: { turma_id: h.turma_id, ativa: true },
         include: [{ model: Usuario, as: 'Aluno', attributes: ['id', 'nome'] }],
       });
-      turmas_hoje.push({
+      turmas.push({
+        dia_semana: h.dia_semana,
         turma_nome: h.Turma.nome,
         hora_inicio: h.hora_inicio.slice(0, 5),
         hora_fim: h.hora_fim.slice(0, 5),
         alunos: matriculas.map((m) => ({ id: m.Aluno.id, nome: m.Aluno.nome })),
       });
     }
-    resultado.push({ qr_token: sala.qr_token, turmas_hoje });
+    resultado.push({ qr_token: sala.qr_token, turmas });
   }
   return { salas: resultado };
 }
 
 async function sincronizarRoster(escola_id) {
   exigirConfiguracao();
-  const payload = await montarRosterDeHoje(escola_id);
+  const payload = await montarRoster(escola_id);
   const r = await fetch(`${BASE_URL}/sync/roster`, { method: 'POST', headers: headers(), body: JSON.stringify(payload) });
   if (!r.ok) throw new Error(`Falha ao sincronizar roster (HTTP ${r.status})`);
   return r.json();

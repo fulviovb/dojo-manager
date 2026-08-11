@@ -403,6 +403,20 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     data de vencimento (decrescente, mais recente primeiro) antes do nome
     do aluno (status → vencimento decrescente → nome, como pedido pelo
     usuário).
+[x] Bug real: alunos não conseguiram fazer self check-in porque o admin
+    não tinha clicado em "Sincronizar Check-in Online" naquele dia — o
+    módulo satélite (`checkin-online/`) exigia `sincronizado_em ===
+    hoje` pra aceitar check-in (defesa contra mostrar a turma errada,
+    já que a validação de janela só olha hora, não dia da semana).
+    Corrigido na raiz: `checkinOnlineService.montarRoster` agora envia a
+    grade da semana inteira (todos os `dia_semana`, não só o de hoje);
+    `checkin-online` guarda essa grade e escolhe a turma certa filtrando
+    pelo dia da semana atual a cada requisição, em vez de depender de
+    quando foi a última sincronização. Uma sincronização manual agora
+    continua válida nos dias seguintes — só precisa sincronizar de novo
+    quando algo muda de verdade (matrícula, turma, horário), como pedido
+    pelo usuário. Reimplantar no módulo satélite em produção (VM) segue
+    pendente.
 
 === FASE 10: Semáforo de Graduação (indicador de risco pro exame de faixa) ===
 [x] Novo indicador complementar ao Semáforo de Ausência (mantido intacto,

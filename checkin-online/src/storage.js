@@ -29,10 +29,9 @@ function lerRoster() {
   return JSON.parse(fs.readFileSync(ROSTER_PATH, 'utf8'));
 }
 
-// `sincronizado_em` é a defesa contra servir uma lista velha como se fosse
-// de hoje (ex: admin esqueceu de sincronizar — sem isso, a mesma turma no
-// mesmo horário de um dia antigo passaria despercebida na checagem de
-// janela, porque ela só olha hora, não data).
+// `sincronizado_em` é só informativo (exibível pro admin) — o roster agora
+// traz a grade da semana inteira (todos os dia_semana), então continua
+// válido nos dias seguintes até a próxima sincronização manual.
 function salvarRoster(payload) {
   const comData = { ...payload, sincronizado_em: hojeISO() };
   fs.writeFileSync(ROSTER_PATH, JSON.stringify(comData, null, 2));
