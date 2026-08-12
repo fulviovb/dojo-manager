@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import ExcelJS from 'exceljs';
 import { corDaFaixa } from '../utils/faixaCores';
 import Avatar from '../components/Avatar';
 
@@ -324,6 +325,48 @@ function IndicadorBox({ label, value, color }) {
   );
 }
 
+// Gerado no navegador a partir dos dados já carregados (sem endpoint novo
+// no backend) — uma aba "Resumo" com o mesmo briefing do cabeçalho e outra
+// "Pagamentos" com a tabela completa, mesma info da página impressa.
+async function exportarFinanceiroXLS(dados) {
+  const { indicadores: ind } = dados;
+  const wb = new ExcelJS.Workbook();
+
+  const resumo = wb.addWorksheet('Resumo');
+  resumo.addRow(['Financeiro: Pagamentos']);
+  resumo.addRow(['Turma', dados.turma ? dados.turma.nome.split('\n')[0] : 'Todas']);
+  resumo.addRow(['Plano', dados.plano ? dados.plano.nome : 'Todos']);
+  resumo.addRow(['Período', `${formatData(dados.periodo.inicio)} a ${formatData(dados.periodo.fim)}`]);
+  resumo.addRow([]);
+  resumo.addRow(['Recebido no período', ind.total_recebido]);
+  resumo.addRow(['Pagamentos', ind.qtd_pagamentos]);
+  resumo.addRow(['Ticket médio', ind.ticket_medio]);
+  resumo.addRow(['Alunos pagantes', ind.alunos_pagantes]);
+  resumo.addRow(['Em aberto', ind.mensalidades_em_aberto]);
+  resumo.addRow(['Vencidas', ind.mensalidades_vencidas]);
+  resumo.addRow(['A receber (pendente)', ind.valor_a_receber]);
+  resumo.addRow([`Contratante (${ind.percentual_contratante}%)`, ind.valor_contratante]);
+  resumo.getColumn(1).width = 30;
+  resumo.getColumn(2).width = 22;
+
+  const pagamentos = wb.addWorksheet('Pagamentos');
+  pagamentos.addRow(['Data', 'Aluno', 'Plano', 'Forma', 'Valor']);
+  pagamentos.getRow(1).font = { bold: true };
+  dados.pagamentos.forEach((p) => {
+    pagamentos.addRow([formatData(p.data_pagamento), p.aluno, p.plano, (p.forma_pagamento || '').replace(/_/g, ' '), Number(p.valor_pago)]);
+  });
+  pagamentos.columns.forEach((c) => { c.width = 24; });
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `financeiro-pagamentos_${dados.periodo.inicio}_a_${dados.periodo.fim}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function RelatorioFinanceiro({ dados }) {
   const { indicadores: ind } = dados;
   return (
@@ -414,8 +457,11 @@ export default function RelatorioPage({ tipo }) {
             <Renderizador dados={dados} />
           </div>
 
-          <div className="acoes-relatorio" style={{ marginTop: 20 }}>
+          <div className="acoes-relatorio" style={{ marginTop: 20, display: 'flex', gap: 10 }}>
             <button onClick={() => window.print()} style={btnPrimario}>🖨 Imprimir / Salvar PDF</button>
+            {tipo === 'financeiro' && (
+              <button onClick={() => exportarFinanceiroXLS(dados)} style={{ ...btnPrimario, background: '#2e7d32' }}>📊 Exportar XLS</button>
+            )}
           </div>
         </>
       )}

@@ -580,7 +580,9 @@ atual de inadimplência do mesmo recorte (em aberto, vencidas, valor a
 receber), e "% do Contratante": campo numérico preenchido por quem gera o
 relatório — não é um dado cadastrado, varia por acordo — usado só pra
 calcular o indicador "Contratante" (recebido no período × percentual), o
-repasse de quem cede o espaço das aulas). Ambos os relatórios de carência
+repasse de quem cede o espaço das aulas; único relatório com botão
+"Exportar XLS" — gerado no navegador via `exceljs`, 2 abas (Resumo +
+Pagamentos), sem endpoint novo no backend). Ambos os relatórios de carência
 contam presença em qualquer turma da
 mesma arte marcial desde o início da graduação — não só nas turmas
 matriculadas hoje, pra não subcontar quem trocou de turma/horário no meio do

@@ -681,6 +681,22 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     foi de 12 pra 99 pagamentos (R$ 1.755,00 → R$ 13.162,50 no ano), painel
     financeiro e tela de Faturas conferidos no navegador batendo com o
     relatório.
+[x] Exportação em XLS do relatório Financeiro: Pagamentos, pedida pelo
+    usuário. Gerada 100% no navegador (`exceljs`, sem endpoint novo no
+    backend) a partir dos dados já carregados — planilha com 2 abas:
+    "Resumo" (mesmo briefing do cabeçalho, incluindo % do Contratante) e
+    "Pagamentos" (tabela completa, valores numéricos de verdade, não
+    texto). Botão "📊 Exportar XLS" ao lado do "Imprimir/Salvar PDF",
+    só nesse relatório. Decisão técnica: testei a lib `xlsx` (SheetJS)
+    primeiro, mas a versão publicada no npm (0.18.5) tem 2 vulnerabilidades
+    HIGH conhecidas (prototype pollution + ReDoS) sem fix disponível via
+    npm — a SheetJS só publica a versão corrigida no CDN próprio deles.
+    Troquei para `exceljs` (só 1 vuln moderate transitiva, bem mais livre)
+    e confirmei que compila normal no build do CRA (achei que poderia
+    quebrar por depender de módulos Node como `stream`/`fs`, mas não
+    quebrou). Testado de ponta a ponta: baixei o arquivo de verdade,
+    abri com Python (`openpyxl`) e conferi as 2 abas, 99 linhas de
+    pagamento e os valores batendo com o relatório na tela.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
