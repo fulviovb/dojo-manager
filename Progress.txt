@@ -644,6 +644,30 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     acesso do celular do avaliador) e o login por PIN funcionou; conferido
     também que o app principal via `localhost` continua normal.
 
+=== FASE 12: Relatório Financeiro (pagamentos por turma/plano) ===
+[x] Novo relatório "Financeiro: Pagamentos" (`GET /api/relatorios/financeiro?
+    turma_id=&plano_id=&inicio=&fim=`), pedido pelo usuário: filtra por
+    turma (via matrícula ativa) e/ou plano de pagamento, com período (padrão
+    último mês, mesmo default dos outros relatórios). Corpo lista todos os
+    pagamentos do período (data, aluno, plano, forma, valor); cabeçalho traz
+    briefing de indicadores do mesmo recorte — recebido no período, qtd. de
+    pagamentos, ticket médio, alunos pagantes, e a situação ATUAL (não só do
+    período) das mensalidades do recorte: em aberto, vencidas, valor a
+    receber. Segue o mesmo padrão dos demais relatórios (`Relatorios.js` →
+    card de filtros → `/relatorio/financeiro` → `RelatorioPage.js`).
+    Testado ponta a ponta com dados reais: filtro por plano "GRANDE
+    APRENDIZ - ARTES MARCIAIS" bateu os números do painel financeiro
+    (R$ 1.755,00 recebidos, 12 pagamentos, 1 vencida) tanto via curl quanto
+    renderizado no navegador.
+[x] Indicador extra pedido pelo usuário no mesmo relatório: "% do
+    Contratante" — campo numérico (0-100) preenchido por quem gera o
+    relatório, não é um dado cadastrado (o percentual que a escola/academia
+    dona do espaço recolhe da mensalidade varia por acordo, não é fixo no
+    sistema). Vira `percentual_contratante` na querystring; o backend
+    devolve `valor_contratante` = recebido no período × percentual, exibido
+    como indicador "Contratante (X%)" no cabeçalho. Testado com 30%: R$
+    1.755,00 × 30% = R$ 526,50, conferido via curl e no navegador.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

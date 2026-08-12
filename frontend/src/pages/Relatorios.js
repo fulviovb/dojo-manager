@@ -221,18 +221,63 @@ function CardFrequenciaPercentual({ artes, turmas }) {
   );
 }
 
+function CardFinanceiro({ turmas, planos }) {
+  const [turmaId, setTurmaId] = useState('');
+  const [planoId, setPlanoId] = useState('');
+  const [inicio, setInicio] = useState('');
+  const [fim, setFim] = useState('');
+  const [percentualContratante, setPercentualContratante] = useState('');
+  return (
+    <Card titulo="Financeiro: Pagamentos">
+      <div>
+        <span style={rotulo}>Turma de Treino</span>
+        <select value={turmaId} onChange={e => setTurmaId(e.target.value)} style={estiloInput}>
+          <option value="">Todas</option>
+          {turmas.map(t => <option key={t.id} value={t.id}>{t.nome.split('\n')[0]}</option>)}
+        </select>
+      </div>
+      <div>
+        <span style={rotulo}>Plano de Pagamento</span>
+        <select value={planoId} onChange={e => setPlanoId(e.target.value)} style={estiloInput}>
+          <option value="">Todos</option>
+          {planos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </select>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <span style={rotulo}>Início</span>
+          <input type="date" value={inicio} onChange={e => setInicio(e.target.value)} style={estiloInput} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <span style={rotulo}>Fim</span>
+          <input type="date" value={fim} onChange={e => setFim(e.target.value)} style={estiloInput} />
+        </div>
+      </div>
+      <div>
+        <span style={rotulo}>% do Contratante</span>
+        <input type="number" min="0" max="100" step="0.01" placeholder="0" value={percentualContratante}
+          onChange={e => setPercentualContratante(e.target.value)} style={estiloInput} />
+      </div>
+      <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Pagamentos recebidos no período, com resumo de arrecadação e inadimplência do recorte.</p>
+      <button style={btnVerde} onClick={() => abrirRelatorio('financeiro', { turma_id: turmaId, plano_id: planoId, inicio, fim, percentual_contratante: percentualContratante })}>+ Gerar Relatório</button>
+    </Card>
+  );
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export default function Relatorios() {
   const [artes, setArtes] = useState([]);
   const [turmas, setTurmas] = useState([]);
   const [alunos, setAlunos] = useState([]);
+  const [planos, setPlanos] = useState([]);
   const [busca, setBusca] = useState('');
 
   useEffect(() => {
     axios.get('/artes-marciais').then(r => setArtes(r.data));
     axios.get('/turmas').then(r => setTurmas(r.data));
     axios.get('/usuarios?role=aluno').then(r => setAlunos(r.data));
+    axios.get('/planos?todos=true').then(r => setPlanos(r.data));
   }, []);
 
   const relatorios = [
@@ -244,6 +289,7 @@ export default function Relatorios() {
     { titulo: 'Aniversariantes por mês', node: <CardAniversariantes /> },
     { titulo: 'Frequência: Presença Mínima', node: <CardPresencaMinima artes={artes} /> },
     { titulo: 'Frequência: % de Presença', node: <CardFrequenciaPercentual artes={artes} turmas={turmas} /> },
+    { titulo: 'Financeiro: Pagamentos', node: <CardFinanceiro turmas={turmas} planos={planos} /> },
   ];
   const filtrados = relatorios.filter(r => r.titulo.toLowerCase().includes(busca.toLowerCase()));
 

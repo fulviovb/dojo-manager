@@ -3,6 +3,7 @@ const sequelize = require('../config/database');
 const {
   Usuario, Turma, ArteMarcial, Faixa, MatriculaAluno, GraduacaoAluno,
   HorarioTurma, Sala, Aula, Chamada, AssinaturaAluno, PlanoMensalidade, CriterioGraduacao,
+  Pagamento, Mensalidade,
 } = require('../models');
 const { ehDonoDaTurma } = require('../middleware/autorizacao');
 const { dataLocalISO } = require('../utils/data');
@@ -349,7 +350,108 @@ const frequenciaPercentual = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
+// GET /api/relatorios/financeiro?turma_id=&plano_id=&inicio=&fim=
+// Pagamentos do período (corpo do relatório) filtrados por turma (via
+// matrícula ativa) e/ou plano de pagamento, com um briefing de indicadores
+// no cabeçalho — recebido no período e situação atual (em aberto/vencidas)
+// das mensalidades do mesmo recorte, não só as do período.
+const relatorioFinanceiro = async (req, res) => {
+  try {
+    const escola_id = req.usuario.escola_id;
+    const { turma_id, plano_id } = req.query;
+    const inicio = req.query.inicio || umMesAtras();
+    const fim = req.query.fim || dataLocalISO(new Date());
+    // % que o contratante (escola/academia que cede o espaço) recolhe da
+    // mensalidade — informado por quem pede o relatório, não vem de
+    // cadastro nenhum (varia por acordo, não é um dado fixo do sistema).
+    const percentualContratante = Math.min(100, Math.max(0, parseFloat(req.query.percentual_contratante) || 0));
+
+    let turma = null;
+    if (turma_id) {
+      turma = await Turma.findOne({ where: { id: turma_id, escola_id } });
+      if (!turma) return res.status(404).json({ erro: 'Turma não encontrada' });
+      if (!ehDonoDaTurma(req.usuario, turma)) return res.status(403).json({ erro: 'Acesso negado a esta turma' });
+    }
+
+    let plano = null;
+    if (plano_id) {
+      plano = await PlanoMensalidade.findOne({ where: { id: plano_id, escola_id } });
+      if (!plano) return res.status(404).json({ erro: 'Plano não encontrado' });
+    }
+
+    let alunoIds = null;
+    if (turma_id) {
+      const matriculas = await MatriculaAluno.findAll({ where: { turma_id, ativa: true }, attributes: ['aluno_id'] });
+      alunoIds = matriculas.map((m) => m.aluno_id);
+    }
+
+    const whereMensalidade = {
+      ...(plano_id ? { plano_id } : {}),
+      ...(alunoIds ? { aluno_id: { [Op.in]: alunoIds } } : {}),
+    };
+
+    const pagamentos = await Pagamento.findAll({
+      where: { data_pagamento: { [Op.between]: [inicio, fim] } },
+      include: [{
+        model: Mensalidade,
+        required: true,
+        where: whereMensalidade,
+        include: [
+          { model: Usuario, as: 'Aluno', attributes: ['id', 'nome'], where: { escola_id } },
+          { model: PlanoMensalidade, as: 'Plano', attributes: ['id', 'nome'] },
+        ],
+      }],
+      order: [['data_pagamento', 'DESC']],
+    });
+
+    // Situação atual (independente do período) das mensalidades do mesmo
+    // recorte turma/plano — dá contexto de inadimplência no cabeçalho.
+    const mensalidadesDoRecorte = await Mensalidade.findAll({
+      where: whereMensalidade,
+      include: [{ model: Usuario, as: 'Aluno', attributes: [], where: { escola_id } }],
+    });
+
+    const hoje = dataLocalISO(new Date());
+    let mensalidades_em_aberto = 0, mensalidades_vencidas = 0, valor_a_receber = 0;
+    for (const m of mensalidadesDoRecorte) {
+      if (m.status !== 'pendente') continue;
+      valor_a_receber += parseFloat(m.valor) - parseFloat(m.desconto || 0) + parseFloat(m.juros || 0);
+      if (m.data_vencimento < hoje) mensalidades_vencidas++; else mensalidades_em_aberto++;
+    }
+
+    const total_recebido = pagamentos.reduce((soma, p) => soma + parseFloat(p.valor_pago), 0);
+    const alunosPagantes = new Set(pagamentos.map((p) => p.Mensalidade.aluno_id));
+
+    res.json({
+      turma: turma ? { id: turma.id, nome: turma.nome } : null,
+      plano: plano ? { id: plano.id, nome: plano.nome } : null,
+      periodo: { inicio, fim },
+      indicadores: {
+        total_recebido,
+        qtd_pagamentos: pagamentos.length,
+        ticket_medio: pagamentos.length ? total_recebido / pagamentos.length : 0,
+        alunos_pagantes: alunosPagantes.size,
+        mensalidades_em_aberto,
+        mensalidades_vencidas,
+        valor_a_receber,
+        percentual_contratante: percentualContratante,
+        valor_contratante: total_recebido * (percentualContratante / 100),
+      },
+      pagamentos: pagamentos.map((p) => ({
+        id: p.id,
+        data_pagamento: p.data_pagamento,
+        valor_pago: p.valor_pago,
+        forma_pagamento: p.forma_pagamento,
+        aluno_id: p.Mensalidade.aluno_id,
+        aluno: p.Mensalidade.Aluno?.nome,
+        plano: p.Mensalidade.Plano?.nome || 'Fatura avulsa',
+        mes_referencia: p.Mensalidade.mes_referencia,
+      })),
+    });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
 module.exports = {
   alunosPorGraduacao, alunosPorTurma, fichaCadastral, frequenciaTurma, frequenciaAluno, aniversariantes,
-  frequenciaPercentual,
+  frequenciaPercentual, relatorioFinanceiro,
 };

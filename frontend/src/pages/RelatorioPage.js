@@ -14,6 +14,7 @@ const TITULOS = {
   'aniversariantes': 'Aniversariantes por Mês',
   'presenca-minima': 'Frequência: Presença Mínima',
   'frequencia-percentual': 'Frequência: % de Presença',
+  'financeiro': 'Financeiro: Pagamentos',
 };
 
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -310,6 +311,66 @@ function FrequenciaPercentual({ dados }) {
   );
 }
 
+function formatarMoeda(v) {
+  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function IndicadorBox({ label, value, color }) {
+  return (
+    <div style={{ background: `${color}11`, border: `1px solid ${color}33`, borderRadius: 8, padding: '10px 14px', flex: 1, minWidth: 120 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 'bold', color: '#1e2a38', marginTop: 4 }}>{value}</div>
+    </div>
+  );
+}
+
+function RelatorioFinanceiro({ dados }) {
+  const { indicadores: ind } = dados;
+  return (
+    <div>
+      <div style={{ marginBottom: 12, fontSize: 13, color: '#555' }}>
+        {dados.turma ? <div><strong>Turma:</strong> {dados.turma.nome.split('\n')[0]}</div> : null}
+        {dados.plano ? <div><strong>Plano:</strong> {dados.plano.nome}</div> : null}
+        {!dados.turma && !dados.plano && <div><strong>Todas as turmas e planos</strong></div>}
+        <div>{formatData(dados.periodo.inicio)} a {formatData(dados.periodo.fim)}</div>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+        <IndicadorBox label="Recebido no período" value={formatarMoeda(ind.total_recebido)} color="#2e7d32" />
+        <IndicadorBox label="Pagamentos" value={ind.qtd_pagamentos} color="#1565c0" />
+        <IndicadorBox label="Ticket médio" value={formatarMoeda(ind.ticket_medio)} color="#1565c0" />
+        <IndicadorBox label="Alunos pagantes" value={ind.alunos_pagantes} color="#1565c0" />
+        <IndicadorBox label="Em aberto" value={ind.mensalidades_em_aberto} color="#ef6c00" />
+        <IndicadorBox label="Vencidas" value={ind.mensalidades_vencidas} color="#c62828" />
+        <IndicadorBox label="A receber (pendente)" value={formatarMoeda(ind.valor_a_receber)} color="#c62828" />
+        <IndicadorBox label={`Contratante (${ind.percentual_contratante}%)`} value={formatarMoeda(ind.valor_contratante)} color="#6a1b9a" />
+      </div>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead><tr>
+          <th style={thEstilo}>Data</th>
+          <th style={thEstilo}>Aluno</th>
+          <th style={thEstilo}>Plano</th>
+          <th style={thEstilo}>Forma</th>
+          <th style={thEstilo}>Valor</th>
+        </tr></thead>
+        <tbody>
+          {dados.pagamentos.length === 0 && <tr><td colSpan={5} style={tdEstilo}>Nenhum pagamento no período.</td></tr>}
+          {dados.pagamentos.map((p) => (
+            <tr key={p.id}>
+              <td style={{ ...tdEstilo, whiteSpace: 'nowrap' }}>{formatData(p.data_pagamento)}</td>
+              <td style={tdEstilo}>{p.aluno}</td>
+              <td style={tdEstilo}>{p.plano}</td>
+              <td style={tdEstilo}>{(p.forma_pagamento || '').replace(/_/g, ' ')}</td>
+              <td style={tdEstilo}>{formatarMoeda(p.valor_pago)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const RENDERIZADORES = {
   'alunos-por-graduacao': TabelaAlunosPorGraduacao,
   'alunos-por-turma': TabelaAlunosPorTurma,
@@ -319,6 +380,7 @@ const RENDERIZADORES = {
   'aniversariantes': Aniversariantes,
   'presenca-minima': PresencaMinima,
   'frequencia-percentual': FrequenciaPercentual,
+  'financeiro': RelatorioFinanceiro,
 };
 
 // Página standalone (mesmo padrão de ReciboPage.js): sem sidebar, aberta em

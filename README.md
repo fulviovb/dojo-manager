@@ -446,7 +446,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Mensalidades ("Faturas")| `GET /mensalidades` (`?aluno_id=`, `?status=`, `?ano=`, `?vencida=`), `POST,PUT`, `PUT /:id/cancelar`, `GET /:id/recibo` | autenticado / admin |
 | Pagamentos            | `GET /pagamentos` (`?mensalidade_id=`, `?aluno_id=`), `POST`, `DELETE /:id` (desfazer)| autenticado / admin     |
 | Financeiro            | `GET /financeiro/painel` (`?ano=` — indicadores + série mensal ganhos vs a receber)   | autenticado              |
-| Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes` | autenticado |
+| Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes`, `/frequencia-percentual`, `/financeiro` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
 | Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:codigo/login` (PIN, `:codigo` = `Exame.codigo`), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
@@ -566,16 +566,25 @@ completas.
 
 Grid de cards com filtro próprio por relatório (campo de busca no topo pra achar
 um específico). "Gerar Relatório" abre o resultado em nova aba, página imprimível
-— mesmo padrão do recibo. 8 relatórios: Alunos por Graduação, Alunos por
+— mesmo padrão do recibo. 9 relatórios: Alunos por Graduação, Alunos por
 Turma-Horário, Ficha Cadastral Resumida, Aulas & Frequências (Turma, com modos
 Relação/Quantitativo), Aulas & Frequências (Aluno), Aniversariantes por Mês,
-Frequência: Presença Mínima, e **Frequência: % de Presença** (todo aluno ativo
+Frequência: Presença Mínima, **Frequência: % de Presença** (todo aluno ativo
 e o % de carência cumprida em relação à faixa atual — aulas presentes desde o
 início da graduação atual ÷ `CriterioGraduacao.min_aulas` da faixa; filtro por
-Programa Marcial e por Turma; ordena por Nome, Graduação ou Percentual). Ambos
-os relatórios de carência contam presença em qualquer turma da mesma arte
-marcial desde o início da graduação — não só nas turmas matriculadas hoje,
-pra não subcontar quem trocou de turma/horário no meio do caminho.
+Programa Marcial e por Turma; ordena por Nome, Graduação ou Percentual) e
+**Financeiro: Pagamentos** (filtro por Turma e/ou Plano de Pagamento e por
+período; lista os pagamentos do recorte e traz no cabeçalho um briefing de
+indicadores — recebido no período, ticket médio, alunos pagantes, situação
+atual de inadimplência do mesmo recorte (em aberto, vencidas, valor a
+receber), e "% do Contratante": campo numérico preenchido por quem gera o
+relatório — não é um dado cadastrado, varia por acordo — usado só pra
+calcular o indicador "Contratante" (recebido no período × percentual), o
+repasse de quem cede o espaço das aulas). Ambos os relatórios de carência
+contam presença em qualquer turma da
+mesma arte marcial desde o início da graduação — não só nas turmas
+matriculadas hoje, pra não subcontar quem trocou de turma/horário no meio do
+caminho.
 
 ## Documentos do projeto
 
