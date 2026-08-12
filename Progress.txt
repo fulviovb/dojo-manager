@@ -667,6 +667,20 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     devolve `valor_contratante` = recebido no período × percentual, exibido
     como indicador "Contratante (X%)" no cabeçalho. Testado com 30%: R$
     1.755,00 × 30% = R$ 526,50, conferido via curl e no navegador.
+[x] Bug de dado real encontrado pelo usuário usando o relatório novo: 87 das
+    99 Mensalidades com status='pago' (fev-jul/2026, migradas do iDojo) não
+    tinham nenhum registro de Pagamento — só agosto (12, já criadas pelo
+    sistema em uso normal) tinham. Por isso a coluna "Pagamento" da tela de
+    Faturas e o relatório Financeiro ficavam em branco/sem valor pra tudo
+    antes de agosto. Corrigido com script one-off idempotente
+    (`backend/src/scripts/2026-08-backfill-pagamentos-migrados.js`): cria um
+    Pagamento pra cada Mensalidade paga sem nenhum, valor = valor da
+    mensalidade (nenhuma tinha desconto/juros), data de pagamento = dia 5 do
+    mês de referência (pedido do usuário — não a data de vencimento real,
+    que varia por aluno). Rodado em produção local: 87 criados, total geral
+    foi de 12 pra 99 pagamentos (R$ 1.755,00 → R$ 13.162,50 no ano), painel
+    financeiro e tela de Faturas conferidos no navegador batendo com o
+    relatório.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
