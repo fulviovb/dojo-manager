@@ -44,7 +44,10 @@ function escolherMelhorAula(aulas, minutosAlvo) {
 const getAulaAtiva = async (sala) => {
   const agora = new Date();
   const dataHoje = dataLocalISO(agora);
-  const agorMin = minutos(agora.toTimeString().split(' ')[0]);
+  // Inclui os segundos como fração de minuto — ver mesmo comentário em
+  // checkinOnlineService.js (evita empate exato no minuto de troca entre
+  // duas turmas costas-com-costas).
+  const agorMin = agora.getHours() * 60 + agora.getMinutes() + agora.getSeconds() / 60;
 
   // Geração lazy: garante que as Aulas de hoje existam antes de consultar
   await gerarAulasPorData(dataHoje);

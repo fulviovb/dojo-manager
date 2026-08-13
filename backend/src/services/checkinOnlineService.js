@@ -99,7 +99,12 @@ function escolherMelhorAula(aulas, minutosEvento) {
 async function encontrarAulaPorInstante(sala_id, timestampISO) {
   const instante = new Date(timestampISO);
   const data = dataLocalISO(instante);
-  const minutosEvento = instante.getHours() * 60 + instante.getMinutes();
+  // Inclui os segundos como fração de minuto — truncar pro minuto cheio
+  // criava empate exato entre o fim de uma aula e o início da seguinte no
+  // minuto de troca (ex: 20:00:14 virava "20:00", núcleo tanto da aula que
+  // termina quanto da que começa às 20h), fazendo a reconciliação atribuir
+  // o check-in pra aula errada quando duas turmas são costas-com-costas.
+  const minutosEvento = instante.getHours() * 60 + instante.getMinutes() + instante.getSeconds() / 60;
 
   await gerarAulasPorData(data);
 

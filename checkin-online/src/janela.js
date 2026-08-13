@@ -16,7 +16,10 @@ function minutosDoDia(hhmm) {
 // horário "de verdade" da aula, não só na margem de tolerância; por fim, a
 // mais próxima do instante.
 function turmaAtivaAgora(turmasHoje, agora = new Date()) {
-  const agoraMin = agora.getHours() * 60 + agora.getMinutes();
+  // Inclui os segundos como fração de minuto — ver mesmo comentário em
+  // checkinOnlineService.js (evita empate exato no minuto de troca entre
+  // duas turmas costas-com-costas).
+  const agoraMin = agora.getHours() * 60 + agora.getMinutes() + agora.getSeconds() / 60;
   const candidatas = (turmasHoje || [])
     .map((t) => {
       const inicio = minutosDoDia(t.hora_inicio);
