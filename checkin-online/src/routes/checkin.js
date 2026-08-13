@@ -28,8 +28,11 @@ function calcularEstado(qr_token) {
   const turma = turmaAtivaAgora(turmasDeHoje(sala));
   if (!turma) return { status: 200, body: { aula_ativa: false, mensagem: 'Nenhuma aula em andamento no momento.' } };
 
+  // Filtra também por hora_inicio da turma ativa — sala com duas turmas
+  // seguidas no mesmo dia (ex: 19h e 20h) não pode "herdar" o check-in feito
+  // na outra turma só por compartilhar o qr_token.
   const idsCheckin = storage.lerCheckinsDoDia()
-    .filter((c) => c.qr_token === qr_token)
+    .filter((c) => c.qr_token === qr_token && c.hora_inicio === turma.hora_inicio)
     .map((c) => c.aluno_id);
 
   return {
@@ -74,11 +77,11 @@ router.post('/:qr_token', (req, res) => {
     return res.status(400).json({ erro: 'Aluno não matriculado nesta turma.' });
   }
 
-  if (storage.jaFezCheckin(req.params.qr_token, aluno_id)) {
+  if (storage.jaFezCheckin(req.params.qr_token, aluno_id, turma.hora_inicio)) {
     return res.json({ sucesso: true, novo: false });
   }
 
-  const evento = storage.registrarCheckin(req.params.qr_token, aluno_id);
+  const evento = storage.registrarCheckin(req.params.qr_token, aluno_id, turma.hora_inicio);
   res.json({ sucesso: true, novo: true, evento });
 });
 

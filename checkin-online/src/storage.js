@@ -47,12 +47,19 @@ function lerCheckinsDoDia(data = hojeISO()) {
     .map((linha) => JSON.parse(linha));
 }
 
-function jaFezCheckin(qr_token, aluno_id, data = hojeISO()) {
-  return lerCheckinsDoDia(data).some((c) => c.qr_token === qr_token && c.aluno_id === aluno_id);
+// `hora_inicio` desempata duas turmas costas-com-costas na mesma sala (ex:
+// 19h e 20h) — sem isso, "já fez check-in" (e a lista de pendentes) usava
+// só qr_token+aluno_id, e um aluno matriculado nas duas turmas que já tinha
+// confirmado presença na primeira sumia da lista da segunda, mesmo sem
+// nunca ter escaneado o QR pra ela.
+function jaFezCheckin(qr_token, aluno_id, hora_inicio, data = hojeISO()) {
+  return lerCheckinsDoDia(data).some(
+    (c) => c.qr_token === qr_token && c.aluno_id === aluno_id && c.hora_inicio === hora_inicio
+  );
 }
 
-function registrarCheckin(qr_token, aluno_id) {
-  const evento = { ts: new Date().toISOString(), qr_token, aluno_id };
+function registrarCheckin(qr_token, aluno_id, hora_inicio) {
+  const evento = { ts: new Date().toISOString(), qr_token, aluno_id, hora_inicio };
   fs.appendFileSync(arquivoDoDia(), JSON.stringify(evento) + '\n');
   return evento;
 }

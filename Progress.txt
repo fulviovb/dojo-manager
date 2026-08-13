@@ -697,6 +697,28 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     quebrou). Testado de ponta a ponta: baixei o arquivo de verdade,
     abri com Python (`openpyxl`) e conferi as 2 abas, 99 linhas de
     pagamento e os valores batendo com o relatório na tela.
+[x] Bug real reportado pelo usuário no dia (12/08/2026, sala com duas
+    turmas seguidas — 19h e 20h — mesmo qr_token, mesmos alunos em geral):
+    quem já tinha feito self check-in na turma das 19h sumia da lista da
+    turma das 20h, mesmo estando matriculado nas duas e nunca tendo
+    escaneado o QR pra ela. Causa: `checkin-online` identificava "já fez
+    check-in" só por `qr_token + aluno_id`, sem levar em conta QUAL turma
+    — como as duas turmas dividem a mesma sala/qr_token no mesmo dia, o
+    check-in de uma "vazava" pra outra. Corrigido guardando também
+    `hora_inicio` da turma em cada evento de check-in
+    (`storage.registrarCheckin`/`jaFezCheckin`, filtro em
+    `routes/checkin.js`) — cada turma passa a ter seu próprio controle de
+    quem já confirmou presença, mesmo dividindo sala. Sem migração de
+    dados: eventos antigos (sem `hora_inicio`) simplesmente não casam
+    com nenhuma turma, o que só significa "não já fez check-in nessa
+    turma" — comportamento seguro. Testado com script simulando os dois
+    horários (não dava pra testar ao vivo, já passava das 22h): aluno
+    matriculado nas duas turmas apareceu certinho nas duas, check-in de
+    uma não interferiu na outra. Efeito colateral real: os alunos que
+    ficaram escondidos da lista das 20h hoje não conseguiram se
+    autoconfirmar naquela aula — se precisar contar presença deles,
+    é preciso lançar manualmente pelo sistema local (não há como
+    recuperar isso pelo QR, a janela de tolerância da aula já fechou).
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
