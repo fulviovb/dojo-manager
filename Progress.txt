@@ -711,14 +711,36 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     quem já confirmou presença, mesmo dividindo sala. Sem migração de
     dados: eventos antigos (sem `hora_inicio`) simplesmente não casam
     com nenhuma turma, o que só significa "não já fez check-in nessa
-    turma" — comportamento seguro. Testado com script simulando os dois
-    horários (não dava pra testar ao vivo, já passava das 22h): aluno
-    matriculado nas duas turmas apareceu certinho nas duas, check-in de
-    uma não interferiu na outra. Efeito colateral real: os alunos que
-    ficaram escondidos da lista das 20h hoje não conseguiram se
+    turma" — comportamento seguro. Efeito colateral real: os alunos que
+    ficaram escondidos da lista das 20h naquele dia não conseguiram se
     autoconfirmar naquela aula — se precisar contar presença deles,
     é preciso lançar manualmente pelo sistema local (não há como
     recuperar isso pelo QR, a janela de tolerância da aula já fechou).
+[x] Segundo bug encontrado ao validar o de cima com um teste ponta-a-ponta
+    real contra produção (criei duas turmas sintéticas de 1min cada, uma
+    logo em seguida da outra, na mesma sala, aluno matriculado nas duas —
+    já passava das 22h, não dava pra esperar a próxima aula real): o
+    primeiro check-in (turma A) e a exibição da turma B funcionaram
+    certinho (confirma o fix acima), mas a RECONCILIAÇÃO (backend puxando
+    os check-ins do módulo satélite e virando Chamada) só criou 1 Chamada
+    pros 2 check-ins. Causa: `escolherMelhorAula`/`turmaAtivaAgora`
+    comparavam o instante do evento truncado pro minuto cheio (descartando
+    segundos) contra o horário das aulas — um check-in às 22:41:14 virava
+    "22:41", empate exato entre o fim de uma aula (22:40-22:41) e o início
+    da seguinte (22:41-22:42), e o desempate por "distância" também dava
+    empate (0 pros dois lados), sobrando só a ordem (não garantida) do
+    array como critério — o check-in da turma B podia acabar preso na
+    aula A. Corrigido nos três lugares que fazem esse casamento
+    sala+horário (`checkinController.escolherMelhorAula`,
+    `checkinOnlineService.escolherMelhorAula`, `janela.js`
+    `turmaAtivaAgora`) incluindo os segundos como fração de minuto no
+    instante avaliado — reduz drasticamente a chance de empate exato (só
+    aconteceria de novo se o toque caísse bem no segundo `:00.000` exato
+    da troca). Reproduzido o teste do zero depois do fix (turmas
+    sintéticas apagadas e recriadas): 2 eventos → 2 Chamadas, uma por
+    turma, corretamente atribuídas — confirmado via curl real contra
+    `karatevilasboas.duckdns.org` de ponta a ponta (QR → satélite em
+    produção → check-in → reconciliação → Chamada no banco).
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
