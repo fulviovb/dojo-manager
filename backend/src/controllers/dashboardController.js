@@ -46,6 +46,12 @@ function contarAulasNoIntervalo(diasDaSemana, inicioISO, fimISO) {
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 
+// 'HH:MM:SS' → horas fracionárias (ex: '01:30:00' → 1.5)
+function horaParaFracao(hhmmss) {
+  const [h, m, s] = hhmmss.split(':').map(Number);
+  return h + m / 60 + (s || 0) / 3600;
+}
+
 // GET /api/dashboard
 const resumo = async (req, res) => {
   try {
@@ -359,4 +365,41 @@ const semaforoGraduacao = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-module.exports = { resumo, semaforo, graduacao, semaforoGraduacao };
+// GET /api/dashboard/horas-por-turma — carga horária semanal (soma dos
+// HorarioTurma) de cada turma ativa. Professor vê só as turmas onde é
+// professor_id (mesma regra de `ehDonoDaTurma`); admin vê todas.
+const horasPorTurma = async (req, res) => {
+  try {
+    const escola_id = req.usuario.escola_id;
+    const souProfessor = req.usuario.role === 'professor';
+
+    const turmas = await Turma.findAll({
+      where: { escola_id, ativa: true, ...(souProfessor ? { professor_id: req.usuario.id } : {}) },
+      include: [
+        { model: Usuario, as: 'Professor', attributes: ['id', 'nome'] },
+        { model: HorarioTurma, attributes: ['dia_semana', 'hora_inicio', 'hora_fim'] },
+      ],
+    });
+
+    const linhas = turmas.map((t) => {
+      const horas_semana = t.HorarioTurmas.reduce(
+        (soma, h) => soma + (horaParaFracao(h.hora_fim) - horaParaFracao(h.hora_inicio)),
+        0
+      );
+      return {
+        id: t.id,
+        nome: t.nome,
+        professor: t.Professor?.nome || null,
+        aulas_semana: t.HorarioTurmas.length,
+        horas_semana: Math.round(horas_semana * 100) / 100,
+      };
+    });
+
+    linhas.sort((a, b) => b.horas_semana - a.horas_semana || a.nome.localeCompare(b.nome));
+    const total_horas_semana = Math.round(linhas.reduce((s, l) => s + l.horas_semana, 0) * 100) / 100;
+
+    res.json({ turmas: linhas, total_horas_semana });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+module.exports = { resumo, semaforo, graduacao, semaforoGraduacao, horasPorTurma };

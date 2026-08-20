@@ -754,6 +754,16 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     AssinaturaAluno pro primeiro da lista) e testado ponta-a-ponta no
     navegador (Chrome MCP, sessão logada do usuário).
 
+=== FASE 14: Carga Horária Semanal por Turma (Dashboard) ===
+[x] Novo card no Dashboard (`GET /api/dashboard/horas-por-turma`): tabela
+    com Turma, Professor, Aulas/semana e Horas/semana, somando
+    `hora_fim - hora_inicio` de cada `HorarioTurma` da turma, com linha de
+    Total no rodapé. Turma ativa só — professor vê só as turmas onde é
+    `professor_id` (mesma regra de `ehDonoDaTurma`), admin vê todas.
+    Verificado contra dados reais via query direta (6 turmas ativas, 11h
+    somadas) e conferido visualmente no navegador (Chrome MCP) batendo
+    com o cálculo manual.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

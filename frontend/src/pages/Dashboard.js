@@ -3,6 +3,12 @@ import axios from 'axios';
 
 const COR_SEMAFORO = { amarelo: '#f9a825', laranja: '#e65100', vermelho: '#c62828' };
 const BG_SEMAFORO  = { amarelo: '#fffde7', laranja: '#fbe9e7', vermelho: '#ffebee' };
+const thEstilo = { padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #eee' };
+const tdEstilo = { padding: '8px 12px', fontSize: 13, borderBottom: '1px solid #f5f5f5' };
+
+function formatarHoras(h) {
+  return `${h.toLocaleString('pt-BR', { minimumFractionDigits: h % 1 === 0 ? 0 : 1, maximumFractionDigits: 2 })}h`;
+}
 
 function Card({ title, value, sub, color }) {
   return (
@@ -24,6 +30,7 @@ export default function Dashboard({ onVerAluno }) {
   const [semaforoGraduacao, setSemaforoGraduacao] = useState([]);
   const [artes, setArtes] = useState([]);
   const [filtroArte, setFiltroArte] = useState('');
+  const [horasPorTurma, setHorasPorTurma] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -32,7 +39,8 @@ export default function Dashboard({ onVerAluno }) {
       axios.get('/dashboard/semaforo').then(r => r.data.alertas),
       axios.get('/dashboard/semaforo-graduacao').then(r => r.data.alertas),
       axios.get('/artes-marciais').then(r => r.data),
-    ]).then(([r, s, sg, a]) => { setResumo(r); setSemaforo(s); setSemaforoGraduacao(sg); setArtes(a); })
+      axios.get('/dashboard/horas-por-turma').then(r => r.data),
+    ]).then(([r, s, sg, a, h]) => { setResumo(r); setSemaforo(s); setSemaforoGraduacao(sg); setArtes(a); setHorasPorTurma(h); })
       .catch(() => {})
       .finally(() => setCarregando(false));
   }, []);
@@ -108,6 +116,39 @@ export default function Dashboard({ onVerAluno }) {
           })()}
         </div>
       </div>
+
+      {horasPorTurma && (
+        <div style={{ background: '#fff', borderRadius: 8, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginTop: 16 }}>
+          <h3 style={{ marginTop: 0, marginBottom: 16 }}>Carga Horária Semanal por Turma</h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={thEstilo}>Turma</th>
+              <th style={thEstilo}>Professor</th>
+              <th style={thEstilo}>Aulas/semana</th>
+              <th style={thEstilo}>Horas/semana</th>
+            </tr></thead>
+            <tbody>
+              {horasPorTurma.turmas.length === 0 && <tr><td colSpan={4} style={tdEstilo}>Nenhuma turma ativa.</td></tr>}
+              {horasPorTurma.turmas.map(t => (
+                <tr key={t.id}>
+                  <td style={tdEstilo}>{t.nome.split('\n')[0]}</td>
+                  <td style={tdEstilo}>{t.professor || '—'}</td>
+                  <td style={tdEstilo}>{t.aulas_semana}</td>
+                  <td style={tdEstilo}>{formatarHoras(t.horas_semana)}</td>
+                </tr>
+              ))}
+            </tbody>
+            {horasPorTurma.turmas.length > 0 && (
+              <tfoot><tr>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>Total</td>
+                <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
+                <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarHoras(horasPorTurma.total_horas_semana)}</td>
+              </tr></tfoot>
+            )}
+          </table>
+        </div>
+      )}
 
       <div style={{ color: '#aaa', fontSize: 12, marginTop: 12 }}>
         Período: {periodo.inicio} → {periodo.fim}
