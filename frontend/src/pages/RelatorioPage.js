@@ -17,6 +17,7 @@ const TITULOS = {
   'frequencia-percentual': 'Frequência: % de Presença',
   'financeiro': 'Financeiro: Pagamentos',
   'alunos-sem-plano': 'Alunos sem Plano de Assinatura',
+  'alunos-sem-turma': 'Lista de Ex-Alunos',
 };
 
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -442,6 +443,35 @@ function AlunosSemPlano({ dados }) {
   );
 }
 
+function AlunosSemTurma({ dados }) {
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: '#555', marginTop: 0 }}>
+        {dados.total} aluno{dados.total !== 1 ? 's' : ''} inativo{dados.total !== 1 ? 's' : ''} sem turma ativa, ordenados pela presença mais recente.
+      </p>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead><tr>
+          <th style={thEstilo}>Nome</th>
+          <th style={thEstilo}>Matrícula</th>
+          <th style={thEstilo}>Telefone</th>
+          <th style={thEstilo}>Última Presença</th>
+        </tr></thead>
+        <tbody>
+          {dados.alunos.length === 0 && <tr><td colSpan={4} style={tdEstilo}>Nenhum aluno inativo encontrado.</td></tr>}
+          {dados.alunos.map((a) => (
+            <tr key={a.id}>
+              <td style={tdEstilo}>{a.nome}</td>
+              <td style={tdEstilo}>{a.matricula || '—'}</td>
+              <td style={tdEstilo}>{a.telefone || '—'}</td>
+              <td style={tdEstilo}>{a.ultima_presenca ? formatData(a.ultima_presenca) : 'Nunca'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const RENDERIZADORES = {
   'alunos-por-graduacao': TabelaAlunosPorGraduacao,
   'alunos-por-turma': TabelaAlunosPorTurma,
@@ -453,6 +483,7 @@ const RENDERIZADORES = {
   'frequencia-percentual': FrequenciaPercentual,
   'financeiro': RelatorioFinanceiro,
   'alunos-sem-plano': AlunosSemPlano,
+  'alunos-sem-turma': AlunosSemTurma,
 };
 
 // Página standalone (mesmo padrão de ReciboPage.js): sem sidebar, aberta em

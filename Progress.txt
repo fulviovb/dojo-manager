@@ -792,6 +792,77 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     usuário): editei nome e horário de uma turma real, confirmei a
     gravação (query direta no banco), e reverti pro valor original.
 
+=== FASE 16: CRUD de Locais/Salas (Configurações) ===
+[x] Nova seção "Locais / Salas" em `Configuracoes.js`, substituindo a antiga
+    "Salas e QR Codes" (que só listava salas com turma ativa e só permitia
+    criar): agora lista TODAS as salas da escola, com nome editável inline
+    (textarea — o campo `nome` migrado do iDojo embute local+endereço em
+    duas linhas separadas por `\n`, então precisa suportar múltiplas
+    linhas) e botão Remover. QR Code continua só aparecendo pra sala com
+    turma ativa (mesma lógica de antes).
+[x] `salasController.remover`: antes só chamava `sala.destroy()` sem
+    checar nada. Corrigido pra checar `HorarioTurma`/`Aula` vinculados
+    ANTES de apagar e bloquear com 409 se houver — ver INCIDENTE abaixo
+    pra saber por que isso é crítico (não é só validação de UX, é a única
+    coisa que impede um cascade real de apagar histórico de aulas).
+
+=== INCIDENTE 2026-08-20: exclusão de sala apagou histórico de aulas/chamadas ===
+[x] Ao testar o botão Remover da FASE 16, uma exclusão de teste direto no
+    banco (fora da tela) apagou de verdade o local "Associação Copel
+    Curitiba". Descoberta: `horarios_turma.sala_id` e `aulas.sala_id` têm
+    `ON DELETE CASCADE` de verdade no schema do MySQL — isso NUNCA apareceu
+    nos models Sequelize (que não declaram `onDelete` nenhum), então nada
+    no código sugeria esse comportamento. Resultado: apagar uma Sala apaga
+    em cascata os HorarioTurma dela E os Aula dela, que por sua vez
+    (também CASCADE) apagam os Chamada de cada aula — ou seja, apagar 1
+    local pode apagar meses de chamada real de várias turmas de uma vez,
+    sem confirmação, sem aviso, sem log de aplicação nenhum.
+[x] Recuperado via: (1) MySQL bin log está ativo (`log_bin=ON`,
+    retenção 30 dias) e cobria desde 28/07 — decodificado com
+    `mariadb-binlog --base64-output=DECODE-ROWS -v` (o `mysqlbinlog` não
+    vem instalado na imagem `mysql:8.0` atual; o cliente da MariaDB lê o
+    formato do MySQL 8.0 de boa); (2) combinado com `backup_pre_financeiro.sql`
+    (dump de 03/08) pra cobrir o que é anterior à janela do binlog.
+    Reconstruído e validado num container MySQL isolado e descartável
+    ANTES de tocar no banco real (conferência de contagem, integridade de
+    FK, ausência de duplicata) — só depois disso aplicado no banco de
+    produção, com autorização explícita do usuário a cada passo.
+[x] Dois bugs no processo de recuperação, achados DEPOIS da primeira
+    tentativa (o usuário pediu confirmação da presença de 19/08 e isso
+    expôs o primeiro):
+    (1) o parser de binlog parava no primeiro "DELETE FROM salas" que
+    encontrasse — existiam exclusões antigas e legítimas de salas de teste
+    (12-13/08, "TESTE ... (apagar)") que descartavam TUDO que vinha depois
+    (inclusive o incidente de verdade e a aula de 19/08) — corrigido pra
+    só parar na exclusão com o id exato da sala do incidente;
+    (2) o `mysql` client aplicou o SQL de recuperação com charset errado,
+    corrompendo acentos em double-encoding ("Associação" → "AssociaÃ§Ã£o")
+    — corrigido com um UPDATE isolado usando `--default-character-set=utf8mb4`.
+[x] Resultado final, conferido no banco de produção: local + 7 horários +
+    454 aulas + 3.633 chamadas restauradas, zero órfão, zero duplicata.
+[x] Prevenção: `salasController.remover` agora bloqueia a exclusão (409)
+    se a sala tiver qualquer `HorarioTurma`/`Aula` vinculado — ver FASE 16.
+[x] Lição pra sessões futuras: NUNCA rodar `model.destroy()`/DELETE direto
+    contra o banco de produção pra "só testar o comportamento" — testar
+    contra uma cópia isolada (dump + container descartável) primeiro,
+    sempre, mesmo pra uma exclusão que "devia" ser inofensiva.
+
+=== FASE 17: Relatório "Lista de Ex-Alunos" ===
+[x] Novo relatório em `Relatorios.js`/`RelatorioPage.js` (`GET
+    /api/relatorios/alunos-sem-turma`, título de exibição "Lista de
+    Ex-Alunos"): parte da lista de alunos marcados como INATIVOS
+    (`Usuario.ativo=false` — mesma lista do filtro "Inativos" em
+    Alunos.js), excluindo quem, apesar de inativo, ainda tem matrícula
+    ativa numa turma ATIVA (matrícula numa turma desativada não conta
+    como "ter turma"). Ordenado pela presença mais recente em qualquer
+    aula (quem nunca teve presença registrada vai por último). Iteração
+    rápida com o usuário: primeira versão olhava só alunos ATIVOS sem
+    matrícula (deu 0 resultados — a escola já marca `ativo=false` quando o
+    aluno sai, então essa não é a fonte certa de sinal); ajustado pra usar
+    a lista de inativos como base, e pra ignorar turma inativa na hora de
+    contar matrícula. Verificado contra dados reais: 68 alunos, ordenação
+    conferida.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

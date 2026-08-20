@@ -478,7 +478,67 @@ const alunosSemPlano = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
+// GET /api/relatorios/alunos-sem-turma
+// Parte da lista de alunos INATIVOS (Usuario.ativo=false — mesma lista do
+// filtro "Inativos" em Alunos.js), que já é o jeito que a escola sinaliza
+// "esse aluno não está mais treinando" — não é derivado de matrícula.
+// Excluído dela só quem, apesar de estar marcado inativo, ainda tem
+// matrícula ativa numa turma ATIVA (inconsistência de cadastro; matrícula
+// numa turma desativada não conta como "ter turma"). Ordenado pela
+// presença mais recente em qualquer aula (quem sumiu há mais tempo vai pro
+// fim; quem nunca teve presença nenhuma registrada vai por último de
+// todos, depois desses).
+const alunosSemTurma = async (req, res) => {
+  try {
+    const escola_id = req.usuario.escola_id;
+
+    const comMatriculaAtiva = await MatriculaAluno.findAll({
+      where: { ativa: true },
+      attributes: ['aluno_id'],
+      include: [{ model: Turma, attributes: [], where: { ativa: true } }],
+      group: ['aluno_id'],
+    });
+    const idsComMatricula = comMatriculaAtiva.map((m) => m.aluno_id);
+
+    const alunos = await Usuario.findAll({
+      where: {
+        escola_id, role: 'aluno', ativo: false,
+        ...(idsComMatricula.length ? { id: { [Op.notIn]: idsComMatricula } } : {}),
+      },
+      attributes: ['id', 'nome', 'matricula', 'telefone'],
+    });
+
+    const alunoIds = alunos.map((a) => a.id);
+    const ultimaPresencaPorAluno = new Map();
+    if (alunoIds.length) {
+      const chamadas = await Chamada.findAll({
+        where: { aluno_id: { [Op.in]: alunoIds } },
+        include: [{ model: Aula, attributes: ['data'] }],
+      });
+      for (const c of chamadas) {
+        const data = c.Aula.data;
+        const atual = ultimaPresencaPorAluno.get(c.aluno_id);
+        if (!atual || data > atual) ultimaPresencaPorAluno.set(c.aluno_id, data);
+      }
+    }
+
+    const resultado = alunos
+      .map((a) => ({
+        id: a.id, nome: a.nome, matricula: a.matricula, telefone: a.telefone,
+        ultima_presenca: ultimaPresencaPorAluno.get(a.id) || null,
+      }))
+      .sort((a, b) => {
+        if (!a.ultima_presenca && !b.ultima_presenca) return a.nome.localeCompare(b.nome);
+        if (!a.ultima_presenca) return 1;
+        if (!b.ultima_presenca) return -1;
+        return b.ultima_presenca.localeCompare(a.ultima_presenca) || a.nome.localeCompare(b.nome);
+      });
+
+    res.json({ total: resultado.length, alunos: resultado });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
 module.exports = {
   alunosPorGraduacao, alunosPorTurma, fichaCadastral, frequenciaTurma, frequenciaAluno, aniversariantes,
-  frequenciaPercentual, relatorioFinanceiro, alunosSemPlano,
+  frequenciaPercentual, relatorioFinanceiro, alunosSemPlano, alunosSemTurma,
 };

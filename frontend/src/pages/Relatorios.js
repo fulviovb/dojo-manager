@@ -273,6 +273,15 @@ function CardAlunosSemPlano() {
   );
 }
 
+function CardAlunosSemTurma() {
+  return (
+    <Card titulo="Lista de Ex-Alunos">
+      <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Alunos marcados como inativos, ordenados pela presença mais recente.</p>
+      <button style={btnVerde} onClick={() => abrirRelatorio('alunos-sem-turma', {})}>+ Gerar Relatório</button>
+    </Card>
+  );
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export default function Relatorios() {
@@ -300,6 +309,7 @@ export default function Relatorios() {
     { titulo: 'Frequência: % de Presença', node: <CardFrequenciaPercentual artes={artes} turmas={turmas} /> },
     { titulo: 'Financeiro: Pagamentos', node: <CardFinanceiro turmas={turmas} planos={planos} /> },
     { titulo: 'Alunos sem Plano de Assinatura', node: <CardAlunosSemPlano /> },
+    { titulo: 'Lista de Ex-Alunos', node: <CardAlunosSemTurma /> },
   ];
   const filtrados = relatorios.filter(r => r.titulo.toLowerCase().includes(busca.toLowerCase()));
 

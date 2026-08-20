@@ -40,6 +40,8 @@ export default function Configuracoes() {
   const [sortColCriterio, setSortColCriterio] = useState('arte_marcial');
   const [sortDirCriterio, setSortDirCriterio] = useState('asc');
   const [formSala, setFormSala] = useState('');
+  const [salaEditandoId, setSalaEditandoId] = useState(null);
+  const [edicaoSala, setEdicaoSala] = useState('');
   const [formProfessor, setFormProfessor] = useState(formProfessorVazio);
   const [professorEditandoId, setProfessorEditandoId] = useState(null);
   const [edicaoProfessor, setEdicaoProfessor] = useState({ nome: '', email: '' });
@@ -174,6 +176,30 @@ export default function Configuracoes() {
     e.preventDefault(); setErro('');
     try { await axios.post('/salas', { nome: formSala }); setFormSala(''); carregar(); }
     catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
+  };
+
+  const iniciarEdicaoSala = (sala) => {
+    setSalaEditandoId(sala.id);
+    setEdicaoSala(sala.nome);
+    setErro('');
+  };
+
+  const cancelarEdicaoSala = () => setSalaEditandoId(null);
+
+  const salvarEdicaoSala = async (sala) => {
+    setErro('');
+    try {
+      await axios.put(`/salas/${sala.id}`, { nome: edicaoSala });
+      setSalaEditandoId(null);
+      carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar local'); }
+  };
+
+  const removerSala = async (sala) => {
+    if (!window.confirm(`Remover o local "${sala.nome.split('\n')[0]}"? Essa ação não pode ser desfeita.`)) return;
+    setErro('');
+    try { await axios.delete(`/salas/${sala.id}`); carregar(); }
+    catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao remover local'); }
   };
 
   const addProfessor = async (e) => {
@@ -480,43 +506,70 @@ export default function Configuracoes() {
         </table>
       </Secao>
 
-      <Secao titulo="Salas e QR Codes">
+      <Secao titulo="Locais / Salas">
         <form onSubmit={addSala} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <input required placeholder="Nome da sala" value={formSala} onChange={e => setFormSala(e.target.value)} style={{ ...estiloInput, maxWidth: 260 }} />
+          <input required placeholder="Nome do local" value={formSala} onChange={e => setFormSala(e.target.value)} style={{ ...estiloInput, maxWidth: 260 }} />
           <button type="submit" style={estiloBtnPrimario}>Adicionar</button>
         </form>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f5f5f5' }}>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Sala</th>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>URL do Check-in</th>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>QR Code</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Local</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}>Check-in por QR Code</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 13 }}></th>
             </tr>
           </thead>
           <tbody>
-            {salasComTurmaAtiva.length === 0 && <tr><td colSpan={3} style={{ padding: 16, color: '#888', fontSize: 13 }}>Nenhuma sala com turma ativa.</td></tr>}
-            {salasComTurmaAtiva.map(s => (
+            {salas.length === 0 && <tr><td colSpan={3} style={{ padding: 16, color: '#888', fontSize: 13 }}>Nenhum local cadastrado.</td></tr>}
+            {salas.map(s => (
               <tr key={s.id} style={{ borderTop: '1px solid #f0f0f0' }}>
-                <td style={{ padding: '10px 12px' }}>{s.nome}</td>
-                <td style={{ padding: '10px 12px' }}>
-                  <code style={{ fontSize: 12, background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>
-                    {CHECKIN_ONLINE_PUBLIC_URL}/checkin/{s.qr_token}
-                  </code>
+                <td style={{ padding: '10px 12px', maxWidth: 320 }}>
+                  {salaEditandoId === s.id ? (
+                    <textarea rows={2} autoFocus value={edicaoSala} onChange={e => setEdicaoSala(e.target.value)}
+                      style={{ ...estiloInput, resize: 'vertical' }} />
+                  ) : (
+                    <>
+                      <div>{s.nome.split('\n')[0]}</div>
+                      {s.nome.split('\n')[1] && <div style={{ fontSize: 11, color: '#888' }}>{s.nome.split('\n').slice(1).join(' ')}</div>}
+                    </>
+                  )}
                 </td>
                 <td style={{ padding: '10px 12px' }}>
-                  {qrCodes[s.id]
-                    ? (
-                      <img
-                        src={qrCodes[s.id]}
-                        alt={`QR Code — ${s.nome}`}
-                        title="Clique para abrir em tamanho grande e imprimir"
-                        width={56}
-                        height={56}
-                        style={{ cursor: 'pointer', border: '1px solid #eee', borderRadius: 4 }}
-                        onClick={() => abrirQrParaImprimir(s)}
-                      />
-                    )
-                    : <span style={{ fontSize: 12, color: '#888' }}>gerando...</span>}
+                  {salaIdsComTurmaAtiva.has(s.id) ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {qrCodes[s.id]
+                        ? (
+                          <img
+                            src={qrCodes[s.id]}
+                            alt={`QR Code — ${s.nome}`}
+                            title="Clique para abrir em tamanho grande e imprimir"
+                            width={48}
+                            height={48}
+                            style={{ cursor: 'pointer', border: '1px solid #eee', borderRadius: 4 }}
+                            onClick={() => abrirQrParaImprimir(s)}
+                          />
+                        )
+                        : <span style={{ fontSize: 12, color: '#888' }}>gerando...</span>}
+                      <code style={{ fontSize: 11, background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>
+                        {CHECKIN_ONLINE_PUBLIC_URL}/checkin/{s.qr_token}
+                      </code>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 12, color: '#aaa' }}>Nenhuma turma ativa usa este local</span>
+                  )}
+                </td>
+                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                  {salaEditandoId === s.id ? (
+                    <>
+                      <button onClick={() => salvarEdicaoSala(s)} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12, marginRight: 6 }}>Salvar</button>
+                      <button onClick={cancelarEdicaoSala} style={{ background: 'none', border: '1px solid #ddd', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => iniciarEdicaoSala(s)} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: 0, marginRight: 12 }}>Editar</button>
+                      <button onClick={() => removerSala(s)} style={{ background: '#c62828', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>Remover</button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
