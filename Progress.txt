@@ -863,6 +863,32 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     contar matrícula. Verificado contra dados reais: 68 alunos, ordenação
     conferida.
 
+=== FASE 18: Indicador "Valor da Hora" (Dashboard) ===
+[x] Novo card no topo do Dashboard: "Valor da sua hora" = (total a receber
+    no mês corrente, de todas as turmas) ÷ (total de horas de aula no mês
+    corrente). "A receber" conta o valor CHEIO do plano de cada aluno
+    matriculado ativo com assinatura ativa, independente de já ter sido
+    pago ou não (ex: 10 alunos com mensalidade de R$90 = R$900 a receber,
+    mesmo que ninguém tenha pago ainda) — não usa a tabela `Mensalidade`
+    (que só reflete cobranças já geradas), calcula direto de
+    `AssinaturaAluno`+`PlanoMensalidade`. Plano trimestral/semestral/anual
+    é dividido pelos meses que cobre (mesma tabela `MESES_POR_PERIODICIDADE`
+    de `faturaService.js`) — R$300 trimestral vale R$100/mês nessa conta.
+[x] "Horas no mês" não é só `horas_semana * 4` — usa a mesma lógica de
+    `contarAulasNoIntervalo` (já existente, usada no Semáforo de
+    Graduação): conta as ocorrências REAIS de cada dia da semana no mês
+    corrente, descontando feriados nacionais, multiplicado pela duração de
+    cada horário (nova função `horasNoMes`).
+[x] As tabelas "Carga Horária por Turma" e "por Local" ganharam as mesmas
+    colunas: Horas/mês, A receber/mês, Valor/hora — replicando o mesmo
+    cálculo em cada granularidade. Turma que dá aula em mais de um local
+    (raro) tem o valor rateado proporcionalmente às horas de cada local,
+    pra não contar o valor cheio da turma em cada um.
+[x] Verificado contra dados reais: R$ 4.493,40 a receber ÷ 56,5h no mês =
+    R$ 79,53/hora — mesmo total batendo entre as duas tabelas (por turma e
+    por local), conferido também via query direta no banco antes de
+    validar na tela.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

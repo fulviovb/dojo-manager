@@ -10,6 +10,10 @@ function formatarHoras(h) {
   return `${h.toLocaleString('pt-BR', { minimumFractionDigits: h % 1 === 0 ? 0 : 1, maximumFractionDigits: 2 })}h`;
 }
 
+function formatarMoeda(v) {
+  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function Card({ title, value, sub, color }) {
   return (
     <div style={{ background: '#fff', borderRadius: 8, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', minWidth: 160 }}>
@@ -60,6 +64,12 @@ export default function Dashboard({ onVerAluno }) {
         <Card title="Aulas (30 dias)" value={frequencia.aulas_periodo} sub={"Média " + frequencia.media_presentes + " alunos/aula"} />
         <Card title="Mensalidades pendentes" value={financeiro.mensalidades_pendentes} color={financeiro.mensalidades_pendentes > 0 ? '#c62828' : undefined} />
         <Card title="Receita do mês" value={"R$ " + Number(financeiro.receita_mes).toFixed(2)} color="#2e7d32" />
+        {horasPorTurma && (
+          <Card title="Valor da sua hora"
+            value={horasPorTurma.valor_hora_medio !== null ? formatarMoeda(horasPorTurma.valor_hora_medio) + '/h' : '—'}
+            color="#6a1b9a"
+            sub={`${formatarMoeda(horasPorTurma.total_valor_mes)} a receber ÷ ${formatarHoras(horasPorTurma.total_horas_mes)} este mês`} />
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
@@ -128,15 +138,21 @@ export default function Dashboard({ onVerAluno }) {
               <th style={thEstilo}>Professor</th>
               <th style={thEstilo}>Aulas/semana</th>
               <th style={thEstilo}>Horas/semana</th>
+              <th style={thEstilo}>Horas/mês</th>
+              <th style={thEstilo}>A receber/mês</th>
+              <th style={thEstilo}>Valor/hora</th>
             </tr></thead>
             <tbody>
-              {horasPorTurma.turmas.length === 0 && <tr><td colSpan={4} style={tdEstilo}>Nenhuma turma ativa.</td></tr>}
+              {horasPorTurma.turmas.length === 0 && <tr><td colSpan={7} style={tdEstilo}>Nenhuma turma ativa.</td></tr>}
               {horasPorTurma.turmas.map(t => (
                 <tr key={t.id}>
                   <td style={tdEstilo}>{t.nome.split('\n')[0]}</td>
                   <td style={tdEstilo}>{t.professor || '—'}</td>
                   <td style={tdEstilo}>{t.aulas_semana}</td>
                   <td style={tdEstilo}>{formatarHoras(t.horas_semana)}</td>
+                  <td style={tdEstilo}>{formatarHoras(t.horas_mes)}</td>
+                  <td style={tdEstilo}>{formatarMoeda(t.valor_mes)}</td>
+                  <td style={tdEstilo}>{t.valor_hora !== null ? formatarMoeda(t.valor_hora) : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -146,6 +162,9 @@ export default function Dashboard({ onVerAluno }) {
                 <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
                 <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
                 <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarHoras(horasPorTurma.total_horas_semana)}</td>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarHoras(horasPorTurma.total_horas_mes)}</td>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarMoeda(horasPorTurma.total_valor_mes)}</td>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{horasPorTurma.valor_hora_medio !== null ? formatarMoeda(horasPorTurma.valor_hora_medio) : '—'}</td>
               </tr></tfoot>
             )}
           </table>
@@ -161,15 +180,21 @@ export default function Dashboard({ onVerAluno }) {
               <th style={thEstilo}>Turmas</th>
               <th style={thEstilo}>Aulas/semana</th>
               <th style={thEstilo}>Horas/semana</th>
+              <th style={thEstilo}>Horas/mês</th>
+              <th style={thEstilo}>A receber/mês</th>
+              <th style={thEstilo}>Valor/hora</th>
             </tr></thead>
             <tbody>
-              {horasPorLocal.locais.length === 0 && <tr><td colSpan={4} style={tdEstilo}>Nenhum local com turma ativa.</td></tr>}
+              {horasPorLocal.locais.length === 0 && <tr><td colSpan={7} style={tdEstilo}>Nenhum local com turma ativa.</td></tr>}
               {horasPorLocal.locais.map(l => (
                 <tr key={l.id}>
                   <td style={tdEstilo}>{l.nome.split('\n')[0]}</td>
                   <td style={{ ...tdEstilo, color: '#666' }}>{l.turmas.join(', ')}</td>
                   <td style={tdEstilo}>{l.aulas_semana}</td>
                   <td style={tdEstilo}>{formatarHoras(l.horas_semana)}</td>
+                  <td style={tdEstilo}>{formatarHoras(l.horas_mes)}</td>
+                  <td style={tdEstilo}>{formatarMoeda(l.valor_mes)}</td>
+                  <td style={tdEstilo}>{l.valor_hora !== null ? formatarMoeda(l.valor_hora) : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -179,6 +204,9 @@ export default function Dashboard({ onVerAluno }) {
                 <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
                 <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
                 <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarHoras(horasPorLocal.total_horas_semana)}</td>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarHoras(horasPorLocal.total_horas_mes)}</td>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarMoeda(horasPorLocal.total_valor_mes)}</td>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{horasPorLocal.valor_hora_medio !== null ? formatarMoeda(horasPorLocal.valor_hora_medio) : '—'}</td>
               </tr></tfoot>
             )}
           </table>

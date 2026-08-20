@@ -3,9 +3,14 @@ const sequelize = require('../config/database');
 const {
   Escola, Usuario, Turma, Aula, Chamada, MatriculaAluno, Mensalidade, Pagamento,
   CriterioGraduacao, Faixa, GraduacaoAluno, ArteMarcial, HorarioTurma, Sala,
+  AssinaturaAluno, PlanoMensalidade,
 } = require('../models');
 const { dataLocalISO } = require('../utils/data');
 const { feriadosNoIntervalo } = require('../utils/feriados');
+
+// Mesma tabela de `faturaService.js`: quantos meses cada periodicidade cobre
+// — um plano trimestral de R$300 vale R$100/mês, não R$300/mês.
+const MESES_POR_PERIODICIDADE = { mensal: 1, trimestral: 3, semestral: 6, anual: 12 };
 
 // Presenças (Chamada) do aluno em qualquer turma da arte marcial dada, desde
 // o início da graduação atual — mesma base usada em `graduacao` e em
@@ -45,6 +50,39 @@ function contarAulasNoIntervalo(diasDaSemana, inicioISO, fimISO) {
 }
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+
+// Início (inclusive) e fim (exclusive) do mês corrente, no formato usado por
+// `contarAulasNoIntervalo`/`horasNoMes`.
+function intervaloMesAtual() {
+  const hoje = new Date();
+  return {
+    inicio: dataLocalISO(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
+    fim: dataLocalISO(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1)),
+  };
+}
+
+// Soma de horas de aula de verdade entre `inicioISO` (inclusive) e `fimISO`
+// (exclusive), a partir de uma lista de HorarioTurma (dia_semana + duração),
+// descontando feriados nacionais — mesma lógica de `contarAulasNoIntervalo`,
+// mas somando duração em vez de contar ocorrências (turmas com aulas de
+// duração diferente em dias diferentes da semana).
+function horasNoMes(horarios, inicioISO, fimISO) {
+  if (horarios.length === 0 || inicioISO >= fimISO) return 0;
+  const feriados = feriadosNoIntervalo(inicioISO, fimISO);
+  const horasPorDia = new Array(7).fill(0);
+  for (const h of horarios) {
+    horasPorDia[h.dia_semana] += horaParaFracao(h.hora_fim) - horaParaFracao(h.hora_inicio);
+  }
+  let total = 0;
+  const cursor = new Date(inicioISO + 'T00:00:00');
+  const fim = new Date(fimISO + 'T00:00:00');
+  while (cursor < fim) {
+    const iso = dataLocalISO(cursor);
+    if (!feriados.has(iso)) total += horasPorDia[cursor.getDay()];
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return total;
+}
 
 // 'HH:MM:SS' → horas fracionárias (ex: '01:30:00' → 1.5)
 function horaParaFracao(hhmmss) {
@@ -368,10 +406,33 @@ const semaforoGraduacao = async (req, res) => {
 // GET /api/dashboard/horas-por-turma — carga horária semanal (soma dos
 // HorarioTurma) de cada turma ativa. Professor vê só as turmas onde é
 // professor_id (mesma regra de `ehDonoDaTurma`); admin vê todas.
+// Valor mensal equivalente do plano de cada aluno (a partir da assinatura
+// ATIVA — ignora status de pagamento de propósito: "a receber no mês" conta
+// o valor cheio independente de já ter sido pago ou não). Plano trimestral/
+// semestral/anual é dividido pelos meses que cobre — R$300 trimestral vale
+// R$100/mês pra essa conta, não R$300. Aluno com mais de uma assinatura
+// ativa (não devia acontecer, mas o schema não impede) soma as duas.
+async function valorMensalPorAluno(alunoIds) {
+  const mapa = new Map();
+  if (!alunoIds.length) return mapa;
+  const assinaturas = await AssinaturaAluno.findAll({
+    where: { aluno_id: { [Op.in]: alunoIds }, status: 'ativa' },
+    include: [{ model: PlanoMensalidade, as: 'Plano', attributes: ['valor', 'periodicidade'] }],
+  });
+  for (const a of assinaturas) {
+    if (!a.Plano) continue;
+    const meses = MESES_POR_PERIODICIDADE[a.Plano.periodicidade] || 1;
+    const valorMensal = parseFloat(a.Plano.valor) / meses;
+    mapa.set(a.aluno_id, (mapa.get(a.aluno_id) || 0) + valorMensal);
+  }
+  return mapa;
+}
+
 const horasPorTurma = async (req, res) => {
   try {
     const escola_id = req.usuario.escola_id;
     const souProfessor = req.usuario.role === 'professor';
+    const { inicio: inicioMes, fim: fimMes } = intervaloMesAtual();
 
     const turmas = await Turma.findAll({
       where: { escola_id, ativa: true, ...(souProfessor ? { professor_id: req.usuario.id } : {}) },
@@ -381,24 +442,44 @@ const horasPorTurma = async (req, res) => {
       ],
     });
 
+    const turmaIds = turmas.map((t) => t.id);
+    const matriculas = turmaIds.length
+      ? await MatriculaAluno.findAll({ where: { turma_id: { [Op.in]: turmaIds }, ativa: true }, attributes: ['turma_id', 'aluno_id'] })
+      : [];
+    const alunoIdsPorTurma = new Map();
+    for (const m of matriculas) {
+      if (!alunoIdsPorTurma.has(m.turma_id)) alunoIdsPorTurma.set(m.turma_id, []);
+      alunoIdsPorTurma.get(m.turma_id).push(m.aluno_id);
+    }
+    const valorPorAluno = await valorMensalPorAluno([...new Set(matriculas.map((m) => m.aluno_id))]);
+
     const linhas = turmas.map((t) => {
       const horas_semana = t.HorarioTurmas.reduce(
         (soma, h) => soma + (horaParaFracao(h.hora_fim) - horaParaFracao(h.hora_inicio)),
         0
       );
+      const horas_mes = horasNoMes(t.HorarioTurmas, inicioMes, fimMes);
+      const alunoIds = alunoIdsPorTurma.get(t.id) || [];
+      const valor_mes = alunoIds.reduce((soma, id) => soma + (valorPorAluno.get(id) || 0), 0);
       return {
         id: t.id,
         nome: t.nome,
         professor: t.Professor?.nome || null,
         aulas_semana: t.HorarioTurmas.length,
         horas_semana: Math.round(horas_semana * 100) / 100,
+        horas_mes: Math.round(horas_mes * 100) / 100,
+        valor_mes: Math.round(valor_mes * 100) / 100,
+        valor_hora: horas_mes > 0 ? Math.round((valor_mes / horas_mes) * 100) / 100 : null,
       };
     });
 
     linhas.sort((a, b) => b.horas_semana - a.horas_semana || a.nome.localeCompare(b.nome));
     const total_horas_semana = Math.round(linhas.reduce((s, l) => s + l.horas_semana, 0) * 100) / 100;
+    const total_horas_mes = Math.round(linhas.reduce((s, l) => s + l.horas_mes, 0) * 100) / 100;
+    const total_valor_mes = Math.round(linhas.reduce((s, l) => s + l.valor_mes, 0) * 100) / 100;
+    const valor_hora_medio = total_horas_mes > 0 ? Math.round((total_valor_mes / total_horas_mes) * 100) / 100 : null;
 
-    res.json({ turmas: linhas, total_horas_semana });
+    res.json({ turmas: linhas, total_horas_semana, total_horas_mes, total_valor_mes, valor_hora_medio });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
@@ -410,6 +491,7 @@ const horasPorLocal = async (req, res) => {
   try {
     const escola_id = req.usuario.escola_id;
     const souProfessor = req.usuario.role === 'professor';
+    const { inicio: inicioMes, fim: fimMes } = intervaloMesAtual();
 
     const horarios = await HorarioTurma.findAll({
       attributes: ['dia_semana', 'hora_inicio', 'hora_fim'],
@@ -422,14 +504,49 @@ const horasPorLocal = async (req, res) => {
       ],
     });
 
+    const turmaIds = [...new Set(horarios.map((h) => h.Turma.id))];
+    const matriculas = turmaIds.length
+      ? await MatriculaAluno.findAll({ where: { turma_id: { [Op.in]: turmaIds }, ativa: true }, attributes: ['turma_id', 'aluno_id'] })
+      : [];
+    const alunoIdsPorTurma = new Map();
+    for (const m of matriculas) {
+      if (!alunoIdsPorTurma.has(m.turma_id)) alunoIdsPorTurma.set(m.turma_id, []);
+      alunoIdsPorTurma.get(m.turma_id).push(m.aluno_id);
+    }
+    const valorPorAluno = await valorMensalPorAluno([...new Set(matriculas.map((m) => m.aluno_id))]);
+
+    // valor mensal de cada turma (mesma regra de `horasPorTurma`) e sua
+    // carga horária mensal total, pra ratear o valor entre os locais dela
+    // proporcionalmente às horas de cada um (turma que dá aula em mais de
+    // um local — raro, mas o schema permite — não deveria contar o valor
+    // cheio em cada local).
+    const horariosPorTurma = new Map();
+    for (const h of horarios) {
+      if (!horariosPorTurma.has(h.Turma.id)) horariosPorTurma.set(h.Turma.id, []);
+      horariosPorTurma.get(h.Turma.id).push(h);
+    }
+    const valorMesPorTurma = new Map();
+    const horasMesPorTurma = new Map();
+    for (const [turmaId, hs] of horariosPorTurma) {
+      const alunoIds = alunoIdsPorTurma.get(turmaId) || [];
+      valorMesPorTurma.set(turmaId, alunoIds.reduce((soma, id) => soma + (valorPorAluno.get(id) || 0), 0));
+      horasMesPorTurma.set(turmaId, horasNoMes(hs, inicioMes, fimMes));
+    }
+
     const porLocal = new Map();
     for (const h of horarios) {
       const sala = h.Sala;
-      if (!porLocal.has(sala.id)) porLocal.set(sala.id, { id: sala.id, nome: sala.nome, turmas: new Set(), aulas_semana: 0, horas_semana: 0 });
+      if (!porLocal.has(sala.id)) porLocal.set(sala.id, { id: sala.id, nome: sala.nome, turmas: new Set(), aulas_semana: 0, horas_semana: 0, horas_mes: 0, valor_mes: 0 });
       const grupo = porLocal.get(sala.id);
       grupo.turmas.add(h.Turma.nome.split('\n')[0]);
       grupo.aulas_semana += 1;
       grupo.horas_semana += horaParaFracao(h.hora_fim) - horaParaFracao(h.hora_inicio);
+
+      const horasMesDesseHorario = horasNoMes([h], inicioMes, fimMes);
+      grupo.horas_mes += horasMesDesseHorario;
+      const horasMesTurmaTotal = horasMesPorTurma.get(h.Turma.id) || 0;
+      const fracao = horasMesTurmaTotal > 0 ? horasMesDesseHorario / horasMesTurmaTotal : 0;
+      grupo.valor_mes += (valorMesPorTurma.get(h.Turma.id) || 0) * fracao;
     }
 
     const linhas = [...porLocal.values()].map((g) => ({
@@ -438,12 +555,18 @@ const horasPorLocal = async (req, res) => {
       turmas: [...g.turmas],
       aulas_semana: g.aulas_semana,
       horas_semana: Math.round(g.horas_semana * 100) / 100,
+      horas_mes: Math.round(g.horas_mes * 100) / 100,
+      valor_mes: Math.round(g.valor_mes * 100) / 100,
+      valor_hora: g.horas_mes > 0 ? Math.round((g.valor_mes / g.horas_mes) * 100) / 100 : null,
     }));
 
     linhas.sort((a, b) => b.horas_semana - a.horas_semana || a.nome.localeCompare(b.nome));
     const total_horas_semana = Math.round(linhas.reduce((s, l) => s + l.horas_semana, 0) * 100) / 100;
+    const total_horas_mes = Math.round(linhas.reduce((s, l) => s + l.horas_mes, 0) * 100) / 100;
+    const total_valor_mes = Math.round(linhas.reduce((s, l) => s + l.valor_mes, 0) * 100) / 100;
+    const valor_hora_medio = total_horas_mes > 0 ? Math.round((total_valor_mes / total_horas_mes) * 100) / 100 : null;
 
-    res.json({ locais: linhas, total_horas_semana });
+    res.json({ locais: linhas, total_horas_semana, total_horas_mes, total_valor_mes, valor_hora_medio });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
