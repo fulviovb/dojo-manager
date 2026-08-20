@@ -51,6 +51,10 @@ const atualizar = async (req, res) => {
     const turma = await Turma.findOne({ where: { id: req.params.id, escola_id: req.usuario.escola_id } });
     if (!turma) return res.status(404).json({ erro: 'Turma não encontrada' });
     if (!ehDonoDaTurma(req.usuario, turma)) return res.status(403).json({ erro: 'Acesso negado a esta turma' });
+    if (req.body.nome && req.body.nome !== turma.nome) {
+      const existente = await Turma.findOne({ where: { escola_id: req.usuario.escola_id, nome: req.body.nome } });
+      if (existente) return res.status(409).json({ erro: 'Já existe uma turma com esse nome nesta escola' });
+    }
     await turma.update(req.body);
     res.json(turma);
   } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }

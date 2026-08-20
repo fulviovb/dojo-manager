@@ -769,6 +769,29 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     3 turmas, 6h/semana). Mesmo total geral da tabela por turma (11h),
     só reagrupado; conferido via query direta e visualmente no navegador.
 
+=== FASE 15: Edição de Nome e Horários na tela de Detalhe da Turma ===
+[x] `TurmaDetalhe.js`: nome da turma agora é editável inline (botão
+    "Editar" no cabeçalho, mesmo padrão do campo Professor) — só a
+    primeira linha do `nome` (título de exibição) é editada; a segunda
+    linha (local/descrição migrada do iDojo, embutida no mesmo campo
+    separada por `\n`) é preservada ao salvar.
+[x] Novo card "Horários de Treino" substitui a linha estática "Dias: ...":
+    lista cada `HorarioTurma` com Editar/Remover por linha e um "+ Novo"
+    pra adicionar, reaproveitando o mesmo modal (dia da semana, início,
+    fim, sala) já usado em `Turmas.js` — endpoints `POST/PUT/DELETE
+    /api/horarios` já existiam, sem mudança de contrato.
+[x] Hardening aproveitando a mudança: `turmasController.atualizar` passou
+    a rejeitar nome duplicado na mesma escola (409, mesma checagem do
+    `criar`) — antes um update pra nome já existente estourava exceção de
+    constraint não tratada (500 genérico). `horariosController` passou a
+    validar que a turma do horário pertence à escola do usuário logado
+    em criar/atualizar/remover — antes não havia esse filtro (rotas são
+    admin-only, mas sem isolamento por escola_id, então um admin
+    poderia mexer no horário de turma de outra escola sabendo o id).
+[x] Testado ponta-a-ponta no navegador (Chrome MCP, sessão logada do
+    usuário): editei nome e horário de uma turma real, confirmei a
+    gravação (query direta no banco), e reverti pro valor original.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

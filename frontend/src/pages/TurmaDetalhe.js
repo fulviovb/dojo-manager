@@ -51,6 +51,14 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
   const [editandoProfessor, setEditandoProfessor] = useState(false);
   const [professorEscolhido, setProfessorEscolhido] = useState('');
   const [erro, setErro] = useState('');
+  const [salas, setSalas] = useState([]);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [nomeEditado, setNomeEditado] = useState('');
+  const [erroNome, setErroNome] = useState('');
+  const [modalHorario, setModalHorario] = useState(false);
+  const [horarioEditando, setHorarioEditando] = useState(null); // null = novo horário
+  const [formHorario, setFormHorario] = useState({ dia_semana: 1, hora_inicio: '18:00', hora_fim: '19:30', sala_id: '' });
+  const [erroHorario, setErroHorario] = useState('');
 
   const carregar = () => {
     axios.get(`/turmas/${turmaId}`).then(r => setTurma(r.data));
@@ -61,6 +69,7 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
   useEffect(() => { axios.get('/usuarios?role=aluno').then(r => setAlunosAtivos(r.data)); }, []);
   useEffect(() => { axios.get('/usuarios?role=professor').then(r => setProfessores(r.data)); }, []);
   useEffect(() => { axios.get('/graduacoes').then(r => setGraduacoesEscola(r.data)); }, []);
+  useEffect(() => { axios.get('/salas').then(r => setSalas(r.data)); }, []);
   useEffect(() => {
     if (turma?.arte_marcial_id) axios.get(`/faixas?arte_marcial_id=${turma.arte_marcial_id}`).then(r => setFaixasArte(r.data));
   }, [turma?.arte_marcial_id]);
@@ -128,6 +137,58 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
 
   const [tituloTurma, ...restoNome] = turma.nome.split('\n');
   const subtituloTurma = restoNome.join(' ').trim();
+
+  const abrirEdicaoNome = () => {
+    setNomeEditado(tituloTurma);
+    setErroNome('');
+    setEditandoNome(true);
+  };
+
+  const salvarNome = async () => {
+    const novoTitulo = nomeEditado.trim();
+    if (!novoTitulo) return setErroNome('Nome não pode ficar em branco');
+    setErroNome('');
+    try {
+      const novoNomeCompleto = subtituloTurma ? `${novoTitulo}\n${subtituloTurma}` : novoTitulo;
+      await axios.put(`/turmas/${turmaId}`, { nome: novoNomeCompleto });
+      setEditandoNome(false);
+      carregar();
+    } catch (ex) { setErroNome(ex.response?.data?.erro || 'Erro ao salvar nome'); }
+  };
+
+  const abrirModalNovoHorario = () => {
+    setHorarioEditando(null);
+    setFormHorario({ dia_semana: 1, hora_inicio: '18:00', hora_fim: '19:30', sala_id: salas[0]?.id || '' });
+    setErroHorario('');
+    setModalHorario(true);
+  };
+
+  const abrirModalEdicaoHorario = (h) => {
+    setHorarioEditando(h);
+    setFormHorario({ dia_semana: h.dia_semana, hora_inicio: h.hora_inicio.slice(0, 5), hora_fim: h.hora_fim.slice(0, 5), sala_id: h.sala_id });
+    setErroHorario('');
+    setModalHorario(true);
+  };
+
+  const salvarHorario = async (e) => {
+    e.preventDefault();
+    setErroHorario('');
+    const dados = { ...formHorario, hora_inicio: formHorario.hora_inicio + ':00', hora_fim: formHorario.hora_fim + ':00' };
+    try {
+      if (horarioEditando) {
+        await axios.put(`/horarios/${horarioEditando.id}`, dados);
+      } else {
+        await axios.post('/horarios', { ...dados, turma_id: turmaId });
+      }
+      setModalHorario(false);
+      carregar();
+    } catch (ex) { setErroHorario(ex.response?.data?.erro || 'Erro ao salvar horário'); }
+  };
+
+  const removerHorario = async (h) => {
+    await axios.delete(`/horarios/${h.id}`);
+    carregar();
+  };
   const primeiroHorario = turma.HorarioTurmas?.[0];
 
   return (
@@ -135,7 +196,20 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
       <button onClick={onVoltar} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 13, padding: 0, marginBottom: 10 }}>
         ← Voltar para Turmas
       </button>
-      <h2 style={{ margin: '0 0 2px', fontSize: 20 }}>{tituloTurma}</h2>
+      {editandoNome ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+          <input value={nomeEditado} onChange={e => setNomeEditado(e.target.value)} autoFocus
+            style={{ fontSize: 20, padding: '4px 8px', border: '1px solid #ddd', borderRadius: 4, flex: 1, maxWidth: 480 }} />
+          <button onClick={salvarNome} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>Salvar</button>
+          <button onClick={() => setEditandoNome(false)} style={{ background: 'none', border: '1px solid #ddd', padding: '6px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+          <h2 style={{ margin: 0, fontSize: 20 }}>{tituloTurma}</h2>
+          <button onClick={abrirEdicaoNome} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: 0 }}>Editar</button>
+        </div>
+      )}
+      {erroNome && <p style={{ color: 'red', fontSize: 13, margin: '2px 0' }}>{erroNome}</p>}
       {subtituloTurma && <div style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>{subtituloTurma}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16, alignItems: 'start' }}>
@@ -189,9 +263,6 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
           <div style={{ ...cardEstilo, padding: 16 }}>
             <strong style={{ fontSize: 14, display: 'block', marginBottom: 10 }}>Informações Gerais</strong>
             <div style={{ fontSize: 13, color: '#555', lineHeight: 1.9 }}>
-              {turma.HorarioTurmas?.length > 0 && (
-                <div>Dias: {turma.HorarioTurmas.map(h => `${DIAS[h.dia_semana]} ${h.hora_inicio.slice(0, 5)}–${h.hora_fim.slice(0, 5)}`).join(' · ')}</div>
-              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {editandoProfessor ? (
                   <>
@@ -217,6 +288,40 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
             <div style={{ marginTop: 10, fontSize: 12, color: '#888' }}>
               {matriculas.length} aluno{matriculas.length !== 1 ? 's' : ''} matriculado{matriculas.length !== 1 ? 's' : ''}
             </div>
+          </div>
+
+          <div style={cardEstilo}>
+            <div style={cabecalhoCard}>
+              <strong style={{ fontSize: 14 }}>Horários de Treino</strong>
+              <button onClick={abrirModalNovoHorario} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                + Novo
+              </button>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                {(!turma.HorarioTurmas || turma.HorarioTurmas.length === 0) && (
+                  <tr><td style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>Nenhum horário cadastrado.</td></tr>
+                )}
+                {turma.HorarioTurmas?.map(h => (
+                  <tr key={h.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '10px 16px', fontSize: 13 }}>
+                      {DIAS[h.dia_semana]} {h.hora_inicio.slice(0, 5)}–{h.hora_fim.slice(0, 5)}
+                      <div style={{ color: '#888', fontSize: 12 }}>{h.Sala?.nome?.split('\n')[0]}</div>
+                    </td>
+                    <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button onClick={() => abrirModalEdicaoHorario(h)}
+                        style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: '0 8px' }}>
+                        Editar
+                      </button>
+                      <button onClick={() => removerHorario(h)}
+                        style={{ background: '#c62828', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <div style={cardEstilo}>
@@ -280,6 +385,52 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
               <button onClick={() => setModalNovo(false)} style={{ padding: '8px 16px', borderRadius: 4, border: '1px solid #ddd', cursor: 'pointer', background: '#fff' }}>Cancelar</button>
               <button onClick={matricular} style={{ background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }}>Matricular</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: novo/editar horário */}
+      {modalHorario && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: 8, padding: 24, width: 420, maxWidth: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16 }}>{horarioEditando ? 'Editar horário' : 'Novo horário'}</h3>
+              <button onClick={() => setModalHorario(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>×</button>
+            </div>
+            <form onSubmit={salvarHorario}>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Dia da Semana</label>
+                <select value={formHorario.dia_semana} onChange={e => setFormHorario(p => ({ ...p, dia_semana: Number(e.target.value) }))}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, boxSizing: 'border-box' }}>
+                  {DIAS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Início</label>
+                  <input type="time" required value={formHorario.hora_inicio} onChange={e => setFormHorario(p => ({ ...p, hora_inicio: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Fim</label>
+                  <input type="time" required value={formHorario.hora_fim} onChange={e => setFormHorario(p => ({ ...p, hora_fim: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Sala</label>
+                <select required value={formHorario.sala_id} onChange={e => setFormHorario(p => ({ ...p, sala_id: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, boxSizing: 'border-box' }}>
+                  <option value="">Selecione...</option>
+                  {salas.map(s => <option key={s.id} value={s.id}>{s.nome.split('\n')[0]}</option>)}
+                </select>
+              </div>
+              {erroHorario && <p style={{ color: 'red', fontSize: 13 }}>{erroHorario}</p>}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+                <button type="button" onClick={() => setModalHorario(false)} style={{ padding: '8px 16px', borderRadius: 4, border: '1px solid #ddd', cursor: 'pointer', background: '#fff' }}>Cancelar</button>
+                <button type="submit" style={{ background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }}>Salvar</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
