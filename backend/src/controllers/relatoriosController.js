@@ -451,7 +451,34 @@ const relatorioFinanceiro = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
+// GET /api/relatorios/alunos-sem-plano
+// Alunos ativos que nunca tiveram nenhuma AssinaturaAluno (qualquer status) —
+// não é "sem plano ativo", é sem NENHUM registro de assinatura.
+const alunosSemPlano = async (req, res) => {
+  try {
+    const escola_id = req.usuario.escola_id;
+
+    const comAssinatura = await AssinaturaAluno.findAll({
+      where: { escola_id },
+      attributes: ['aluno_id'],
+      group: ['aluno_id'],
+    });
+    const idsComAssinatura = comAssinatura.map((a) => a.aluno_id);
+
+    const alunos = await Usuario.findAll({
+      where: {
+        escola_id, role: 'aluno', ativo: true,
+        ...(idsComAssinatura.length ? { id: { [Op.notIn]: idsComAssinatura } } : {}),
+      },
+      attributes: ['id', 'nome', 'matricula', 'telefone', 'data_ingresso'],
+      order: [['nome', 'ASC']],
+    });
+
+    res.json({ total: alunos.length, alunos: alunos.map((a) => a.toJSON()) });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
 module.exports = {
   alunosPorGraduacao, alunosPorTurma, fichaCadastral, frequenciaTurma, frequenciaAluno, aniversariantes,
-  frequenciaPercentual, relatorioFinanceiro,
+  frequenciaPercentual, relatorioFinanceiro, alunosSemPlano,
 };

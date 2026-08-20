@@ -264,6 +264,15 @@ function CardFinanceiro({ turmas, planos }) {
   );
 }
 
+function CardAlunosSemPlano() {
+  return (
+    <Card titulo="Alunos sem Plano de Assinatura">
+      <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Alunos ativos que nunca tiveram nenhum plano de assinatura cadastrado.</p>
+      <button style={btnVerde} onClick={() => abrirRelatorio('alunos-sem-plano', {})}>+ Gerar Relatório</button>
+    </Card>
+  );
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export default function Relatorios() {
@@ -290,6 +299,7 @@ export default function Relatorios() {
     { titulo: 'Frequência: Presença Mínima', node: <CardPresencaMinima artes={artes} /> },
     { titulo: 'Frequência: % de Presença', node: <CardFrequenciaPercentual artes={artes} turmas={turmas} /> },
     { titulo: 'Financeiro: Pagamentos', node: <CardFinanceiro turmas={turmas} planos={planos} /> },
+    { titulo: 'Alunos sem Plano de Assinatura', node: <CardAlunosSemPlano /> },
   ];
   const filtrados = relatorios.filter(r => r.titulo.toLowerCase().includes(busca.toLowerCase()));
 

@@ -16,6 +16,7 @@ const TITULOS = {
   'presenca-minima': 'Frequência: Presença Mínima',
   'frequencia-percentual': 'Frequência: % de Presença',
   'financeiro': 'Financeiro: Pagamentos',
+  'alunos-sem-plano': 'Alunos sem Plano de Assinatura',
 };
 
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -414,6 +415,33 @@ function RelatorioFinanceiro({ dados }) {
   );
 }
 
+function AlunosSemPlano({ dados }) {
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: '#555', marginTop: 0 }}>{dados.total} aluno{dados.total !== 1 ? 's' : ''} ativo{dados.total !== 1 ? 's' : ''} sem nenhum plano de assinatura cadastrado.</p>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead><tr>
+          <th style={thEstilo}>Nome</th>
+          <th style={thEstilo}>Matrícula</th>
+          <th style={thEstilo}>Telefone</th>
+          <th style={thEstilo}>Data de Ingresso</th>
+        </tr></thead>
+        <tbody>
+          {dados.alunos.length === 0 && <tr><td colSpan={4} style={tdEstilo}>Todos os alunos ativos têm ao menos um plano cadastrado.</td></tr>}
+          {dados.alunos.map((a) => (
+            <tr key={a.id}>
+              <td style={tdEstilo}>{a.nome}</td>
+              <td style={tdEstilo}>{a.matricula || '—'}</td>
+              <td style={tdEstilo}>{a.telefone || '—'}</td>
+              <td style={tdEstilo}>{formatData(a.data_ingresso)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 const RENDERIZADORES = {
   'alunos-por-graduacao': TabelaAlunosPorGraduacao,
   'alunos-por-turma': TabelaAlunosPorTurma,
@@ -424,6 +452,7 @@ const RENDERIZADORES = {
   'presenca-minima': PresencaMinima,
   'frequencia-percentual': FrequenciaPercentual,
   'financeiro': RelatorioFinanceiro,
+  'alunos-sem-plano': AlunosSemPlano,
 };
 
 // Página standalone (mesmo padrão de ReciboPage.js): sem sidebar, aberta em

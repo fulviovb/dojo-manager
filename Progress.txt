@@ -742,6 +742,18 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     `karatevilasboas.duckdns.org` de ponta a ponta (QR → satélite em
     produção → check-in → reconciliação → Chamada no banco).
 
+=== FASE 13: Relatório "Alunos sem Plano de Assinatura" ===
+[x] Novo relatório em `Relatorios.js`/`RelatorioPage.js` (`GET
+    /api/relatorios/alunos-sem-plano`): lista alunos ativos que nunca
+    tiveram NENHUM registro de `AssinaturaAluno` (qualquer status, não só
+    "sem assinatura ativa") — busca os `aluno_id` distintos em
+    AssinaturaAluno da escola e filtra os alunos ativos fora desse
+    conjunto (`Op.notIn`). Sem filtro na tela (lista todos de uma vez,
+    igual Aniversariantes). Verificado contra dados reais: 6 alunos
+    ativos sem nenhuma assinatura, conferido individualmente (0
+    AssinaturaAluno pro primeiro da lista) e testado ponta-a-ponta no
+    navegador (Chrome MCP, sessão logada do usuário).
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:
