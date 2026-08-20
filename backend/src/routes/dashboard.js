@@ -7,5 +7,6 @@ router.get('/semaforo', autenticar, ctrl.semaforo);
 router.get('/graduacao', autenticar, ctrl.graduacao);
 router.get('/semaforo-graduacao', autenticar, ctrl.semaforoGraduacao);
 router.get('/horas-por-turma', autenticar, ctrl.horasPorTurma);
+router.get('/horas-por-local', autenticar, ctrl.horasPorLocal);
 
 module.exports = router;

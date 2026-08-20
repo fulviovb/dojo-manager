@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const {
   Escola, Usuario, Turma, Aula, Chamada, MatriculaAluno, Mensalidade, Pagamento,
-  CriterioGraduacao, Faixa, GraduacaoAluno, ArteMarcial, HorarioTurma,
+  CriterioGraduacao, Faixa, GraduacaoAluno, ArteMarcial, HorarioTurma, Sala,
 } = require('../models');
 const { dataLocalISO } = require('../utils/data');
 const { feriadosNoIntervalo } = require('../utils/feriados');
@@ -402,4 +402,49 @@ const horasPorTurma = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-module.exports = { resumo, semaforo, graduacao, semaforoGraduacao, horasPorTurma };
+// GET /api/dashboard/horas-por-local — mesma carga horária semanal de
+// `horasPorTurma`, mas agrupada por Sala (local físico) em vez de por
+// turma — uma sala pode receber várias turmas, então soma-se o
+// `HorarioTurma` de todas elas. Mesma regra de visibilidade por role.
+const horasPorLocal = async (req, res) => {
+  try {
+    const escola_id = req.usuario.escola_id;
+    const souProfessor = req.usuario.role === 'professor';
+
+    const horarios = await HorarioTurma.findAll({
+      attributes: ['dia_semana', 'hora_inicio', 'hora_fim'],
+      include: [
+        {
+          model: Turma, attributes: ['id', 'nome'],
+          where: { escola_id, ativa: true, ...(souProfessor ? { professor_id: req.usuario.id } : {}) },
+        },
+        { model: Sala, attributes: ['id', 'nome'] },
+      ],
+    });
+
+    const porLocal = new Map();
+    for (const h of horarios) {
+      const sala = h.Sala;
+      if (!porLocal.has(sala.id)) porLocal.set(sala.id, { id: sala.id, nome: sala.nome, turmas: new Set(), aulas_semana: 0, horas_semana: 0 });
+      const grupo = porLocal.get(sala.id);
+      grupo.turmas.add(h.Turma.nome.split('\n')[0]);
+      grupo.aulas_semana += 1;
+      grupo.horas_semana += horaParaFracao(h.hora_fim) - horaParaFracao(h.hora_inicio);
+    }
+
+    const linhas = [...porLocal.values()].map((g) => ({
+      id: g.id,
+      nome: g.nome,
+      turmas: [...g.turmas],
+      aulas_semana: g.aulas_semana,
+      horas_semana: Math.round(g.horas_semana * 100) / 100,
+    }));
+
+    linhas.sort((a, b) => b.horas_semana - a.horas_semana || a.nome.localeCompare(b.nome));
+    const total_horas_semana = Math.round(linhas.reduce((s, l) => s + l.horas_semana, 0) * 100) / 100;
+
+    res.json({ locais: linhas, total_horas_semana });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+module.exports = { resumo, semaforo, graduacao, semaforoGraduacao, horasPorTurma, horasPorLocal };

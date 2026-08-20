@@ -31,6 +31,7 @@ export default function Dashboard({ onVerAluno }) {
   const [artes, setArtes] = useState([]);
   const [filtroArte, setFiltroArte] = useState('');
   const [horasPorTurma, setHorasPorTurma] = useState(null);
+  const [horasPorLocal, setHorasPorLocal] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -40,7 +41,8 @@ export default function Dashboard({ onVerAluno }) {
       axios.get('/dashboard/semaforo-graduacao').then(r => r.data.alertas),
       axios.get('/artes-marciais').then(r => r.data),
       axios.get('/dashboard/horas-por-turma').then(r => r.data),
-    ]).then(([r, s, sg, a, h]) => { setResumo(r); setSemaforo(s); setSemaforoGraduacao(sg); setArtes(a); setHorasPorTurma(h); })
+      axios.get('/dashboard/horas-por-local').then(r => r.data),
+    ]).then(([r, s, sg, a, h, hl]) => { setResumo(r); setSemaforo(s); setSemaforoGraduacao(sg); setArtes(a); setHorasPorTurma(h); setHorasPorLocal(hl); })
       .catch(() => {})
       .finally(() => setCarregando(false));
   }, []);
@@ -144,6 +146,39 @@ export default function Dashboard({ onVerAluno }) {
                 <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
                 <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
                 <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarHoras(horasPorTurma.total_horas_semana)}</td>
+              </tr></tfoot>
+            )}
+          </table>
+        </div>
+      )}
+
+      {horasPorLocal && (
+        <div style={{ background: '#fff', borderRadius: 8, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginTop: 16 }}>
+          <h3 style={{ marginTop: 0, marginBottom: 16 }}>Carga Horária Semanal por Local</h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={thEstilo}>Local</th>
+              <th style={thEstilo}>Turmas</th>
+              <th style={thEstilo}>Aulas/semana</th>
+              <th style={thEstilo}>Horas/semana</th>
+            </tr></thead>
+            <tbody>
+              {horasPorLocal.locais.length === 0 && <tr><td colSpan={4} style={tdEstilo}>Nenhum local com turma ativa.</td></tr>}
+              {horasPorLocal.locais.map(l => (
+                <tr key={l.id}>
+                  <td style={tdEstilo}>{l.nome.split('\n')[0]}</td>
+                  <td style={{ ...tdEstilo, color: '#666' }}>{l.turmas.join(', ')}</td>
+                  <td style={tdEstilo}>{l.aulas_semana}</td>
+                  <td style={tdEstilo}>{formatarHoras(l.horas_semana)}</td>
+                </tr>
+              ))}
+            </tbody>
+            {horasPorLocal.locais.length > 0 && (
+              <tfoot><tr>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>Total</td>
+                <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
+                <td style={{ ...tdEstilo, borderBottom: 'none' }}></td>
+                <td style={{ ...tdEstilo, fontWeight: 700, borderBottom: 'none' }}>{formatarHoras(horasPorLocal.total_horas_semana)}</td>
               </tr></tfoot>
             )}
           </table>

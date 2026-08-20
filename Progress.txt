@@ -763,6 +763,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Verificado contra dados reais via query direta (6 turmas ativas, 11h
     somadas) e conferido visualmente no navegador (Chrome MCP) batendo
     com o cálculo manual.
+[x] Mesma tabela agrupada por LOCAL (`GET /api/dashboard/horas-por-local`):
+    soma o `HorarioTurma` de todas as turmas que caem na mesma Sala — uma
+    sala pode receber várias turmas (ex: "Associação Copel Curitiba" reúne
+    3 turmas, 6h/semana). Mesmo total geral da tabela por turma (11h),
+    só reagrupado; conferido via query direta e visualmente no navegador.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
