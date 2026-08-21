@@ -914,6 +914,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     `financeiro`), evitando duplicar o JSX das duas tabelas em cada aba.
 [x] Verificado contra dados reais e visualmente no navegador (Chrome MCP)
     nas duas abas.
+[x] Aba Financeiro ganhou a lista completa de "Alunos sem Plano de
+    Assinatura" (não só a contagem do card) — reaproveita
+    `GET /relatorios/alunos-sem-plano`, mesma tabela do relatório
+    (Nome/Matrícula/Telefone/Data de Ingresso), nome clicável abre o
+    perfil do aluno (`onVerAluno`).
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

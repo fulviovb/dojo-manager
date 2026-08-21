@@ -86,6 +86,7 @@ export default function Dashboard({ onVerAluno }) {
   const [horasPorTurma, setHorasPorTurma] = useState(null);
   const [horasPorLocal, setHorasPorLocal] = useState(null);
   const [aniversariantes, setAniversariantes] = useState([]);
+  const [alunosSemPlano, setAlunosSemPlano] = useState([]);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -98,9 +99,10 @@ export default function Dashboard({ onVerAluno }) {
       axios.get('/dashboard/horas-por-turma').then(r => r.data),
       axios.get('/dashboard/horas-por-local').then(r => r.data),
       axios.get(`/relatorios/aniversariantes?mes=${mesAtual}`).then(r => r.data.aniversariantes),
-    ]).then(([r, s, sg, a, h, hl, an]) => {
+      axios.get('/relatorios/alunos-sem-plano').then(r => r.data.alunos),
+    ]).then(([r, s, sg, a, h, hl, an, asp]) => {
       setResumo(r); setSemaforo(s); setSemaforoGraduacao(sg); setArtes(a);
-      setHorasPorTurma(h); setHorasPorLocal(hl); setAniversariantes(an);
+      setHorasPorTurma(h); setHorasPorLocal(hl); setAniversariantes(an); setAlunosSemPlano(asp);
     })
       .catch(() => {})
       .finally(() => setCarregando(false));
@@ -231,6 +233,37 @@ export default function Dashboard({ onVerAluno }) {
             )}
             <Card title="Alunos sem plano" value={financeiro.alunos_sem_plano} color={financeiro.alunos_sem_plano > 0 ? '#ef6c00' : undefined}
               sub="Ativos sem nenhuma assinatura cadastrada" />
+          </div>
+
+          <div style={cardBranco}>
+            <h3 style={{ marginTop: 0, marginBottom: 16 }}>Alunos sem Plano de Assinatura</h3>
+            {alunosSemPlano.length === 0 ? (
+              <p style={{ color: '#888' }}>✅ Todos os alunos ativos têm plano cadastrado.</p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr>
+                  <th style={thEstilo}>Nome</th>
+                  <th style={thEstilo}>Matrícula</th>
+                  <th style={thEstilo}>Telefone</th>
+                  <th style={thEstilo}>Data de Ingresso</th>
+                </tr></thead>
+                <tbody>
+                  {alunosSemPlano.map(a => (
+                    <tr key={a.id}>
+                      <td style={tdEstilo}>
+                        <button onClick={() => onVerAluno?.(a.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: '#1565c0', fontWeight: 'bold' }}>
+                          {a.nome}
+                        </button>
+                      </td>
+                      <td style={tdEstilo}>{a.matricula || '—'}</td>
+                      <td style={tdEstilo}>{a.telefone || '—'}</td>
+                      <td style={tdEstilo}>{formatData(a.data_ingresso)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {horasPorTurma && <TabelaHoras titulo="Valor da Hora por Turma" dados={horasPorTurma} chaveLista="turmas" financeiro={true} />}
