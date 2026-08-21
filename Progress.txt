@@ -931,6 +931,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 [x] Verificado visualmente contra os 9 alunos inseridos nesta sessão
     (idades batendo com as datas de nascimento informadas).
 
+=== FASE 21: Scorecard de Carga Horária Semanal (Dashboard Operacional) ===
+[x] Novo card no topo da aba Operacional: "Carga Horária Semanal" =
+    `horasPorTurma.total_horas_semana` (mesmo total já calculado e exibido
+    no rodapé das tabelas de Carga Horária por Turma/Local — sem endpoint
+    novo). Sub-texto mostra quantas turmas ativas entram na soma.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

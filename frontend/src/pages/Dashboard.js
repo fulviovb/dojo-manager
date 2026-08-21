@@ -137,6 +137,10 @@ export default function Dashboard({ onVerAluno }) {
             <Card title="Turmas ativas" value={turmas.total} />
             <Card title="Aulas (30 dias)" value={frequencia.aulas_periodo} sub={"Média " + frequencia.media_presentes + " alunos/aula"} />
             <Card title="Novos alunos (mês)" value={alunos.novos_mes} color={alunos.novos_mes > 0 ? '#2e7d32' : undefined} />
+            {horasPorTurma && (
+              <Card title="Carga Horária Semanal" value={formatarHoras(horasPorTurma.total_horas_semana)} color="#1565c0"
+                sub={`Somada de todas as ${horasPorTurma.turmas.length} turmas ativas`} />
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
