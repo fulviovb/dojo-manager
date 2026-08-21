@@ -17,6 +17,17 @@ function corDaFaixa(faixa) {
   return chave ? COR_FAIXA[chave] : '#808080';
 }
 
+function calcularIdade(dataNascimentoIso) {
+  if (!dataNascimentoIso) return null;
+  const hoje = new Date();
+  const nascimento = new Date(dataNascimentoIso + 'T00:00:00');
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  const aindaNaoFezAniversario = hoje.getMonth() < nascimento.getMonth()
+    || (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate());
+  if (aindaNaoFezAniversario) idade--;
+  return idade;
+}
+
 function Badge({ faixa }) {
   if (!faixa) return <span style={{ color: '#aaa', fontSize: 12 }}>—</span>;
   const cor = corDaFaixa(faixa);
@@ -226,13 +237,14 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
               <tr style={{ background: '#fafafa' }}>
                 <th style={thEstilo}></th>
                 <th style={thEstilo}>Aluno</th>
+                <th style={thEstilo}>Idade</th>
                 <th style={thEstilo}>Graduação</th>
                 <th style={thEstilo}></th>
               </tr>
             </thead>
             <tbody>
               {matriculas.length === 0 && (
-                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>Nenhum aluno matriculado.</td></tr>
+                <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>Nenhum aluno matriculado.</td></tr>
               )}
               {matriculas.map(m => (
                 <tr key={m.id} style={{ borderTop: '1px solid #f0f0f0' }}>
@@ -244,6 +256,9 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1565c0', fontSize: 13, textAlign: 'left' }}>
                       {m.Aluno?.nome}
                     </button>
+                  </td>
+                  <td style={{ padding: '10px 16px', fontSize: 13, color: '#555' }}>
+                    {calcularIdade(m.Aluno?.data_nascimento) ?? '—'}
                   </td>
                   <td style={{ padding: '10px 16px' }}><Badge faixa={m.FaixaAtual} /></td>
                   <td style={{ padding: '10px 16px' }}>

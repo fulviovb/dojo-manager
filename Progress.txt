@@ -920,6 +920,17 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     (Nome/Matrícula/Telefone/Data de Ingresso), nome clicável abre o
     perfil do aluno (`onVerAluno`).
 
+=== FASE 20: Idade na lista de alunos matriculados (Detalhe da Turma) ===
+[x] `matriculasController.listar`: passou a trazer `data_nascimento` do
+    Aluno (só faltava esse atributo no include, já vinha `id/nome/email/
+    foto_url`).
+[x] `TurmaDetalhe.js`: nova coluna "Idade" na tabela de alunos
+    matriculados, entre Aluno e Graduação — `calcularIdade()` local
+    (anos completos, considerando se já fez aniversário este ano; "—" se
+    o aluno não tem `data_nascimento` cadastrada).
+[x] Verificado visualmente contra os 9 alunos inseridos nesta sessão
+    (idades batendo com as datas de nascimento informadas).
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:
