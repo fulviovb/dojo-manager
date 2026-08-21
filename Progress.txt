@@ -889,6 +889,32 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     por local), conferido também via query direta no banco antes de
     validar na tela.
 
+=== FASE 19: Dashboard em duas abas (Operacional / Financeiro) ===
+[x] `Dashboard.js` reorganizado em duas abas (botões estilo os já usados em
+    `Turmas.js`): "Operacional" e "Financeiro", dentro do mesmo item de
+    menu Dashboard — nenhuma rota nova.
+[x] Operacional: Alunos ativos, Turmas ativas, Aulas (30 dias), Novos
+    alunos no mês (NOVO — `Usuario.data_ingresso` dentro do mês corrente);
+    Semáforo de Ausência; Semáforo de Graduação; novo widget
+    "Aniversariantes do mês" (NOVO — reaproveita
+    `GET /relatorios/aniversariantes`, sem endpoint novo); tabelas de Carga
+    Horária por Turma/Local (só as colunas de horas, sem $ — essa aba é
+    sobre operação, não dinheiro).
+[x] Financeiro: Receita do mês (recebido), Receita projetada do mês (NOVO
+    — valor mensal equivalente de TODAS as assinaturas ativas da escola,
+    independente de mensalidade já gerada; mesma conversão de
+    periodicidade da FASE 18), Mensalidades pendentes, Mensalidades
+    vencidas (NOVO — pendente com `data_vencimento` no passado, qualquer
+    mês, não só o atual), Valor da sua hora, Alunos sem plano (NOVO —
+    mesma contagem do relatório "Alunos sem Plano de Assinatura", só o
+    número); as mesmas tabelas de Carga Horária, agora com as colunas de
+    Horas/mês, A receber/mês e Valor/hora (extensão do endpoint da FASE 18).
+[x] `TabelaHoras`: componente único no frontend que renderiza a tabela de
+    turma OU de local, com ou sem as colunas financeiras (prop
+    `financeiro`), evitando duplicar o JSX das duas tabelas em cada aba.
+[x] Verificado contra dados reais e visualmente no navegador (Chrome MCP)
+    nas duas abas.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

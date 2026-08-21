@@ -101,13 +101,25 @@ const resumo = async (req, res) => {
     const dataInicio = dataLocalISO(trintaDiasAtras);
     const dataFim = dataLocalISO(hoje);
 
-    const [totalAlunos, totalTurmas, aulasPeriodo] = await Promise.all([
+    const { inicio: inicioMes, fim: fimMes } = intervaloMesAtual();
+
+    const [totalAlunos, totalTurmas, aulasPeriodo, novosAlunosMes, alunosSemPlano] = await Promise.all([
       Usuario.count({ where: { escola_id, role: 'aluno', ativo: true } }),
       Turma.count({ where: { escola_id, ativa: true } }),
       Aula.findAll({
         where: { data: { [Op.between]: [dataInicio, dataFim] }, status: 'fechada' },
         include: [{ model: Chamada, attributes: ['aluno_id'] }],
       }),
+      // Alunos que entraram este mês — sinal de crescimento na aba Operacional.
+      Usuario.count({ where: { escola_id, role: 'aluno', ativo: true, data_ingresso: { [Op.gte]: inicioMes, [Op.lt]: fimMes } } }),
+      // Aluno ativo sem nenhuma AssinaturaAluno — mesma regra do relatório
+      // "Alunos sem Plano de Assinatura"; só a contagem, pra sinalizar na
+      // aba Financeira que tem gente sem cobrança nenhuma configurada.
+      (async () => {
+        const comAssinatura = await AssinaturaAluno.findAll({ where: { escola_id }, attributes: ['aluno_id'], group: ['aluno_id'] });
+        const ids = comAssinatura.map((a) => a.aluno_id);
+        return Usuario.count({ where: { escola_id, role: 'aluno', ativo: true, ...(ids.length ? { id: { [Op.notIn]: ids } } : {}) } });
+      })(),
     ]);
 
     const totalAulas = aulasPeriodo.length;
@@ -129,12 +141,42 @@ const resumo = async (req, res) => {
       return sum + pago;
     }, 0);
 
+    // Mensalidades vencidas: pendentes com vencimento já passado, qualquer mês
+    // (não só o atual) — sinal de inadimplência acumulada, distinto de
+    // "pendente" (que pode só ainda não ter vencido).
+    const hojeIso = dataLocalISO(hoje);
+    const mensalidadesVencidas = await Mensalidade.count({
+      where: { status: 'pendente', data_vencimento: { [Op.lt]: hojeIso } },
+      include: [{ model: Usuario, as: 'Aluno', attributes: [], where: { escola_id } }],
+    });
+
+    // Receita projetada do mês: valor mensal equivalente de TODAS as
+    // assinaturas ativas da escola (independente de já ter mensalidade
+    // gerada/paga) — "quanto eu deveria faturar esse mês se tudo correr
+    // normal", pra comparar com o já efetivamente recebido.
+    const assinaturasAtivas = await AssinaturaAluno.findAll({
+      where: { escola_id, status: 'ativa' },
+      include: [{ model: PlanoMensalidade, as: 'Plano', attributes: ['valor', 'periodicidade'] }],
+    });
+    let receitaProjetadaMes = 0;
+    for (const a of assinaturasAtivas) {
+      if (!a.Plano) continue;
+      const meses = MESES_POR_PERIODICIDADE[a.Plano.periodicidade] || 1;
+      receitaProjetadaMes += parseFloat(a.Plano.valor) / meses;
+    }
+
     res.json({
       periodo: { inicio: dataInicio, fim: dataFim },
-      alunos: { total: totalAlunos },
+      alunos: { total: totalAlunos, novos_mes: novosAlunosMes },
       turmas: { total: totalTurmas },
       frequencia: { aulas_periodo: totalAulas, media_presentes: Number(mediaPresenca) },
-      financeiro: { mensalidades_pendentes: mensalidadesPendentes, receita_mes: receitaMes || 0 },
+      financeiro: {
+        mensalidades_pendentes: mensalidadesPendentes,
+        mensalidades_vencidas: mensalidadesVencidas,
+        receita_mes: receitaMes || 0,
+        receita_projetada_mes: Math.round(receitaProjetadaMes * 100) / 100,
+        alunos_sem_plano: alunosSemPlano,
+      },
     });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
