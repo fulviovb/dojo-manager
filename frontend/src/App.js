@@ -29,6 +29,18 @@ axios.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+// Token expirado/inválido: desloga e volta pro login em vez de crashar a UI.
+axios.interceptors.response.use(
+  (response) => response,
+  (erro) => {
+    if (erro.response?.status === 401 && localStorage.getItem('token')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('usuario');
+      window.location.reload();
+    }
+    return Promise.reject(erro);
+  }
+);
 
 const MENU = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
