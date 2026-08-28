@@ -612,4 +612,91 @@ const horasPorLocal = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-module.exports = { resumo, semaforo, graduacao, semaforoGraduacao, horasPorTurma, horasPorLocal };
+// GET /api/dashboard/ausencias — cenário de ausências para os gráficos do
+// Dashboard: tendência semanal (últimas 12 semanas) e ranking de turmas/locais
+// com mais faltas nos últimos 30 dias. "Ausentes" por aula = matriculados
+// ativos da turma hoje (não dá pra reconstruir matrícula histórica) menos
+// quem tem Chamada nela — mesma aproximação do Semáforo de Ausência.
+const ausencias = async (req, res) => {
+  try {
+    const escola_id = req.usuario.escola_id;
+    const souProfessor = req.usuario.role === 'professor';
+    const hoje = new Date();
+    const dataFim = dataLocalISO(hoje);
+    const inicio30 = new Date(hoje); inicio30.setDate(hoje.getDate() - 30);
+    const dataInicio30 = dataLocalISO(inicio30);
+    const inicio12Semanas = new Date(hoje); inicio12Semanas.setDate(hoje.getDate() - 7 * 12);
+    const dataInicio12Semanas = dataLocalISO(inicio12Semanas);
+
+    const turmas = await Turma.findAll({
+      where: { escola_id, ...(souProfessor ? { professor_id: req.usuario.id } : {}) },
+      attributes: ['id', 'nome'],
+    });
+    const turmaIds = turmas.map((t) => t.id);
+    if (turmaIds.length === 0) return res.json({ tendencia_semanal: [], por_turma: [], por_local: [] });
+    const nomePorTurma = new Map(turmas.map((t) => [t.id, t.nome.split('\n')[0]]));
+
+    const matriculasAtivas = await MatriculaAluno.findAll({
+      where: { turma_id: { [Op.in]: turmaIds }, ativa: true },
+      attributes: ['turma_id'],
+    });
+    const matriculadosPorTurma = new Map();
+    for (const m of matriculasAtivas) {
+      matriculadosPorTurma.set(m.turma_id, (matriculadosPorTurma.get(m.turma_id) || 0) + 1);
+    }
+
+    const aulas = await Aula.findAll({
+      where: { turma_id: { [Op.in]: turmaIds }, status: 'fechada', data: { [Op.gte]: dataInicio12Semanas, [Op.lte]: dataFim } },
+      attributes: ['id', 'turma_id', 'sala_id', 'data'],
+      include: [{ model: Chamada, attributes: ['id'] }, { model: Sala, attributes: ['id', 'nome'] }],
+    });
+
+    // Semana começando na segunda-feira (0=Dom..6=Sáb no getDay()).
+    const inicioDaSemana = (isoDate) => {
+      const d = new Date(isoDate + 'T00:00:00');
+      const deslocamento = d.getDay() === 0 ? 6 : d.getDay() - 1;
+      d.setDate(d.getDate() - deslocamento);
+      return dataLocalISO(d);
+    };
+
+    const semanas = new Map();
+    const porTurma = new Map();
+    const porLocal = new Map();
+    const acumula = (mapa, chave, ausentes, matriculados, extra) => {
+      if (!mapa.has(chave)) mapa.set(chave, { aulas: 0, ausencias: 0, esperado: 0, ...extra });
+      const b = mapa.get(chave);
+      b.aulas += 1; b.ausencias += ausentes; b.esperado += matriculados;
+    };
+
+    for (const a of aulas) {
+      const matriculados = matriculadosPorTurma.get(a.turma_id) || 0;
+      const ausentes = Math.max(0, matriculados - a.Chamadas.length);
+
+      acumula(semanas, inicioDaSemana(a.data), ausentes, matriculados);
+      if (a.data >= dataInicio30) {
+        acumula(porTurma, a.turma_id, ausentes, matriculados);
+        acumula(porLocal, a.sala_id, ausentes, matriculados, { nome: a.Sala.nome });
+      }
+    }
+
+    const taxa = (v) => (v.esperado > 0 ? Math.round((v.ausencias / v.esperado) * 1000) / 10 : 0);
+
+    const tendenciaSemanal = [...semanas.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([semana, v]) => ({ semana, aulas: v.aulas, ausencias: v.ausencias, taxa: taxa(v) }));
+
+    const rankear = (mapa, nomeDe) => [...mapa.entries()]
+      .map(([id, v]) => ({ id, nome: nomeDe(id, v), aulas: v.aulas, ausencias: v.ausencias, taxa: taxa(v) }))
+      .filter((x) => x.ausencias > 0)
+      .sort((a, b) => b.ausencias - a.ausencias)
+      .slice(0, 8);
+
+    res.json({
+      tendencia_semanal: tendenciaSemanal,
+      por_turma: rankear(porTurma, (id) => nomePorTurma.get(id) || '—'),
+      por_local: rankear(porLocal, (_id, v) => v.nome),
+    });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+module.exports = { resumo, semaforo, graduacao, semaforoGraduacao, horasPorTurma, horasPorLocal, ausencias };

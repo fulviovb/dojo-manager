@@ -937,6 +937,34 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     no rodapé das tabelas de Carga Horária por Turma/Local — sem endpoint
     novo). Sub-texto mostra quantas turmas ativas entram na soma.
 
+=== FASE 22: Logout automático em token expirado/inválido ===
+[x] `App.js`: interceptor de resposta do axios — qualquer requisição que
+    volte 401 limpa `token`/`usuario` do localStorage e recarrega a
+    página, voltando pra tela de Login. Antes, um token expirado no meio
+    da sessão derrubava a UI inteira com "Uncaught runtime error" (crash
+    do CRA) na primeira ação de escrita (ex: "Marcar todos presentes" em
+    Chamadas), em vez de reautenticar.
+
+=== FASE 23: Gráficos de Ausência (Dashboard Operacional) ===
+[x] Novo endpoint `GET /api/dashboard/ausencias` (`dashboardController.js`):
+    "ausentes" por aula = matriculados ativos da turma hoje menos quem tem
+    `Chamada` na aula (mesma aproximação do Semáforo de Ausência — não dá
+    pra reconstruir matrícula histórica). Retorna:
+    - `tendencia_semanal`: taxa de ausência (%) por semana, últimas 12
+      semanas (semana começando na segunda-feira).
+    - `por_turma` / `por_local`: ranking (top 8) por nº de faltas nos
+      últimos 30 dias, agrupado por turma e por `Sala` (via `Aula.sala_id`
+      direto — mais simples que o rateio de `horas-por-local`).
+    Professor vê só as próprias turmas (mesma regra de `horasPorTurma`).
+[x] `Dashboard.js`: entre os scorecards e o Semáforo de Ausência da aba
+    Operacional — um gráfico de linha (SVG à mão, sem lib nova) da
+    tendência semanal com tooltip on-hover, e duas listas de barras
+    horizontais (Turmas / Locais com mais ausências, últimos 30 dias).
+[x] Verificado com dados reais via browser (Chrome MCP): turma Karatê ACC
+    19h com 44,4% de ausência nos últimos 30 dias, local Associação Copel
+    Curitiba com 74 faltas — tooltip da tendência semanal conferido
+    (ex: semana de 20/07: 50% de ausência, 24 faltas em 7 aulas).
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

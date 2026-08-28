@@ -30,6 +30,95 @@ function formatData(iso) {
   return iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—';
 }
 
+function formatDataCurta(iso) {
+  const [, m, d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
+const COR_AUSENCIA = '#ef6c00';
+
+function GraficoTendenciaAusencia({ dados }) {
+  const [hover, setHover] = useState(null);
+  if (!dados || dados.length === 0) return <p style={{ color: '#888' }}>Sem aulas fechadas no período.</p>;
+
+  const W = 700, H = 200, padL = 30, padR = 12, padT = 12, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxTaxa = Math.max(10, ...dados.map(d => d.taxa));
+  const x = (i) => padL + (dados.length === 1 ? plotW / 2 : (i / (dados.length - 1)) * plotW);
+  const y = (v) => padT + plotH - (v / maxTaxa) * plotH;
+  const pontos = dados.map((d, i) => [x(i), y(d.taxa)]);
+  const linha = pontos.map(([px, py], i) => `${i === 0 ? 'M' : 'L'}${px.toFixed(1)},${py.toFixed(1)}`).join(' ');
+  const area = `${linha} L${pontos[pontos.length - 1][0].toFixed(1)},${padT + plotH} L${pontos[0][0].toFixed(1)},${padT + plotH} Z`;
+  const passoLabel = dados.length > 8 ? 2 : 1;
+  const largColuna = plotW / dados.length;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} onMouseLeave={() => setHover(null)}>
+        {[0, 0.25, 0.5, 0.75, 1].map((g, i) => (
+          <line key={i} x1={padL} x2={W - padR} y1={padT + plotH * (1 - g)} y2={padT + plotH * (1 - g)} stroke="#eee" strokeWidth={1} />
+        ))}
+        <defs>
+          <linearGradient id="gradAusencia" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={COR_AUSENCIA} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={COR_AUSENCIA} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <path d={area} fill="url(#gradAusencia)" stroke="none" />
+        <path d={linha} fill="none" stroke={COR_AUSENCIA} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        {pontos.map(([px, py], i) => (
+          <circle key={i} cx={px} cy={py} r={hover === i ? 5 : 3} fill={COR_AUSENCIA} stroke="#fff" strokeWidth={1} />
+        ))}
+        {dados.map((d, i) => i % passoLabel === 0 && (
+          <text key={i} x={x(i)} y={H - 8} fontSize={10} fill="#999" textAnchor="middle">{formatDataCurta(d.semana)}</text>
+        ))}
+        {pontos.map(([px], i) => (
+          <rect key={i} x={px - largColuna / 2} y={padT} width={largColuna} height={plotH}
+            fill="transparent" onMouseEnter={() => setHover(i)} />
+        ))}
+      </svg>
+      {hover !== null && (
+        <div style={{
+          position: 'absolute', left: `${(x(hover) / W) * 100}%`, top: `${(y(dados[hover].taxa) / H) * 100}%`,
+          transform: 'translate(-50%, -120%)', background: '#1e2a38', color: '#fff', padding: '6px 10px',
+          borderRadius: 6, fontSize: 12, whiteSpace: 'nowrap', pointerEvents: 'none',
+        }}>
+          Semana de {formatData(dados[hover].semana)}<br />
+          {dados[hover].taxa}% de ausência ({dados[hover].ausencias} faltas em {dados[hover].aulas} aulas)
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BarrasRanking({ titulo, subtitulo, dados }) {
+  const semDados = !dados || dados.length === 0;
+  const max = semDados ? 0 : Math.max(...dados.map(d => d.ausencias));
+  return (
+    <div style={cardBranco}>
+      <h3 style={{ marginTop: 0, marginBottom: 4 }}>{titulo}</h3>
+      {subtitulo && <p style={{ color: '#888', fontSize: 12, marginTop: 0, marginBottom: 16 }}>{subtitulo}</p>}
+      {semDados ? (
+        <p style={{ color: '#888' }}>✅ Nenhuma falta registrada no período.</p>
+      ) : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {dados.map((d) => (
+            <div key={d.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 3, gap: 8 }}>
+                <span style={{ color: '#333' }}>{d.nome.split('\n')[0]}</span>
+                <span style={{ color: '#888', whiteSpace: 'nowrap' }}>{d.ausencias} faltas · {d.taxa}%</span>
+              </div>
+              <div style={{ background: '#f0f0f0', borderRadius: 4, height: 8 }}>
+                <div style={{ width: `${(d.ausencias / max) * 100}%`, background: COR_AUSENCIA, height: 8, borderRadius: 4 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TabelaHoras({ titulo, dados, chaveLista, financeiro }) {
   const linhas = dados[chaveLista];
   const ehTurma = chaveLista === 'turmas';
@@ -87,6 +176,7 @@ export default function Dashboard({ onVerAluno }) {
   const [horasPorLocal, setHorasPorLocal] = useState(null);
   const [aniversariantes, setAniversariantes] = useState([]);
   const [alunosSemPlano, setAlunosSemPlano] = useState([]);
+  const [ausencias, setAusencias] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -100,9 +190,11 @@ export default function Dashboard({ onVerAluno }) {
       axios.get('/dashboard/horas-por-local').then(r => r.data),
       axios.get(`/relatorios/aniversariantes?mes=${mesAtual}`).then(r => r.data.aniversariantes),
       axios.get('/relatorios/alunos-sem-plano').then(r => r.data.alunos),
-    ]).then(([r, s, sg, a, h, hl, an, asp]) => {
+      axios.get('/dashboard/ausencias').then(r => r.data),
+    ]).then(([r, s, sg, a, h, hl, an, asp, aus]) => {
       setResumo(r); setSemaforo(s); setSemaforoGraduacao(sg); setArtes(a);
       setHorasPorTurma(h); setHorasPorLocal(hl); setAniversariantes(an); setAlunosSemPlano(asp);
+      setAusencias(aus);
     })
       .catch(() => {})
       .finally(() => setCarregando(false));
@@ -142,6 +234,22 @@ export default function Dashboard({ onVerAluno }) {
                 sub={`Somada de todas as ${horasPorTurma.turmas.length} turmas ativas`} />
             )}
           </div>
+
+          {ausencias && (
+            <>
+              <div style={{ ...cardBranco, marginBottom: 16 }}>
+                <h3 style={{ marginTop: 0, marginBottom: 4 }}>Tendência de Ausência (últimas 12 semanas)</h3>
+                <p style={{ color: '#888', fontSize: 12, marginTop: 0, marginBottom: 16 }}>
+                  % de ausência = faltas ÷ (matriculados × aulas fechadas) de cada semana.
+                </p>
+                <GraficoTendenciaAusencia dados={ausencias.tendencia_semanal} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <BarrasRanking titulo="Turmas com mais ausências" subtitulo="Últimos 30 dias" dados={ausencias.por_turma} />
+                <BarrasRanking titulo="Locais com mais ausências" subtitulo="Últimos 30 dias" dados={ausencias.por_local} />
+              </div>
+            </>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
             <div style={cardBranco}>
