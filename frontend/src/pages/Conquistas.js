@@ -199,6 +199,13 @@ export default function Conquistas({ onVerAluno }) {
   const [ano, setAno] = useState('');
   const [nivel, setNivel] = useState('');
   const [modalAberto, setModalAberto] = useState(false);
+  const [sortCol, setSortCol] = useState('ano');
+  const [sortDir, setSortDir] = useState('desc');
+
+  const handleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
+  };
 
   const carregar = () => {
     setCarregando(true);
@@ -218,6 +225,45 @@ export default function Conquistas({ onVerAluno }) {
     }
     return true;
   });
+
+  const valorOrdenacao = (c, col) => {
+    switch (col) {
+      case 'colocacao': return c.colocacao ?? 999;
+      case 'ano': return c.Competicao?.ano ?? 0;
+      case 'atleta': return c.nome_atleta || '';
+      case 'competicao': return c.Competicao?.nome || '';
+      case 'nivel': return c.Competicao?.nivel || '';
+      case 'local': return localCompeticao(c.Competicao || {}) || '';
+      case 'modalidade': return c.modalidade || '';
+      case 'categoria': return c.categoria || '';
+      default: return '';
+    }
+  };
+
+  const ordenadas = [...filtradas].sort((a, b) => {
+    const va = valorOrdenacao(a, sortCol);
+    const vb = valorOrdenacao(b, sortCol);
+    if (typeof va === 'number' && typeof vb === 'number') {
+      return sortDir === 'asc' ? va - vb : vb - va;
+    }
+    const sa = va.toString().toLowerCase();
+    const sb = vb.toString().toLowerCase();
+    if (sa < sb) return sortDir === 'asc' ? -1 : 1;
+    if (sa > sb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const COLUNAS = [
+    { key: 'colocacao', label: '' },
+    { key: 'ano', label: 'Ano' },
+    { key: 'atleta', label: 'Atleta' },
+    { key: 'competicao', label: 'Competição' },
+    { key: 'nivel', label: 'Nível' },
+    { key: 'local', label: 'Local' },
+    { key: 'modalidade', label: 'Modalidade' },
+    { key: 'categoria', label: 'Categoria' },
+    { key: null, label: '' },
+  ];
 
   const remover = async (id) => {
     if (!window.confirm('Remover esta conquista?')) return;
@@ -250,8 +296,15 @@ export default function Conquistas({ onVerAluno }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f5f5f5' }}>
-              {['', 'Ano', 'Atleta', 'Competição', 'Nível', 'Local', 'Modalidade', 'Categoria', ''].map((h, i) => (
-                <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</th>
+              {COLUNAS.map((c, i) => (
+                <th key={i} onClick={() => c.key && handleSort(c.key)}
+                  style={{
+                    padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#555',
+                    textTransform: 'uppercase', letterSpacing: 0.5,
+                    cursor: c.key ? 'pointer' : 'default', userSelect: 'none',
+                  }}>
+                  {c.label}{c.key && sortCol === c.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                </th>
               ))}
             </tr>
           </thead>
@@ -259,10 +312,10 @@ export default function Conquistas({ onVerAluno }) {
             {carregando && (
               <tr><td colSpan={9} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Carregando...</td></tr>
             )}
-            {!carregando && filtradas.length === 0 && (
+            {!carregando && ordenadas.length === 0 && (
               <tr><td colSpan={9} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhuma conquista encontrada.</td></tr>
             )}
-            {filtradas.map(c => (
+            {ordenadas.map(c => (
               <tr key={c.id} style={{ borderTop: '1px solid #f0f0f0' }}>
                 <td style={{ padding: '10px 0 10px 16px', fontSize: 18, textAlign: 'center', width: 30 }}>
                   {MEDALHA[c.colocacao] || (c.colocacao ? `${c.colocacao}º` : '—')}
