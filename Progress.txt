@@ -1012,6 +1012,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     o perfil, aba de conquistas do aluno mostra medalha/nível/local/faixa
     da época, modais de nova/editar conquista abrem e pré-preenchem
     corretamente (cancelado sem gravar dado de teste).
+[x] Tela geral "Conquistas": cabeçalhos da tabela (colocação, ano, atleta,
+    competição, nível, local, modalidade, categoria) clicáveis/ordenáveis
+    — mesmo padrão de `Alunos.js` (clique alterna asc/desc, seta ▲/▼
+    indica direção). Ordenação padrão continua por ano decrescente.
+    Testado ao vivo no browser (colunas Atleta e Nível conferidas).
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
