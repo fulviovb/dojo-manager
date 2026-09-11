@@ -12,6 +12,7 @@ import Configuracoes from './pages/Configuracoes';
 import CheckinPublico from './pages/CheckinPublico';
 import ReciboPage from './pages/ReciboPage';
 import Relatorios from './pages/Relatorios';
+import Conquistas from './pages/Conquistas';
 import RelatorioPage from './pages/RelatorioPage';
 import Exames from './pages/Exames';
 import ExameDetalhe from './pages/ExameDetalhe';
@@ -49,11 +50,12 @@ const MENU = [
   { id: 'chamadas', label: 'Chamadas', icon: '✅' },
   { id: 'financeiro', label: 'Financeiro', icon: '💰' },
   { id: 'exames', label: 'Exames', icon: '🎖️' },
+  { id: 'conquistas', label: 'Conquistas', icon: '🏆' },
   { id: 'relatorios', label: 'Relatórios', icon: '📄' },
   { id: 'configuracoes', label: 'Configurações', icon: '⚙️' },
 ];
 
-const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, exames: Exames, relatorios: Relatorios, configuracoes: Configuracoes };
+const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, exames: Exames, conquistas: Conquistas, relatorios: Relatorios, configuracoes: Configuracoes };
 
 export default function App() {
   const checkinMatch = window.location.pathname.match(/^\/checkin\/([^/]+)/);

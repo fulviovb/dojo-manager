@@ -6,7 +6,8 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { Usuario, MatriculaAluno, Turma, ArteMarcial, Faixa,
         GraduacaoAluno, Ocorrencia, Chamada, Aula,
-        Mensalidade, PlanoMensalidade, AssinaturaAluno, CriterioGraduacao } = require('../models');
+        Mensalidade, PlanoMensalidade, AssinaturaAluno, CriterioGraduacao,
+        Conquista, Competicao } = require('../models');
 const { gerarFaturasPendentes } = require('../services/faturaService');
 
 const PASTA_FOTOS = path.join(__dirname, '..', '..', 'uploads', 'fotos');
@@ -179,7 +180,7 @@ const perfil = async (req, res) => {
 
     await gerarFaturasPendentes(req.usuario.escola_id);
 
-    const [artes, matriculas, graduacoes, chamadas, mensalidades, ocorrencias, criterios, assinaturas] = await Promise.all([
+    const [artes, matriculas, graduacoes, chamadas, mensalidades, ocorrencias, criterios, assinaturas, conquistas] = await Promise.all([
       ArteMarcial.findAll({ where: { escola_id: req.usuario.escola_id }, order: [['nome', 'ASC']] }),
 
       MatriculaAluno.findAll({
@@ -227,6 +228,15 @@ const perfil = async (req, res) => {
         where: { aluno_id: aluno.id },
         include: [{ model: PlanoMensalidade, as: 'Plano', attributes: ['id', 'nome', 'valor', 'periodicidade'] }],
         order: [['status', 'ASC'], ['created_at', 'DESC']],
+      }),
+
+      Conquista.findAll({
+        where: { aluno_id: aluno.id, escola_id: req.usuario.escola_id },
+        include: [
+          { model: Faixa, attributes: ['id', 'nome', 'cor'] },
+          { model: Competicao, attributes: ['id', 'ano', 'nome', 'etapa', 'nivel', 'entidade', 'cidade', 'estado', 'pais'] },
+        ],
+        order: [[{ model: Competicao }, 'ano', 'DESC']],
       }),
     ]);
 
@@ -309,6 +319,7 @@ const perfil = async (req, res) => {
       mensalidades: mensalidades.map(m => m.toJSON()),
       ocorrencias: ocorrencias.map(o => o.toJSON()),
       assinaturas: assinaturas.map(a => a.toJSON()),
+      conquistas: conquistas.map(c => c.toJSON()),
     });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };

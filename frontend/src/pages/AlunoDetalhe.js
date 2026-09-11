@@ -404,6 +404,236 @@ function SecaoFrequencia({ frequencia }) {
   );
 }
 
+// ── Seção: Conquistas ──────────────────────────────────────────────────────────
+
+const NIVEL_LABEL = { municipal: 'Municipal', estadual: 'Estadual', nacional: 'Nacional', panamericano: 'Panamericano', mundial: 'Mundial' };
+const NIVEL_COR = { municipal: '#607d8b', estadual: '#1565c0', nacional: '#2e7d32', panamericano: '#ef6c00', mundial: '#c62828' };
+const MEDALHA = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+function localCompeticao(c) {
+  return [c.cidade, c.estado, c.pais && c.pais !== 'Brasil' ? c.pais : null].filter(Boolean).join(' / ');
+}
+
+function ModalConquista({ alunoId, alunoNome, conquista, onFechar, onSalvo }) {
+  const [competicoes, setCompeticoes] = useState([]);
+  const [artes, setArtes] = useState([]);
+  const [faixas, setFaixas] = useState([]);
+  const [novaCompeticao, setNovaCompeticao] = useState(!conquista);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+
+  const [form, setForm] = useState({
+    competicao_id: conquista?.competicao_id || '',
+    arte_marcial_id: conquista?.arte_marcial_id || '',
+    faixa_id: conquista?.faixa_id || '',
+    colocacao: conquista?.colocacao ?? '',
+    modalidade: conquista?.modalidade || '',
+    categoria: conquista?.categoria || '',
+  });
+  const [formComp, setFormComp] = useState({
+    ano: new Date().getFullYear(), nome: '', etapa: '', nivel: 'estadual',
+    entidade: '', cidade: '', estado: '', pais: 'Brasil',
+  });
+
+  useEffect(() => {
+    axios.get('/conquistas/competicoes').then(r => setCompeticoes(r.data));
+    axios.get('/artes-marciais').then(r => setArtes(r.data));
+  }, []);
+
+  useEffect(() => {
+    if (!form.arte_marcial_id) { setFaixas([]); return; }
+    axios.get('/faixas', { params: { arte_marcial_id: form.arte_marcial_id } }).then(r => setFaixas(r.data));
+  }, [form.arte_marcial_id]);
+
+  const salvar = async () => {
+    setErro('');
+    if (!form.modalidade.trim()) { setErro('Informe a modalidade'); return; }
+    setSalvando(true);
+    try {
+      let competicaoId = form.competicao_id;
+      if (novaCompeticao) {
+        if (!formComp.nome.trim() || !formComp.ano) { setErro('Preencha ano e nome da competição'); setSalvando(false); return; }
+        const r = await axios.post('/conquistas/competicoes', formComp);
+        competicaoId = r.data.id;
+      }
+      if (!competicaoId) { setErro('Selecione ou cadastre uma competição'); setSalvando(false); return; }
+
+      const payload = {
+        aluno_id: alunoId,
+        competicao_id: competicaoId,
+        nome_atleta: conquista?.nome_atleta || alunoNome,
+        arte_marcial_id: form.arte_marcial_id || null,
+        faixa_id: form.faixa_id || null,
+        colocacao: form.colocacao === '' ? null : parseInt(form.colocacao, 10),
+        modalidade: form.modalidade.trim(),
+        categoria: form.categoria.trim() || null,
+      };
+
+      if (conquista) {
+        await axios.put(`/conquistas/${conquista.id}`, payload);
+      } else {
+        await axios.post('/conquistas', payload);
+      }
+      onSalvo();
+    } catch (e) {
+      setErro(e.response?.data?.erro || 'Erro ao salvar');
+    } finally { setSalvando(false); }
+  };
+
+  return (
+    <Modal titulo={conquista ? 'Editar Conquista' : 'Nova Conquista'} onFechar={onFechar} largura={480}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <label style={{ fontSize: 12 }}>Competição *</label>
+            <button type="button" style={{ ...btnCinza, fontSize: 11, padding: '2px 8px' }}
+              onClick={() => setNovaCompeticao(v => !v)}>
+              {novaCompeticao ? 'Usar existente' : '+ Nova competição'}
+            </button>
+          </div>
+
+          {!novaCompeticao ? (
+            <select value={form.competicao_id} onChange={e => setForm(f => ({ ...f, competicao_id: e.target.value }))} style={estiloInput}>
+              <option value="">Selecione...</option>
+              {competicoes.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.ano} — {c.nome}{c.etapa ? ` (${c.etapa})` : ''} — {localCompeticao(c) || NIVEL_LABEL[c.nivel]}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: '#f9f9f9', padding: 10, borderRadius: 6 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="number" placeholder="Ano *" value={formComp.ano} onChange={e => setFormComp(f => ({ ...f, ano: e.target.value }))} style={{ ...estiloInput, width: 90 }} />
+                <select value={formComp.nivel} onChange={e => setFormComp(f => ({ ...f, nivel: e.target.value }))} style={estiloInput}>
+                  {Object.entries(NIVEL_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <input placeholder="Nome da competição *" value={formComp.nome} onChange={e => setFormComp(f => ({ ...f, nome: e.target.value }))} style={estiloInput} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input placeholder="Etapa (opcional)" value={formComp.etapa} onChange={e => setFormComp(f => ({ ...f, etapa: e.target.value }))} style={estiloInput} />
+                <input placeholder="Entidade (opcional)" value={formComp.entidade} onChange={e => setFormComp(f => ({ ...f, entidade: e.target.value }))} style={estiloInput} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input placeholder="Cidade" value={formComp.cidade} onChange={e => setFormComp(f => ({ ...f, cidade: e.target.value }))} style={estiloInput} />
+                <input placeholder="UF" value={formComp.estado} onChange={e => setFormComp(f => ({ ...f, estado: e.target.value }))} style={{ ...estiloInput, width: 60 }} />
+                <input placeholder="País" value={formComp.pais} onChange={e => setFormComp(f => ({ ...f, pais: e.target.value }))} style={estiloInput} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Arte marcial</label>
+            <select value={form.arte_marcial_id} onChange={e => setForm(f => ({ ...f, arte_marcial_id: e.target.value, faixa_id: '' }))} style={estiloInput}>
+              <option value="">—</option>
+              {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Graduação na época</label>
+            <select value={form.faixa_id} onChange={e => setForm(f => ({ ...f, faixa_id: e.target.value }))} style={estiloInput} disabled={!form.arte_marcial_id}>
+              <option value="">—</option>
+              {faixas.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 2 }}>
+            <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Modalidade *</label>
+            <input value={form.modalidade} onChange={e => setForm(f => ({ ...f, modalidade: e.target.value }))} style={estiloInput} placeholder="Ex: Kata Individual" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Colocação</label>
+            <input type="number" min={1} value={form.colocacao} onChange={e => setForm(f => ({ ...f, colocacao: e.target.value }))} style={estiloInput} placeholder="1" />
+          </div>
+        </div>
+
+        <div>
+          <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Categoria</label>
+          <input value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))} style={estiloInput} placeholder="Ex: 12-13 anos" />
+        </div>
+
+        {erro && <p style={{ color: 'red', fontSize: 12, margin: 0 }}>{erro}</p>}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button style={btnCinza} onClick={onFechar}>Cancelar</button>
+          <button style={btnVerde} disabled={salvando} onClick={salvar}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function SecaoConquistas({ conquistas, alunoId, alunoNome, onRefresh }) {
+  const [modalAberto, setModalAberto] = useState(false);
+  const [editando, setEditando] = useState(null);
+
+  const remover = async (id) => {
+    if (!window.confirm('Remover esta conquista?')) return;
+    await axios.delete(`/conquistas/${id}`);
+    onRefresh();
+  };
+
+  const ordenadas = [...conquistas].sort((a, b) => (b.Competicao?.ano || 0) - (a.Competicao?.ano || 0));
+
+  return (
+    <div style={card()}>
+      <div style={cardHeader}>
+        <span style={cardTitle}>Conquistas em Competições</span>
+        <button style={btnVerde} onClick={() => { setEditando(null); setModalAberto(true); }}>+ Nova</button>
+      </div>
+      <div style={{ padding: '4px 0' }}>
+        {ordenadas.length === 0 ? (
+          <p style={{ color: '#aaa', fontSize: 13, margin: '12px 18px' }}>Nenhuma conquista registrada.</p>
+        ) : (
+          ordenadas.map(c => (
+            <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 18px', borderBottom: '1px solid #f5f5f5' }}>
+              <div style={{ fontSize: 22, width: 30, textAlign: 'center', flexShrink: 0 }}>
+                {MEDALHA[c.colocacao] || (c.colocacao ? `${c.colocacao}º` : '—')}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: '#1e2a38' }}>
+                  {c.Competicao?.nome}{c.Competicao?.etapa ? ` — ${c.Competicao.etapa}` : ''}
+                </div>
+                <div style={{ fontSize: 12, color: '#666', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span>{c.Competicao?.ano}</span>
+                  {c.Competicao?.nivel && (
+                    <span style={{ background: NIVEL_COR[c.Competicao.nivel] + '20', color: NIVEL_COR[c.Competicao.nivel], padding: '1px 7px', borderRadius: 10, fontWeight: 700, fontSize: 11 }}>
+                      {NIVEL_LABEL[c.Competicao.nivel]}
+                    </span>
+                  )}
+                  {localCompeticao(c.Competicao || {}) && <span>· {localCompeticao(c.Competicao)}</span>}
+                </div>
+                <div style={{ fontSize: 12, color: '#444', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span>{c.modalidade}</span>
+                  {c.categoria && <span style={{ color: '#888' }}>· {c.categoria}</span>}
+                  {(c.Faixa?.nome || c.faixa_nome_livre) && <FaixaChip nome={c.Faixa?.nome || c.faixa_nome_livre} />}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button style={btnAzul} onClick={() => { setEditando(c); setModalAberto(true); }}>✎</button>
+                <button style={btnPerigo} onClick={() => remover(c.id)}>✕</button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {modalAberto && (
+        <ModalConquista
+          alunoId={alunoId}
+          alunoNome={alunoNome}
+          conquista={editando}
+          onFechar={() => setModalAberto(false)}
+          onSalvo={() => { setModalAberto(false); onRefresh(); }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ── Sidebar: Dados Pessoais ───────────────────────────────────────────────────
 
 const CAMPOS_COMPLETOS = [
@@ -789,7 +1019,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
     <div style={{ padding: 24, color: '#c00' }}>Erro ao carregar dados do aluno.</div>
   );
 
-  const { aluno, graduacoes, matriculas, frequencia, mensalidades, ocorrencias, assinaturas } = dados;
+  const { aluno, graduacoes, matriculas, frequencia, mensalidades, ocorrencias, assinaturas, conquistas } = dados;
   // Um aluno pode ter graduação atual em mais de uma arte marcial (ex: Vermelha
   // no Karatê e Branca no Jiu-Jitsu) — mostra uma faixa por arte, não só a primeira.
   const faixasAtuais = graduacoes
@@ -839,6 +1069,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
         <div>
           <SecaoGraduacao dadosGraduacao={graduacoes} alunoId={alunoId} onRefresh={carregar} />
           <SecaoTurmas matriculas={matriculas} alunoId={alunoId} onRefresh={carregar} />
+          <SecaoConquistas conquistas={conquistas} alunoId={alunoId} alunoNome={aluno.nome} onRefresh={carregar} />
           <SecaoFrequencia frequencia={frequencia} />
         </div>
 

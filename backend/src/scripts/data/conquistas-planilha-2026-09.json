@@ -1,0 +1,2330 @@
+{
+  "registros": [
+    {
+      "ano": 2017,
+      "bloco_titulo": "1ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Luiz Fillipe Lemes da Silva",
+      "faixa": "Amarela",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos"
+    },
+    {
+      "ano": 2017,
+      "bloco_titulo": "1ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Luiz Fillipe Lemes da Silva",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos"
+    },
+    {
+      "ano": 2017,
+      "bloco_titulo": "1ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Gabriela Lazaro de Lara",
+      "faixa": "Branca",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos"
+    },
+    {
+      "ano": 2017,
+      "bloco_titulo": "1ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Gabriela Lazaro de Lara",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos"
+    },
+    {
+      "ano": 2017,
+      "bloco_titulo": "2º ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - IBAITI",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Marrom",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "adulto"
+    },
+    {
+      "ano": 2017,
+      "bloco_titulo": "2º ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - IBAITI",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": "Vermelha",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos"
+    },
+    {
+      "ano": 2017,
+      "bloco_titulo": "2º ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - IBAITI",
+      "atleta": "Gabriela Lazaro de Lara",
+      "faixa": "Azul",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos"
+    },
+    {
+      "ano": 2017,
+      "bloco_titulo": "2º ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - IBAITI",
+      "atleta": "Gabriela Lazaro de Lara",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos"
+    },
+    {
+      "ano": 2018,
+      "bloco_titulo": "1ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Gabriela Lazaro de Lara",
+      "faixa": "Branca",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2018,
+      "bloco_titulo": "1ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Gabriela Lazaro de Lara",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2018,
+      "bloco_titulo": "2ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - ROLÂNDIA",
+      "atleta": "Luiz Fillipe Lemes da Silva",
+      "faixa": "Laranja",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos"
+    },
+    {
+      "ano": 2018,
+      "bloco_titulo": "2ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - ROLÂNDIA",
+      "atleta": "Gabriela Lazaro de Lara",
+      "faixa": "Branca",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2018,
+      "bloco_titulo": "2ª ETAPA - CAMPEONATO PARANAENSE DE KARATÊ - ROLÂNDIA",
+      "atleta": "Gabriela Lazaro de Lara",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Amarela",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Amarela",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Giovanna Carvalho Lázaro",
+      "faixa": "Amarela",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite individual",
+      "categoria": "10-11 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Branca",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 4.0,
+      "modalidade": "Kata individual",
+      "categoria": null
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Vitor Gabriel Scheffer Alves",
+      "faixa": "Branca",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite individual",
+      "categoria": "14-15 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Gloria Camilli Marques Ribas",
+      "faixa": "Branca",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Leandro Noah Stremel Ribeiro de Campos",
+      "faixa": "Azul",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FAZENDA RIO GRANDE",
+      "atleta": "Guilherme Kaure Ribeiro de Conceição",
+      "faixa": "Branca",
+      "colocacao_raw": 4.0,
+      "modalidade": "Kumite individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Vermelha",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": "Amarela",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Arthur Baptista Santos",
+      "faixa": "Amarela",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Azul",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Giovanna Carvalho Lázaro",
+      "faixa": "Vermelha",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Giovanna Carvalho Lázaro",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Vermelha",
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CUIABÁ",
+      "atleta": "Vitor Gabriel Scheffer Alves",
+      "faixa": "Azul",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Equipe",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - NATAL (CHILDREN)",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Vermelha",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - NATAL (CHILDREN)",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Vermelha",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - NATAL (CHILDREN)",
+      "atleta": "Giovanna Carvalho Lázaro",
+      "faixa": "Vermelha",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite individual",
+      "categoria": "10-11 anos - até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - NATAL (OPEN)",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Vermelha",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos até vermelha"
+    },
+    {
+      "ano": 2022,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - NATAL (OPEN)",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Vermelha",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Júlia Gomes Lemos",
+      "faixa": "Azul",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata individual",
+      "categoria": "10-11 anos - até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Júlia Gomes Lemos",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Equipe Feminino",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Júlia Gomes Lemos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Bernardo Gadioli da Silva",
+      "faixa": "Azul",
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Gloria Camilli Marques Ribas",
+      "faixa": "Amarela",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Equipe Feminino",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Vitor Gabriel Scheffer Alves",
+      "faixa": "Vermelha",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Vitor Gabriel Scheffer Alves",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Vitor Gabriel Scheffer Alves",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Vitor Gabriel Scheffer Alves",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Equipe",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Vitor Gabriel Scheffer Alves",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Amarela",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Equipe Feminino",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Misto",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Rafael Vicente Marchalek",
+      "faixa": "Vermelha",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata individual",
+      "categoria": "12-13 anos - até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Rafael Vicente Marchalek",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Rafael Vicente Marchalek",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Equipe",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Wellington Felipe Machado Batista",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Wellington Felipe Machado Batista",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Equipe",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Wellington Felipe Machado Batista",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Wellington Felipe Machado Batista",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": "Amarela",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata individual",
+      "categoria": "8-9 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe Masculino",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "13-14 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "13-14 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Arthur Baptista Santos",
+      "faixa": "Amarela",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Misto",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Arthur Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "10-13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": "Marrom",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "18-20 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "18-20 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe Feminino",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Equipe Feminino",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Fukugo Individual",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Leandro Noah Stremel Ribeiro de Campos",
+      "faixa": "Amarela",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Leandro Noah Stremel Ribeiro de Campos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "8-9 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Leandro Noah Stremel Ribeiro de Campos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Leandro Noah Stremel Ribeiro de Campos",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Guilherme Kaure Ribeiro de Conceição",
+      "faixa": "Amarela",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - CASCAVEL",
+      "atleta": "Guilherme Kaure Ribeiro de Conceição",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Laranja",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos- laranja+"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe",
+      "categoria": "Até 9 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Laranja",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos- laranja+"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Amarela",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos- até vermelha"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - SALVADOR",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "COPA OPEN INTERNACIONAL DE KARATÊ - SALVADOR",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Laranja",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata/Kumite Individual",
+      "categoria": "10-11 anos- laranja+"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (CHILDREN)",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Laranja",
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (CHILDREN)",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Laranja",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos- até laranja"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (CHILDREN)",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Amarela",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos- até laranja"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (OPEN)",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Laranja",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos- até laranja"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (OPEN)",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "8-9 anos- até laranja"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (OPEN)",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Amarela",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos- até laranja"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (OPEN)",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos- até laranja"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (OPEN)",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Laranja",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos- até laranja"
+    },
+    {
+      "ano": 2023,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - BUENOS AIRES (OPEN)",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos- até laranja"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - roxa acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": "Marrom",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "Adulto - roxa acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - roxa acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Verde",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Verde",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Rafael Vicente Marchalek",
+      "faixa": "Verde",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Rafael Vicente Marchalek",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Wellington Felipe Machado Batista",
+      "faixa": "Verde",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Wellington Felipe Machado Batista",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Verde",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Arthur Baptista Santos",
+      "faixa": "Laranja",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - até laranja"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Vermelha",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - até laranja"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - até laranja"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Pedro Godoi da Silva",
+      "faixa": "Amarela",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - até laranja"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Alice Chioquetta Damasio",
+      "faixa": "Cinza",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "6-7 anos - até vermelha"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - FIGUEIRA",
+      "atleta": "Alice Chioquetta Damasio",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "6-7 anos - até vermelha"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Alice Chioquetta Damasio",
+      "faixa": "Cinza",
+      "colocacao_raw": "Adulto",
+      "modalidade": "Kumite Individual",
+      "categoria": "6-7 anos - até vermelha"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Alice Chioquetta Damasio",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "6-7 anos - até vermelha"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Verde",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": "Laranja",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - até laranja"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - até laranja"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - até laranja"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Arthur Baptista Santos",
+      "faixa": "Laranja",
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Verde",
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "14-17 anos"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "15-16 anos - verde acima"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Wellington Felipe Machado Batista",
+      "faixa": "Verde",
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "14-17 anos"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - CASCAVEL",
+      "atleta": "Heloisa Helena Vilas Boas",
+      "faixa": "Marrom",
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "adulto."
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - LIMA (CHILDREN)",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Verde",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - VERDE"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - LIMA (CHILDREN)",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": "Laranja",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - LARANJA"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - LIMA (CHILDREN)",
+      "atleta": "Arthur Baptista Santos",
+      "faixa": "Laranja",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - LARANJA"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - LIMA (CHILDREN)",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - VERMELHA"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - LIMA (CHILDREN)",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - VERMELHA"
+    },
+    {
+      "ano": 2024,
+      "bloco_titulo": "CAMPEONATO MUNDIAL DE KARATÊ - LIMA (OPEN)",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Verde",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos - VERDE"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Thyago André Choinski Lazaro",
+      "faixa": "Amarela",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "Adulto - Até verde"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Elisson de Jesus Bomfim",
+      "faixa": "Marrom",
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Roxa",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Bruno Godoi da Silva",
+      "faixa": "Amarela",
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Bruno Godoi da Silva",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Victor Barbosa Debur",
+      "faixa": "Laranja",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos - Até laranja"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Victor Barbosa Debur",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Roxa",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe Fem",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Laranja",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos - até laranja"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - até laranja"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe Fem",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Pedro Godoi da Silva",
+      "faixa": "Amarela",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - até laranja"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Pedro Godoi da Silva",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Pedro Godoi da Silva",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe Mas",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Roxa",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - Verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe Mas",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": "Verde",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata individual",
+      "categoria": "10-11 anos - Verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - Verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe Mas",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Gloria Camilli Marques Ribas",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Equipe Fem",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Gloria Camilli Marques Ribas",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Gloria Camilli Marques Ribas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Sophia da Silva Santos",
+      "faixa": "Azul",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "10-11 anos - Até vermelha"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Sophia da Silva Santos",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Sophia da Silva Santos",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Alice Chioquetta Damasio",
+      "faixa": "Azul",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Rolândia",
+      "atleta": "Alice Chioquetta Damasio",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Thyago André Choinski Lazaro",
+      "faixa": "Amarela",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - Até verde"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Roxa",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Roxa",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Fem",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Laranja",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - até laranja"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Fem",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Enbu Feminino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Roxa",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - Verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Mas",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": "Verde",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata individual",
+      "categoria": "10-11 anos - Verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Mas",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Enbu Masculino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Alice Chioquetta Damasio",
+      "faixa": "Azul",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Fem",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Alice Chioquetta Damasio",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "8-9 anos - até vermelha"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - NATAL",
+      "atleta": "Arthur Baptista Santos",
+      "faixa": "Verde",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Equipe Mas",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - NATAL (OPEN)",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": "2025-08-05 00:00:00",
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - NATAL (OPEN)",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Roxa",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - Verde acima"
+    },
+    {
+      "ano": 2025,
+      "bloco_titulo": "CAMPEONATO PANAMERICANO DE KARATÊ - NATAL (CHILDREM)",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Roxa",
+      "colocacao_raw": "1900-01-01 00:00:00",
+      "modalidade": "Kata Individual",
+      "categoria": "10-11 anos - Verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "Adulto - verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Thyago André Choinski Lazaro",
+      "faixa": "Vermelha",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "Adulto - Até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Thyago André Choinski Lazaro",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - Até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Marrom",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "16-17 anos - verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "16-17 anos - verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Marrom",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos - verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Verde",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos - verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "João Guilherme de Oliveira Leocádio",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "18-21 anos - até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "João Guilherme de Oliveira Leocádio",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "18-21 anos - até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Marrom",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "12-13 anos - Verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - Verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO PARANAENSE DE KARATÊ - Figueira",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": "Roxa",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata individual",
+      "categoria": "12-13 anos - Verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "Adulto - faixa preta"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 1.0,
+      "modalidade": "Fukugo",
+      "categoria": "Adulto - faixa preta"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - faixa preta"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 3.0,
+      "modalidade": "Embu Masculino",
+      "categoria": "Adulto - faixa preta"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite em Equipe",
+      "categoria": "Adulto - faixa preta"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Thyago André Choinski Lazaro",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "Adulto - Até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Thyago André Choinski Lazaro",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - Até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "João Guilherme de Oliveira Leocádio",
+      "faixa": "Vermelha",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "18-20 anos - Até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "João Guilherme de Oliveira Leocádio",
+      "faixa": null,
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "18-20 anos - Até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "João Guilherme de Oliveira Leocádio",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Embu Masculino",
+      "categoria": "18-20 anos - Até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": "Marrom",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "16-17 anos - marrom acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Isabele Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Fukugo",
+      "categoria": "16-17 anos - marrom acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Marrom",
+      "colocacao_raw": 3.0,
+      "modalidade": "Embu Misto",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Embu Feminino",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Arthur Baptista Santos",
+      "faixa": "Roxa",
+      "colocacao_raw": 3.0,
+      "modalidade": "Embu Misto",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": "Verde",
+      "colocacao_raw": 3.0,
+      "modalidade": "Embu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Emanuela de Jesus Silvério Iwanechen",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Embu Feminino",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Marrom",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - Verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Embu Masculino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Embu Misto",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": "Roxa",
+      "colocacao_raw": 2.0,
+      "modalidade": "Kumite individual",
+      "categoria": "12-13 anos - Verde acima"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "CAMPEONATO BRASILEIRO DE KARATÊ - João Pessoa/PB",
+      "atleta": "Davi Miguel Baptista Santos",
+      "faixa": null,
+      "colocacao_raw": 1.0,
+      "modalidade": "Embu Masculino",
+      "categoria": "Até 13 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "COPA OPEN INTERNACIONAL DE KARATÊ - João Pessoa/PB",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "Adulto - faixa preta"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "COPA OPEN INTERNACIONAL DE KARATÊ - João Pessoa/PB",
+      "atleta": "Fulvio Vilas Boas",
+      "faixa": "Preta",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - faixa preta"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "COPA OPEN INTERNACIONAL DE KARATÊ - João Pessoa/PB",
+      "atleta": "Thyago André Choinski Lazaro",
+      "faixa": "Vermelha",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "Adulto - Até vermelha"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "COPA OPEN INTERNACIONAL DE KARATÊ - João Pessoa/PB",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": "Marrom",
+      "colocacao_raw": 3.0,
+      "modalidade": "Kata Individual",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "COPA OPEN INTERNACIONAL DE KARATÊ - João Pessoa/PB",
+      "atleta": "Giovanna Carvalho Lazaro",
+      "faixa": null,
+      "colocacao_raw": 3.0,
+      "modalidade": "Kumite Individual",
+      "categoria": "14-15 anos"
+    },
+    {
+      "ano": 2026,
+      "bloco_titulo": "COPA OPEN INTERNACIONAL DE KARATÊ - João Pessoa/PB",
+      "atleta": "Otávio Augusto Vilas Boas",
+      "faixa": "Marrom",
+      "colocacao_raw": 1.0,
+      "modalidade": "Kata Individual",
+      "categoria": "12-13 anos - Verde acima"
+    }
+  ],
+  "avisos": [
+    "2025 / CAMPEONATO PANAMERICANO DE KARATÊ - NATAL (OPEN): colocação veio como data (2025-08-05 00:00:00) na linha do atleta Fulvio Vilas Boas",
+    "2025 / CAMPEONATO PANAMERICANO DE KARATÊ - NATAL (CHILDREM): colocação veio como data (1900-01-01 00:00:00) na linha do atleta Otávio Augusto Vilas Boas"
+  ]
+}

@@ -23,6 +23,8 @@ const ExameParticipante = require('./ExameParticipante');
 const AvaliadorExame = require('./AvaliadorExame');
 const AvaliacaoAluno = require('./AvaliacaoAluno');
 const RespostaCriterio = require('./RespostaCriterio');
+const Competicao = require('./Competicao');
+const Conquista = require('./Conquista');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -179,6 +181,22 @@ RespostaCriterio.belongsTo(CriterioExame, { foreignKey: 'criterio_exame_id' });
 ExameParticipante.hasOne(GraduacaoAluno, { foreignKey: 'exame_participante_id' });
 GraduacaoAluno.belongsTo(ExameParticipante, { foreignKey: 'exame_participante_id' });
 
+// Conquistas (histórico de resultados em competições)
+Escola.hasMany(Competicao, { foreignKey: 'escola_id' });
+Competicao.belongsTo(Escola, { foreignKey: 'escola_id' });
+
+Competicao.hasMany(Conquista, { foreignKey: 'competicao_id' });
+Conquista.belongsTo(Competicao, { foreignKey: 'competicao_id' });
+
+Usuario.hasMany(Conquista, { foreignKey: 'aluno_id' });
+Conquista.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno' });
+
+ArteMarcial.hasMany(Conquista, { foreignKey: 'arte_marcial_id' });
+Conquista.belongsTo(ArteMarcial, { foreignKey: 'arte_marcial_id' });
+
+Faixa.hasMany(Conquista, { foreignKey: 'faixa_id' });
+Conquista.belongsTo(Faixa, { foreignKey: 'faixa_id' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -186,4 +204,5 @@ module.exports = {
   PlanoMensalidade, AssinaturaAluno, Mensalidade, Pagamento,
   Exame, FaseExame, CriterioExame, CriterioExameFaixa,
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
+  Competicao, Conquista,
 };

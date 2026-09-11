@@ -23,6 +23,7 @@ Turma → HorarioTurma (grade semanal) → Aula (instâncias) → Chamada
 Turma → MatriculaAluno → Usuario (aluno)
 Usuario (aluno) → Mensalidade → Pagamento
 Sala (qr_token único) → Aula (detectada por horário)
+Escola → Competicao → Conquista → Usuario (aluno, opcional), ArteMarcial, Faixa
 ```
 
 ## User Stories
@@ -81,6 +82,14 @@ Como administrador, quero cadastrar turmas, horários, salas e professores para 
 - CRUD completo de: Turma, HorarioTurma, Sala, Usuario
 - Sala gera QR Code imprimível automaticamente
 - HorarioTurma define dia_semana + hora_inicio + hora_fim
+
+### US-07: Histórico de conquistas em competições
+Como administrador ou professor, quero registrar os resultados dos atletas em competições (campeonatos municipais, estaduais, nacionais, panamericanos e mundiais), para manter o histórico que hoje fica numa planilha externa.
+
+**Critérios de aceite:**
+- Competicao (ano, nome, etapa opcional, nível, entidade, cidade/estado/país) e Conquista (competição, atleta, arte marcial, faixa na época, colocação, modalidade, categoria) isoladas por escola_id
+- Conquista sempre guarda o nome do atleta; vínculo com Usuario (aluno) é opcional — cobre atletas afastados sem cadastro ativo
+- Aba "Conquistas em Competições" no perfil do aluno + tela geral "Conquistas" (busca/filtro por ano e nível) no menu
 
 ## Regras de Negócio
 

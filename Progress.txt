@@ -965,6 +965,54 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Curitiba com 74 faltas — tooltip da tendência semanal conferido
     (ex: semana de 20/07: 50% de ausência, 24 faltas em 7 aulas).
 
+=== FASE 24: Conquistas em Competições (histórico de resultados dos atletas) ===
+[x] Modelos novos `Competicao` (ano, nome, etapa, nivel enum
+    municipal/estadual/nacional/panamericano/mundial, entidade, cidade,
+    estado, pais) e `Conquista` (competicao_id, aluno_id nullable + sempre
+    nome_atleta em texto — atleta afastado sem cadastro ativo entra só com
+    o nome —, arte_marcial_id, faixa_id nullable + faixa_nome_livre como
+    fallback, colocacao, modalidade, categoria). Tabelas criadas via
+    `sequelize.sync` (sem migration manual).
+[x] Backend: `conquistasController.js` + rotas `/api/conquistas` (CRUD +
+    `/aluno/:aluno_id` pro perfil) e `/api/conquistas/competicoes` (CRUD).
+    `GET /usuarios/:id/perfil` passou a incluir `conquistas` do aluno.
+[x] Frontend: aba "Conquistas em Competições" no perfil do aluno
+    (`AlunoDetalhe.js`, componente `SecaoConquistas`/`ModalConquista`) e
+    página geral "Conquistas" no menu (`Conquistas.js`) com busca/filtro
+    por ano e nível, criação de conquista com atleta livre ou vinculado a
+    Aluno existente (`role=aluno`, ativo ou inativo).
+[x] Importado o histórico real da planilha do Fulvio (Google Sheets, 2017
+    a 2026, só Karatê): 258 conquistas em 24 competições distintas, via
+    script one-off `backend/src/scripts/2026-09-import-conquistas.js`
+    (idempotente, com modo `--commit`; dados brutos extraídos da planilha
+    em `backend/src/scripts/data/conquistas-planilha-2026-09.json`).
+    Mapeamento de nível/entidade/local por competição é uma tabela manual
+    dentro do script (24 títulos de bloco da planilha → nivel/entidade/
+    cidade/estado/pais), não inferência automática genérica.
+[x] Decisões confirmadas com o Fulvio: nível/entidade inferidos na
+    importação (revisão pontual, não cadastro manual prévio); só o ano é
+    obrigatório na competição (sem data completa); aluno_id vincula quando
+    o nome bate com um cadastro existente (ativo ou inativo), senão fica
+    só nome_atleta livre; local em 3 campos (cidade/estado/país); "Copa
+    Open Internacional de Karatê" classificada como nível mundial; admin
+    e professor podem cadastrar/editar conquistas.
+[x] 4 atletas da planilha sem cadastro de Aluno correspondente ficaram só
+    com nome_atleta livre (aluno_id null): Luiz Fillipe Lemes da Silva,
+    Vitor Gabriel Scheffer Alves, Leandro Noah Stremel Ribeiro de Campos,
+    Guilherme Kaure Ribeiro de Conceição.
+[ ] 3 colocações da planilha original vieram corrompidas (viraram data ao
+    digitar, ou texto "Adulto" em vez de número) — importadas com
+    colocação em branco, Fulvio ainda precisa corrigir manualmente pela
+    tela: (1) 2024, Alice Chioquetta Damasio, Brasileiro Cascavel, Kumite
+    Individual; (2) 2025, Fulvio Vilas Boas, Panamericano Natal (Open),
+    Kata Individual; (3) 2025, Otávio Augusto Vilas Boas, Panamericano
+    Natal (Children), Kata Individual.
+[x] Testado end-to-end via browser real (Chrome MCP): tela geral lista as
+    258 conquistas com filtro de ano/nível, clique no nome do atleta abre
+    o perfil, aba de conquistas do aluno mostra medalha/nível/local/faixa
+    da época, modais de nova/editar conquista abrem e pré-preenchem
+    corretamente (cancelado sem gravar dado de teste).
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

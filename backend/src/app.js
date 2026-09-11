@@ -46,6 +46,9 @@ app.use('/api/financeiro', require('./routes/financeiro'));
 app.use('/api/graduacoes', require('./routes/graduacoes'));
 app.use('/api/ocorrencias', require('./routes/ocorrencias'));
 
+// Conquistas (histórico de resultados em competições)
+app.use('/api/conquistas', require('./routes/conquistas'));
+
 // Módulo de Exame de Faixa
 app.use('/api/exames', require('./routes/exames'));
 app.use('/api/avaliacao-publica', require('./routes/avaliacaoPublica'));  // público, sem JWT no login
