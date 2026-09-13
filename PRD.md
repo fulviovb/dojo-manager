@@ -100,6 +100,8 @@ Como professor, quero registrar um treino extra que ofereci fora da grade normal
 - Aba "Treinos Extras" ao lado de "Aulas" na tela de Chamadas
 - Não exige Turma, Horário ou Sala pré-cadastrados — só modalidade + data + lista de alunos presentes
 - Presença conta na carência de graduação (mesma regra de "presença por arte marcial desde a graduação atual"), mas não entra no histórico de frequência por turma nem nos indicadores de ausência
+- Campo opcional "Nº de treinos" (1-20, default 1): quando o professor dá mais de um treino seguido no mesmo dia pros mesmos alunos, um único registro já vale N aulas de carência por aluno — sem precisar repetir o cadastro
+- Filtro "Turma" na lista de seleção de alunos (só filtra a exibição, não é salvo) — ajuda a achar rápido os alunos de uma turma específica; combina com a busca por nome
 
 ## Regras de Negócio
 

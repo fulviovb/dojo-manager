@@ -314,8 +314,10 @@ const frequenciaPercentual = async (req, res) => {
       // graduação atual — não só nas turmas em que está matriculado agora,
       // porque o aluno pode ter trocado de turma/horário no meio do caminho
       // sem isso "resetar" a carência já cumprida.
+      // sum(quantidade), não count(*): Treino Extra pode valer mais de 1
+      // "aula" por registro (ex: 2 treinos seguidos no mesmo dia).
       const aulasPresentes = dataInicio
-        ? await Chamada.count({
+        ? (await Chamada.sum('quantidade', {
             where: { aluno_id: grupo.aluno.id },
             include: [{
               model: Aula,
@@ -323,7 +325,7 @@ const frequenciaPercentual = async (req, res) => {
               where: { data: { [Op.gte]: dataInicio } },
               include: [{ model: Turma, attributes: [], where: { arte_marcial_id: grupo.faixaAtual.arte_marcial_id } }],
             }],
-          })
+          })) || 0
         : 0;
 
       alunosResp.push({

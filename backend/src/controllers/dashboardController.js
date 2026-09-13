@@ -18,7 +18,9 @@ const MESES_POR_PERIODICIDADE = { mensal: 1, trimestral: 3, semestral: 6, anual:
 // meio da graduação não deveria "resetar" carência já cumprida.
 async function presencasDesdeGraduacao(aluno_id, arte_marcial_id, dataInicio) {
   if (!dataInicio) return 0;
-  return Chamada.count({
+  // sum(quantidade), não count(*): Treino Extra pode valer mais de 1 "aula"
+  // por registro (ex: 2 treinos seguidos no mesmo dia).
+  const total = await Chamada.sum('quantidade', {
     where: { aluno_id },
     include: [{
       model: Aula,
@@ -27,6 +29,7 @@ async function presencasDesdeGraduacao(aluno_id, arte_marcial_id, dataInicio) {
       include: [{ model: Turma, attributes: [], where: { arte_marcial_id } }],
     }],
   });
+  return total || 0;
 }
 
 // Quantas aulas de verdade ainda existem entre `inicioISO` (inclusive) e

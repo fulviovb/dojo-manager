@@ -1067,6 +1067,31 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     e a contagem de selecionados no modal funcionam. Dados de teste
     removidos depois (via script, não pelo botão da UI — evita o
     `window.confirm` nativo que trava o browser automatizado).
+[x] Campo "Nº de treinos" (quantidade): pedido do Fulvio — quando dá 2+
+    treinos seguidos no mesmo dia pros mesmos alunos, não precisa registrar
+    2x separado. Um único Treino Extra vale N aulas de carência por aluno.
+    Coluna nova `chamadas.quantidade` (INT, default 1 — nunca afeta chamada
+    normal de QR Code/turma). As 3 rotinas de carência (usuariosController.
+    perfil, dashboardController.presencasDesdeGraduacao,
+    relatoriosController.frequenciaPercentual) passaram de `count(*)` pra
+    `sum(quantidade)`. Testado: Treino Extra com quantidade=3 pra um aluno
+    que já tinha 1 presença fez a carência somar 4, exatamente como
+    esperado; dado de teste removido depois via script.
+[ ] Encontrados 2 Treinos Extras reais e idênticos (13/09/2026, Karatê
+    Shotokan, mesmos 5 alunos: Davi Miguel Baptista Santos, Isabele Baptista
+    Santos, Otávio Augusto Vilas Boas, Arthur Baptista Santos, Elisson de
+    Jesus Bomfim) — parecem duplicados, criados pelo próprio Fulvio testando
+    a tela antes desse ajuste. Não removidos (dado real, não é dado de
+    teste do Claude) — Fulvio precisa conferir se foi engano e apagar um
+    dos dois pela própria tela se for o caso.
+[x] Filtro "Turma" na tela de Novo/Editar Treino Extra: pedido do Fulvio —
+    facilita achar os alunos ao selecionar por turma matriculada, em vez de
+    rolar a lista inteira da escola. Só filtra a exibição (combina com a
+    busca por nome já existente); quem já estava selecionado não desaparece
+    ao trocar/limpar o filtro. Usa `GET /turmas` (só turmas regulares) pro
+    dropdown e `GET /matriculas?turma_id=X` pra saber quem está matriculado.
+    Testado ao vivo: selecionar "Karatê - CRIANÇA EM FOCO" reduziu a lista
+    de ~50 pra 9 alunos.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

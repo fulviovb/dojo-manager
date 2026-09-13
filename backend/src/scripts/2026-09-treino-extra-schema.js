@@ -36,6 +36,11 @@ async function main() {
   );
   console.log('✓ aulas.sala_id agora aceita NULL');
 
+  await alterarSeNecessario(
+    `ALTER TABLE chamadas ADD COLUMN quantidade INT NOT NULL DEFAULT 1`,
+    [COLUNA_JA_EXISTE]
+  );
+
   console.log('✓ Schema de Treino Extra aplicado com sucesso.');
   process.exit(0);
 }

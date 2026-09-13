@@ -28,15 +28,27 @@ const incluirDetalhes = [
   { model: Chamada, include: [{ model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'] }] },
 ];
 
+// Todas as Chamadas de um mesmo Treino Extra compartilham a mesma
+// `quantidade` (o registro representa N treinos, não N por aluno) — lida do
+// primeiro item só pra exibição; default 1 se por algum motivo não tiver.
 const formatar = (aula) => {
   const json = aula.toJSON();
   return {
     id: json.id,
     data: json.data,
     arte_marcial: json.Turma.ArteMarcial,
+    quantidade: json.Chamadas?.[0]?.quantidade || 1,
     alunos: (json.Chamadas || []).map((c) => c.Aluno).filter(Boolean),
   };
 };
+
+const MAX_QUANTIDADE = 20;
+
+function normalizarQuantidade(valor) {
+  const n = parseInt(valor, 10);
+  if (!Number.isInteger(n) || n < 1) return null;
+  return Math.min(n, MAX_QUANTIDADE);
+}
 
 // GET /api/treinos-extras
 const listar = async (req, res) => {
@@ -52,7 +64,7 @@ const listar = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-// POST /api/treinos-extras  { arte_marcial_id, data, aluno_ids: [] }
+// POST /api/treinos-extras  { arte_marcial_id, data, aluno_ids: [], quantidade }
 const criar = async (req, res) => {
   try {
     const { arte_marcial_id, data, aluno_ids } = req.body;
@@ -60,6 +72,8 @@ const criar = async (req, res) => {
     if (!Array.isArray(aluno_ids) || aluno_ids.length === 0) {
       return res.status(400).json({ erro: 'Selecione ao menos um aluno presente' });
     }
+    const quantidade = normalizarQuantidade(req.body.quantidade ?? 1);
+    if (!quantidade) return res.status(400).json({ erro: `Quantidade de treinos deve ser um número entre 1 e ${MAX_QUANTIDADE}` });
 
     const arte = await ArteMarcial.findOne({ where: { id: arte_marcial_id, escola_id: req.usuario.escola_id } });
     if (!arte) return res.status(404).json({ erro: 'Modalidade não encontrada' });
@@ -77,7 +91,7 @@ const criar = async (req, res) => {
     for (const aluno_id of aluno_ids) {
       await Chamada.findOrCreate({
         where: { aula_id: aula.id, aluno_id },
-        defaults: { origem: 'professor', validado_por: req.usuario.id },
+        defaults: { origem: 'professor', validado_por: req.usuario.id, quantidade },
       });
     }
 
@@ -86,7 +100,7 @@ const criar = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-// PUT /api/treinos-extras/:id  { data, aluno_ids }
+// PUT /api/treinos-extras/:id  { data, aluno_ids, quantidade }
 const atualizar = async (req, res) => {
   try {
     const aula = await Aula.findByPk(req.params.id, {
@@ -96,6 +110,12 @@ const atualizar = async (req, res) => {
 
     const { data, aluno_ids } = req.body;
     if (data) await aula.update({ data });
+
+    let quantidade = null;
+    if (req.body.quantidade !== undefined) {
+      quantidade = normalizarQuantidade(req.body.quantidade);
+      if (!quantidade) return res.status(400).json({ erro: `Quantidade de treinos deve ser um número entre 1 e ${MAX_QUANTIDADE}` });
+    }
 
     if (Array.isArray(aluno_ids)) {
       const atuais = await Chamada.findAll({ where: { aula_id: aula.id } });
@@ -107,9 +127,15 @@ const atualizar = async (req, res) => {
       }
       for (const aluno_id of aluno_ids) {
         if (!atuaisIds.has(aluno_id)) {
-          await Chamada.create({ aula_id: aula.id, aluno_id, origem: 'professor', validado_por: req.usuario.id });
+          await Chamada.create({ aula_id: aula.id, aluno_id, origem: 'professor', validado_por: req.usuario.id, quantidade: quantidade || 1 });
         }
       }
+    }
+
+    // A quantidade é uma propriedade do Treino Extra como um todo — se
+    // mudou, aplica em todas as Chamadas dele (existentes e recém-criadas).
+    if (quantidade) {
+      await Chamada.update({ quantidade }, { where: { aula_id: aula.id } });
     }
 
     const completa = await Aula.findByPk(aula.id, { include: incluirDetalhes });

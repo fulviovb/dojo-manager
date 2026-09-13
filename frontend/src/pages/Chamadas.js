@@ -300,17 +300,29 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
 
 // ─── Treinos Extras ──────────────────────────────────────────────────────────
 
-function ModalTreinoExtra({ treino, artes, alunosEscola, onFechar, onSalvo }) {
+function ModalTreinoExtra({ treino, artes, turmas, alunosEscola, onFechar, onSalvo }) {
   const [arteMarcialId, setArteMarcialId] = useState(treino?.arte_marcial?.id || '');
   const [data, setData] = useState(treino?.data || new Date().toISOString().slice(0, 10));
+  const [quantidade, setQuantidade] = useState(treino?.quantidade || 1);
   const [alunoIds, setAlunoIds] = useState(new Set((treino?.alunos || []).map(a => a.id)));
   const [busca, setBusca] = useState('');
+  const [turmaFiltroId, setTurmaFiltroId] = useState('');
+  const [idsDaTurma, setIdsDaTurma] = useState(null); // null = filtro de turma desligado
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
 
-  const alunosFiltrados = busca.trim()
-    ? alunosEscola.filter(a => a.nome.toLowerCase().includes(busca.toLowerCase()))
-    : alunosEscola;
+  // Filtro de Turma é só uma lupa pra achar mais rápido — não some com o
+  // aluno já selecionado, e não afeta o que é salvo (só a lista exibida).
+  useEffect(() => {
+    if (!turmaFiltroId) { setIdsDaTurma(null); return; }
+    axios.get('/matriculas', { params: { turma_id: turmaFiltroId } })
+      .then(r => setIdsDaTurma(new Set(r.data.map(m => m.aluno_id))));
+  }, [turmaFiltroId]);
+
+  const alunosFiltrados = alunosEscola.filter(a =>
+    (!busca.trim() || a.nome.toLowerCase().includes(busca.toLowerCase())) &&
+    (!idsDaTurma || idsDaTurma.has(a.id))
+  );
 
   const alternarAluno = (id) => {
     setAlunoIds(prev => {
@@ -326,7 +338,7 @@ function ModalTreinoExtra({ treino, artes, alunosEscola, onFechar, onSalvo }) {
     if (alunoIds.size === 0) return setErro('Selecione ao menos um aluno presente');
     setSalvando(true);
     try {
-      const payload = { data, aluno_ids: [...alunoIds] };
+      const payload = { data, aluno_ids: [...alunoIds], quantidade };
       if (!treino) payload.arte_marcial_id = arteMarcialId;
       if (treino) await axios.put(`/treinos-extras/${treino.id}`, payload);
       else await axios.post('/treinos-extras', payload);
@@ -339,7 +351,7 @@ function ModalTreinoExtra({ treino, artes, alunosEscola, onFechar, onSalvo }) {
   };
 
   return (
-    <Modal titulo={treino ? 'Editar Treino Extra' : 'Novo Treino Extra'} onFechar={onFechar} largura={480}>
+    <Modal titulo={treino ? 'Editar Treino Extra' : 'Novo Treino Extra'} onFechar={onFechar} largura={540}>
       <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Modalidade</label>
@@ -352,13 +364,28 @@ function ModalTreinoExtra({ treino, artes, alunosEscola, onFechar, onSalvo }) {
           <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Data</label>
           <input type="date" value={data} onChange={e => setData(e.target.value)} style={{ ...estiloInput, width: '100%' }} />
         </div>
+        <div style={{ width: 110 }}>
+          <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }} title="Quantos treinos seguidos você deu nessa data, com esses mesmos alunos (ex: 2 se fez 2 treinos no mesmo dia)">
+            Nº de treinos
+          </label>
+          <input type="number" min={1} max={20} value={quantidade}
+            onChange={e => setQuantidade(Math.max(1, parseInt(e.target.value, 10) || 1))}
+            style={{ ...estiloInput, width: '100%' }} />
+        </div>
       </div>
 
       <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>
         Alunos presentes ({alunoIds.size} selecionado{alunoIds.size !== 1 ? 's' : ''})
+        {quantidade > 1 && ` · vale ${quantidade} aulas de carência cada`}
       </label>
-      <input placeholder="Buscar aluno pelo nome..." value={busca} onChange={e => setBusca(e.target.value)}
-        style={{ ...estiloInput, width: '100%', marginBottom: 8 }} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <select value={turmaFiltroId} onChange={e => setTurmaFiltroId(e.target.value)} style={{ ...estiloInput, width: 180 }}>
+          <option value="">Filtrar por turma...</option>
+          {turmas.map(t => <option key={t.id} value={t.id}>{t.nome.split('\n')[0]}</option>)}
+        </select>
+        <input placeholder="Buscar aluno pelo nome..." value={busca} onChange={e => setBusca(e.target.value)}
+          style={{ ...estiloInput, flex: 1 }} />
+      </div>
       <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid #eee', borderRadius: 4 }}>
         {alunosFiltrados.length === 0 && <p style={{ color: '#aaa', fontSize: 13, padding: 12 }}>Nenhum aluno encontrado.</p>}
         {alunosFiltrados.map(a => (
@@ -382,6 +409,7 @@ function ModalTreinoExtra({ treino, artes, alunosEscola, onFechar, onSalvo }) {
 function ListaTreinosExtras({ onVerAluno }) {
   const [treinos, setTreinos] = useState([]);
   const [artes, setArtes] = useState([]);
+  const [turmas, setTurmas] = useState([]);
   const [alunosEscola, setAlunosEscola] = useState([]);
   const [modalTreino, setModalTreino] = useState(null); // null = fechado, {} = novo, objeto = editar
   const [carregando, setCarregando] = useState(true);
@@ -392,6 +420,7 @@ function ListaTreinosExtras({ onVerAluno }) {
   };
   useEffect(carregar, []);
   useEffect(() => { axios.get('/artes-marciais').then(r => setArtes(r.data)); }, []);
+  useEffect(() => { axios.get('/turmas').then(r => setTurmas(r.data)); }, []);
   useEffect(() => { axios.get('/usuarios?role=aluno').then(r => setAlunosEscola(r.data)); }, []);
 
   const excluir = async (treino) => {
@@ -416,21 +445,25 @@ function ListaTreinosExtras({ onVerAluno }) {
             <tr style={{ background: '#fafafa' }}>
               <th style={thEstilo}>Data</th>
               <th style={thEstilo}>Modalidade</th>
+              <th style={thEstilo}>Treinos</th>
               <th style={thEstilo}>Alunos presentes</th>
               <th style={thEstilo}></th>
             </tr>
           </thead>
           <tbody>
             {carregando && (
-              <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Carregando...</td></tr>
+              <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Carregando...</td></tr>
             )}
             {!carregando && treinos.length === 0 && (
-              <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum treino extra registrado.</td></tr>
+              <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum treino extra registrado.</td></tr>
             )}
             {treinos.map(t => (
               <tr key={t.id} style={{ borderTop: '1px solid #f0f0f0' }}>
                 <td style={{ padding: '10px 16px', fontSize: 13 }}>{t.data.split('-').reverse().join('/')}</td>
                 <td style={{ padding: '10px 16px', fontSize: 13 }}>{t.arte_marcial?.nome}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>
+                  {t.quantidade > 1 ? <span title="Presença vale essa quantidade de aulas de carência" style={{ background: '#e3f2fd', color: '#1565c0', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>{t.quantidade}x</span> : '1x'}
+                </td>
                 <td style={{ padding: '10px 16px', fontSize: 13 }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {t.alunos.map(a => (
@@ -456,6 +489,7 @@ function ListaTreinosExtras({ onVerAluno }) {
         <ModalTreinoExtra
           treino={modalTreino.id ? modalTreino : null}
           artes={artes}
+          turmas={turmas}
           alunosEscola={alunosEscola}
           onFechar={() => setModalTreino(null)}
           onSalvo={() => { setModalTreino(null); carregar(); }}

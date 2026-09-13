@@ -289,12 +289,16 @@ const perfil = async (req, res) => {
       const historico = graduacoes.filter(g => g.arte_marcial_id === arte.id);
 
       const historicoComPresencas = historico.map(h => {
+        // soma quantidade, não conta linhas: Treino Extra pode valer mais de
+        // 1 "aula" por registro (ex: 2 treinos seguidos no mesmo dia).
         const presentes = h.data_inicio
-          ? chamadas.filter(c =>
-              c.Aula?.Turma?.arte_marcial_id === arte.id &&
-              c.Aula?.data >= h.data_inicio &&
-              (!h.data_fim || c.Aula?.data <= h.data_fim)
-            ).length
+          ? chamadas
+              .filter(c =>
+                c.Aula?.Turma?.arte_marcial_id === arte.id &&
+                c.Aula?.data >= h.data_inicio &&
+                (!h.data_fim || c.Aula?.data <= h.data_fim)
+              )
+              .reduce((soma, c) => soma + (c.quantidade || 1), 0)
           : 0;
 
         const criterio = criterios.find(c => c.arte_marcial_id === arte.id && c.faixa_id === h.faixa_id);
