@@ -108,7 +108,14 @@ const resumo = async (req, res) => {
       Turma.count({ where: { escola_id, ativa: true } }),
       Aula.findAll({
         where: { data: { [Op.between]: [dataInicio, dataFim] }, status: 'fechada' },
-        include: [{ model: Chamada, attributes: ['aluno_id'] }],
+        include: [
+          { model: Chamada, attributes: ['aluno_id'] },
+          // tipo 'treino_extra' é a turma oculta do módulo de Treino Extra —
+          // não deve inflar o indicador de aulas da grade regular. Também
+          // fecha uma lacuna pré-existente: essa query não filtrava por
+          // escola_id nenhuma (Aula não tem a coluna direto, só via Turma).
+          { model: Turma, attributes: [], where: { escola_id, tipo: 'regular' }, required: true },
+        ],
       }),
       // Alunos que entraram este mês — sinal de crescimento na aba Operacional.
       Usuario.count({ where: { escola_id, role: 'aluno', ativo: true, data_ingresso: { [Op.gte]: inicioMes, [Op.lt]: fimMes } } }),
@@ -629,7 +636,9 @@ const ausencias = async (req, res) => {
     const dataInicio12Semanas = dataLocalISO(inicio12Semanas);
 
     const turmas = await Turma.findAll({
-      where: { escola_id, ...(souProfessor ? { professor_id: req.usuario.id } : {}) },
+      // tipo 'treino_extra' é a turma oculta do módulo de Treino Extra — não
+      // tem Sala nem matrícula real, não deve entrar nas métricas de ausência.
+      where: { escola_id, tipo: 'regular', ...(souProfessor ? { professor_id: req.usuario.id } : {}) },
       attributes: ['id', 'nome'],
     });
     const turmaIds = turmas.map((t) => t.id);

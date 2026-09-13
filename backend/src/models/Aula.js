@@ -4,7 +4,9 @@ const sequelize = require('../config/database');
 const Aula = sequelize.define('Aula', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   turma_id: { type: DataTypes.UUID, allowNull: false },
-  sala_id: { type: DataTypes.UUID, allowNull: false },
+  // Nullable: Treinos Extras (ver treinosExtrasController) não têm uma sala
+  // fixa associada — são um registro direto de presença, sem QR Code.
+  sala_id: { type: DataTypes.UUID },
   data: { type: DataTypes.DATEONLY, allowNull: false },
   hora_inicio: { type: DataTypes.TIME, allowNull: false },
   hora_fim: { type: DataTypes.TIME, allowNull: false },

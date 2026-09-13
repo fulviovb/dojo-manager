@@ -9,6 +9,13 @@ const Turma = sequelize.define('Turma', {
   nome: { type: DataTypes.STRING, allowNull: false },
   descricao: { type: DataTypes.TEXT },
   ativa: { type: DataTypes.BOOLEAN, defaultValue: true },
+  // 'treino_extra': turma oculta, uma por (escola, arte_marcial), criada
+  // automaticamente pra registrar Treinos Extras (ver treinosExtrasController).
+  // Nunca aparece nas telas de Turma nem entra em contagens de "turmas
+  // ativas" — mas as Chamadas ligadas a ela contam normalmente pra carência
+  // de graduação, porque esse cálculo já soma presença por arte marcial,
+  // não por matrícula/turma.
+  tipo: { type: DataTypes.ENUM('regular', 'treino_extra'), defaultValue: 'regular' },
 }, { tableName: 'turmas', indexes: [{ unique: true, fields: ['escola_id', 'nome'] }] });
 
 module.exports = Turma;

@@ -33,6 +33,7 @@ app.use('/api/horarios', require('./routes/horarios'));
 app.use('/api/aulas', require('./routes/aulas'));
 app.use('/api/checkin', require('./routes/checkin'));   // público, sem JWT
 app.use('/api/chamadas', require('./routes/chamadas'));
+app.use('/api/treinos-extras', require('./routes/treinosExtras'));
 app.use('/api/matriculas', require('./routes/matriculas'));
 
 // Financeiro

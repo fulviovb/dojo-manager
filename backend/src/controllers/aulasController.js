@@ -57,10 +57,11 @@ const listar = async (req, res) => {
     if (data) where.data = data;
     if (turma_id) where.turma_id = turma_id;
 
-    const turmaInclude = { model: Turma, attributes: ['id', 'nome', 'professor_id'] };
+    // tipo 'treino_extra' é a turma oculta do módulo de Treino Extra — essas
+    // aulas aparecem só na aba dedicada (GET /treinos-extras), não aqui.
+    const turmaInclude = { model: Turma, attributes: ['id', 'nome', 'professor_id'], where: { tipo: 'regular' }, required: true };
     if (req.usuario.role === 'professor') {
-      turmaInclude.where = { professor_id: req.usuario.id };
-      turmaInclude.required = true;
+      turmaInclude.where.professor_id = req.usuario.id;
     }
 
     const aulas = await Aula.findAll({

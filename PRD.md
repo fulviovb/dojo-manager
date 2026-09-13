@@ -24,6 +24,8 @@ Turma → MatriculaAluno → Usuario (aluno)
 Usuario (aluno) → Mensalidade → Pagamento
 Sala (qr_token único) → Aula (detectada por horário)
 Escola → Competicao → Conquista → Usuario (aluno, opcional), ArteMarcial, Faixa
+Turma.tipo = 'treino_extra': turma oculta (1 por escola+arte_marcial), sem
+  HorarioTurma/MatriculaAluno — só recebe Aula/Chamada do módulo Treino Extra
 ```
 
 ## User Stories
@@ -90,6 +92,14 @@ Como administrador ou professor, quero registrar os resultados dos atletas em co
 - Competicao (ano, nome, etapa opcional, nível, entidade, cidade/estado/país) e Conquista (competição, atleta, arte marcial, faixa na época, colocação, modalidade, categoria) isoladas por escola_id
 - Conquista sempre guarda o nome do atleta; vínculo com Usuario (aluno) é opcional — cobre atletas afastados sem cadastro ativo
 - Aba "Conquistas em Competições" no perfil do aluno + tela geral "Conquistas" (busca/filtro por ano e nível) no menu
+
+### US-08: Treino Extra
+Como professor, quero registrar um treino extra que ofereci fora da grade normal (ex: treino de competidores), escolhendo a modalidade, a data e os alunos presentes, para que essa presença conte na carência de aulas do aluno pra troca de faixa.
+
+**Critérios de aceite:**
+- Aba "Treinos Extras" ao lado de "Aulas" na tela de Chamadas
+- Não exige Turma, Horário ou Sala pré-cadastrados — só modalidade + data + lista de alunos presentes
+- Presença conta na carência de graduação (mesma regra de "presença por arte marcial desde a graduação atual"), mas não entra no histórico de frequência por turma nem nos indicadores de ausência
 
 ## Regras de Negócio
 

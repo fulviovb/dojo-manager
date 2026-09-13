@@ -298,6 +298,173 @@ function DetalheAula({ aulaId, onVoltar, onFechada, onVerAluno }) {
   );
 }
 
+// ─── Treinos Extras ──────────────────────────────────────────────────────────
+
+function ModalTreinoExtra({ treino, artes, alunosEscola, onFechar, onSalvo }) {
+  const [arteMarcialId, setArteMarcialId] = useState(treino?.arte_marcial?.id || '');
+  const [data, setData] = useState(treino?.data || new Date().toISOString().slice(0, 10));
+  const [alunoIds, setAlunoIds] = useState(new Set((treino?.alunos || []).map(a => a.id)));
+  const [busca, setBusca] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const alunosFiltrados = busca.trim()
+    ? alunosEscola.filter(a => a.nome.toLowerCase().includes(busca.toLowerCase()))
+    : alunosEscola;
+
+  const alternarAluno = (id) => {
+    setAlunoIds(prev => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id); else novo.add(id);
+      return novo;
+    });
+  };
+
+  const salvar = async () => {
+    setErro('');
+    if (!treino && !arteMarcialId) return setErro('Selecione a modalidade');
+    if (alunoIds.size === 0) return setErro('Selecione ao menos um aluno presente');
+    setSalvando(true);
+    try {
+      const payload = { data, aluno_ids: [...alunoIds] };
+      if (!treino) payload.arte_marcial_id = arteMarcialId;
+      if (treino) await axios.put(`/treinos-extras/${treino.id}`, payload);
+      else await axios.post('/treinos-extras', payload);
+      onSalvo();
+    } catch (ex) {
+      setErro(ex.response?.data?.erro || 'Erro ao salvar treino extra');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <Modal titulo={treino ? 'Editar Treino Extra' : 'Novo Treino Extra'} onFechar={onFechar} largura={480}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Modalidade</label>
+          <select value={arteMarcialId} onChange={e => setArteMarcialId(e.target.value)} style={{ ...estiloInput, width: '100%' }} disabled={!!treino}>
+            <option value="">Selecione...</option>
+            {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+          </select>
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Data</label>
+          <input type="date" value={data} onChange={e => setData(e.target.value)} style={{ ...estiloInput, width: '100%' }} />
+        </div>
+      </div>
+
+      <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>
+        Alunos presentes ({alunoIds.size} selecionado{alunoIds.size !== 1 ? 's' : ''})
+      </label>
+      <input placeholder="Buscar aluno pelo nome..." value={busca} onChange={e => setBusca(e.target.value)}
+        style={{ ...estiloInput, width: '100%', marginBottom: 8 }} />
+      <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid #eee', borderRadius: 4 }}>
+        {alunosFiltrados.length === 0 && <p style={{ color: '#aaa', fontSize: 13, padding: 12 }}>Nenhum aluno encontrado.</p>}
+        {alunosFiltrados.map(a => (
+          <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderBottom: '1px solid #f5f5f5', cursor: 'pointer', fontSize: 14 }}>
+            <input type="checkbox" checked={alunoIds.has(a.id)} onChange={() => alternarAluno(a.id)} />
+            <Avatar fotoUrl={a.foto_url} nome={a.nome} tamanho={22} />
+            {a.nome}
+          </label>
+        ))}
+      </div>
+
+      {erro && <p style={{ color: 'red', fontSize: 13, marginTop: 10 }}>{erro}</p>}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+        <button onClick={onFechar} style={{ padding: '8px 16px', borderRadius: 4, border: '1px solid #ddd', cursor: 'pointer', background: '#fff' }}>Cancelar</button>
+        <button onClick={salvar} disabled={salvando} style={btnPrimario}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+      </div>
+    </Modal>
+  );
+}
+
+function ListaTreinosExtras({ onVerAluno }) {
+  const [treinos, setTreinos] = useState([]);
+  const [artes, setArtes] = useState([]);
+  const [alunosEscola, setAlunosEscola] = useState([]);
+  const [modalTreino, setModalTreino] = useState(null); // null = fechado, {} = novo, objeto = editar
+  const [carregando, setCarregando] = useState(true);
+
+  const carregar = () => {
+    setCarregando(true);
+    axios.get('/treinos-extras').then(r => setTreinos(r.data)).finally(() => setCarregando(false));
+  };
+  useEffect(carregar, []);
+  useEffect(() => { axios.get('/artes-marciais').then(r => setArtes(r.data)); }, []);
+  useEffect(() => { axios.get('/usuarios?role=aluno').then(r => setAlunosEscola(r.data)); }, []);
+
+  const excluir = async (treino) => {
+    if (!window.confirm(`Excluir o treino extra de ${treino.data.split('-').reverse().join('/')}? As presenças registradas serão removidas.`)) return;
+    await axios.delete(`/treinos-extras/${treino.id}`);
+    carregar();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
+        <p style={{ margin: 0, fontSize: 13, color: '#888', maxWidth: 480 }}>
+          Registre um treino extra oferecido fora da grade normal (ex: treino de competidores).
+          A presença conta na carência de aulas pra troca de faixa, na modalidade escolhida.
+        </p>
+        <button style={btnVerde} onClick={() => setModalTreino({})}>+ Novo Treino Extra</button>
+      </div>
+
+      <div style={cardEstilo}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#fafafa' }}>
+              <th style={thEstilo}>Data</th>
+              <th style={thEstilo}>Modalidade</th>
+              <th style={thEstilo}>Alunos presentes</th>
+              <th style={thEstilo}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {carregando && (
+              <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Carregando...</td></tr>
+            )}
+            {!carregando && treinos.length === 0 && (
+              <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum treino extra registrado.</td></tr>
+            )}
+            {treinos.map(t => (
+              <tr key={t.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{t.data.split('-').reverse().join('/')}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{t.arte_marcial?.nome}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {t.alunos.map(a => (
+                      <span key={a.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <NomeAluno id={a.id} nome={a.nome} fotoUrl={a.foto_url} onVerAluno={onVerAluno} />
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td style={{ padding: '10px 16px' }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setModalTreino(t)} style={btnAzul}>✎ Editar</button>
+                    <button onClick={() => excluir(t)} style={btnPerigo}>✕</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {modalTreino && (
+        <ModalTreinoExtra
+          treino={modalTreino.id ? modalTreino : null}
+          artes={artes}
+          alunosEscola={alunosEscola}
+          onFechar={() => setModalTreino(null)}
+          onSalvo={() => { setModalTreino(null); carregar(); }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Modal: registrar nova aula manualmente ──────────────────────────────────
 
 function ModalNovaAula({ turmas, onFechar, onCriada }) {
@@ -359,6 +526,7 @@ function ModalNovaAula({ turmas, onFechar, onCriada }) {
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export default function Chamadas({ onVerAluno }) {
+  const [aba, setAba] = useState('aulas');
   const [aulas, setAulas] = useState([]);
   const [turmas, setTurmas] = useState([]);
   const [busca, setBusca] = useState('');
@@ -401,25 +569,43 @@ export default function Chamadas({ onVerAluno }) {
 
   return (
     <div>
-      <ListaAulas
-        aulas={aulas}
-        turmas={turmas}
-        busca={busca}
-        setBusca={setBusca}
-        onAbrir={abrirAula}
-        onExcluir={excluirAula}
-        onNovaAula={() => setModalNova(true)}
-        onSincronizar={sincronizarOnline}
-        sincronizando={sincronizando}
-      />
+      <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: 4, overflow: 'hidden', width: 'fit-content', marginBottom: 20 }}>
+        {[['aulas', 'Aulas'], ['extras', 'Treinos Extras']].map(([valor, rotulo]) => (
+          <button key={valor} onClick={() => setAba(valor)}
+            style={{
+              padding: '9px 22px', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600,
+              background: aba === valor ? '#1e2a38' : '#fff', color: aba === valor ? '#fff' : '#555',
+            }}>
+            {rotulo}
+          </button>
+        ))}
+      </div>
 
-      {modalNova && (
-        <ModalNovaAula
-          turmas={turmas}
-          onFechar={() => setModalNova(false)}
-          onCriada={(novaAulaId) => { setModalNova(false); carregarAulas(); abrirAula(novaAulaId); }}
-        />
+      {aba === 'aulas' && (
+        <>
+          <ListaAulas
+            aulas={aulas}
+            turmas={turmas}
+            busca={busca}
+            setBusca={setBusca}
+            onAbrir={abrirAula}
+            onExcluir={excluirAula}
+            onNovaAula={() => setModalNova(true)}
+            onSincronizar={sincronizarOnline}
+            sincronizando={sincronizando}
+          />
+
+          {modalNova && (
+            <ModalNovaAula
+              turmas={turmas}
+              onFechar={() => setModalNova(false)}
+              onCriada={(novaAulaId) => { setModalNova(false); carregarAulas(); abrirAula(novaAulaId); }}
+            />
+          )}
+        </>
       )}
+
+      {aba === 'extras' && <ListaTreinosExtras onVerAluno={onVerAluno} />}
     </div>
   );
 }

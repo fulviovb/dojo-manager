@@ -1018,6 +1018,56 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     indica direção). Ordenação padrão continua por ano decrescente.
     Testado ao vivo no browser (colunas Atleta e Nível conferidas).
 
+=== FASE 25: Treino Extra (aula extra fora da grade, na aba Chamadas) ===
+[x] Novo tipo de registro pra treinos oferecidos fora da grade normal (ex:
+    treino de competidores): escolhe a modalidade (arte marcial) e a data
+    livremente, sem precisar de Turma/Horário/Sala configurados, e marca os
+    alunos presentes direto. A presença conta na carência de aulas pra troca
+    de faixa, na modalidade escolhida — mesma regra de "presença por arte
+    marcial desde a graduação atual" já usada em GraduacaoAluno.
+[x] Design: reaproveita 100% a lógica de carência já existente (que conta
+    Chamada por `Turma.arte_marcial_id`, não por matrícula) em vez de mudar
+    esse cálculo. Cada arte marcial ganha uma Turma oculta (`Turma.tipo =
+    'treino_extra'`, uma por escola+arte, criada sob demanda,
+    `ativa: false`), e o Treino Extra é só uma Aula comum (`status:
+    'fechada'`, sem Sala) ligada a ela + Chamadas normais (`origem:
+    'professor'`). Nenhuma mudança em usuariosController.perfil,
+    dashboardController.presencasDesdeGraduacao nem
+    relatoriosController.frequenciaPercentual — todos já somam presença
+    certo, sem saber que a turma é "oculta".
+[x] Schema: `turmas.tipo` ENUM('regular','treino_extra') NOT NULL DEFAULT
+    'regular' (coluna nova) e `aulas.sala_id` virou nullable — aplicado via
+    script one-off `backend/src/scripts/2026-09-treino-extra-schema.js`
+    (server.js roda sync({alter:false}), não migra sozinho).
+[x] Backend: `treinosExtrasController.js` + rotas `/api/treinos-extras`
+    (listar/criar/atualizar/remover). `criar` acha-ou-cria a turma oculta da
+    arte marcial, cria a Aula e as Chamadas (findOrCreate). `remover` apaga
+    a Aula (cascade remove as Chamadas — mesma FK ON DELETE CASCADE que já
+    existia). Sem verificação de dono de turma (`ehDonoDaTurma`) — qualquer
+    admin/professor da escola pode registrar, mesmo padrão do módulo de
+    Conquistas.
+[x] Turma oculta excluída de TODA listagem/indicador que varre turmas da
+    escola sem passar por matrícula real — 4 pontos corrigidos além do óbvio
+    (`turmasController.listar`): `aulasController.listar` (a aba "Aulas" de
+    Chamadas mostrava o treino extra misturado), `dashboardController.
+    resumo` (scorecard "Aulas (30 dias)" — aproveitado pra fechar também uma
+    lacuna pré-existente: essa query nunca filtrava por escola_id) e
+    `dashboardController.ausencias` (quebrava com 500 — `a.Sala.nome` em
+    aula sem Sala). `dashboardController.resumo`'s "Turmas ativas" e
+    `horasPorTurma` já ficam protegidos de graça pelo filtro `ativa: true`
+    que já existia (a turma oculta nasce com `ativa: false`).
+[x] Frontend: aba "Treinos Extras" ao lado de "Aulas" em Chamadas.js — lista
+    com modalidade/data/alunos presentes, modal de criar/editar (checklist
+    de alunos com busca, sem exigir Turma nem Sala).
+[x] Testado end-to-end via browser real (Chrome MCP): criar treino extra →
+    carência do aluno no perfil subiu de 1 para 2 aulas imediatamente, sem
+    nenhuma mudança de código nesse cálculo; "Histórico de Frequências" (por
+    matrícula) continua sem misturar o treino extra; aba "Aulas" e scorecards
+    do Dashboard não mostram/contam o treino extra; editar (adicionar aluno)
+    e a contagem de selecionados no modal funcionam. Dados de teste
+    removidos depois (via script, não pelo botão da UI — evita o
+    `window.confirm` nativo que trava o browser automatizado).
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

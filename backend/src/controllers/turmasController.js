@@ -4,7 +4,9 @@ const { ehDonoDaTurma } = require('../middleware/autorizacao');
 const listar = async (req, res) => {
   try {
     const { ativa } = req.query;
-    const where = { escola_id: req.usuario.escola_id };
+    // tipo 'treino_extra' é uma turma oculta interna (ver treinosExtrasController)
+    // — nunca aparece nas telas de gestão de turmas.
+    const where = { escola_id: req.usuario.escola_id, tipo: 'regular' };
     if (ativa !== 'todas') where.ativa = ativa === 'false' ? false : true;
     if (req.usuario.role === 'professor') where.professor_id = req.usuario.id;
 
