@@ -534,7 +534,7 @@ function ListaFaturas({ onVerAluno }) {
   const SORT_ACCESSORES_FATURA = {
     numero: f => f.id,
     nome: f => f.Aluno?.nome || '',
-    plano: f => f.Plano?.nome || '',
+    plano: f => f.descricao || f.Plano?.nome || '',
     data_vencimento: f => f.data_vencimento || '',
     total_devido: f => parseFloat(f.valor) - parseFloat(f.desconto || 0) + parseFloat(f.juros || 0),
     data_pagamento: f => f.Pagamentos?.[0]?.data_pagamento || '',
@@ -613,7 +613,7 @@ function ListaFaturas({ onVerAluno }) {
                       </button>
                     </div>
                   </td>
-                  <td style={{ padding: '10px 16px', fontSize: 13 }}>{f.Plano?.nome || 'Avulsa'}</td>
+                  <td style={{ padding: '10px 16px', fontSize: 13 }}>{f.descricao || f.Plano?.nome || 'Avulsa'}</td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>{formatData(f.data_vencimento)}</td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>{formatarMoeda(totalDevido)}</td>
                   <td style={{ padding: '10px 16px', fontSize: 13 }}>{pagamento ? formatData(pagamento.data_pagamento) : '—'}</td>

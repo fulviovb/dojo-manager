@@ -891,7 +891,7 @@ function SecaoMensalidades({ assinaturas = [], mensalidades, alunoId, onRefresh 
             <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f5f5f5' }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500 }}>{formatMes(m.data_vencimento || m.mes_referencia)}</div>
-                <div style={{ fontSize: 11, color: '#888' }}>{m.Plano?.nome || 'Fatura avulsa'}</div>
+                <div style={{ fontSize: 11, color: '#888' }}>{m.descricao || m.Plano?.nome || 'Fatura avulsa'}</div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>R$ {parseFloat(m.valor).toFixed(2)}</span>

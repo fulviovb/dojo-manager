@@ -29,7 +29,7 @@ export default function Turmas({ onVerTurma }) {
   const [turmaAtiva, setTurmaAtiva] = useState(null);
   const [modalTurma, setModalTurma] = useState(false);
   const [modalHorario, setModalHorario] = useState(false);
-  const [formTurma, setFormTurma] = useState({ nome: '', arte_marcial_id: '', professor_id: '' });
+  const [formTurma, setFormTurma] = useState({ nome: '', arte_marcial_id: '', professor_id: '', taxa_matricula: '' });
   const [formHorario, setFormHorario] = useState({ dia_semana: 1, hora_inicio: '18:00', hora_fim: '19:30', sala_id: '' });
   const [erro, setErro] = useState('');
   const [filtro, setFiltro] = useState('ativas'); // 'ativas' | 'inativas' | 'todas'
@@ -58,9 +58,12 @@ export default function Turmas({ onVerTurma }) {
   const salvarTurma = async (e) => {
     e.preventDefault(); setErro('');
     try {
-      await axios.post('/turmas', formTurma);
+      await axios.post('/turmas', {
+        ...formTurma,
+        taxa_matricula: formTurma.taxa_matricula === '' ? null : formTurma.taxa_matricula,
+      });
       setModalTurma(false);
-      setFormTurma({ nome: '', arte_marcial_id: '', professor_id: '' });
+      setFormTurma({ nome: '', arte_marcial_id: '', professor_id: '', taxa_matricula: '' });
       carregar();
     } catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
   };
@@ -150,6 +153,12 @@ export default function Turmas({ onVerTurma }) {
                 <option value="">Selecione...</option>
                 {professores.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
               </select>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Taxa de Matrícula (R$)</label>
+              <input type="number" min={0} step="0.01" placeholder="Opcional — deixe em branco se não houver"
+                value={formTurma.taxa_matricula}
+                onChange={e => setFormTurma(p => ({ ...p, taxa_matricula: e.target.value }))} style={estiloInput} />
             </div>
             {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>

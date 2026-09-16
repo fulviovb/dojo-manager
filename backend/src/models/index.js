@@ -115,6 +115,11 @@ Mensalidade.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno' });
 PlanoMensalidade.hasMany(Mensalidade, { foreignKey: 'plano_id' });
 Mensalidade.belongsTo(PlanoMensalidade, { foreignKey: 'plano_id', as: 'Plano' });
 
+// Taxa de matrícula: fatura avulsa (sem Plano) gerada ao matricular o aluno
+// numa turma que tem `taxa_matricula` configurada.
+Turma.hasMany(Mensalidade, { foreignKey: 'turma_id' });
+Mensalidade.belongsTo(Turma, { foreignKey: 'turma_id' });
+
 Mensalidade.hasMany(Pagamento, { foreignKey: 'mensalidade_id' });
 Pagamento.belongsTo(Mensalidade, { foreignKey: 'mensalidade_id' });
 

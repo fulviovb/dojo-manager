@@ -127,7 +127,7 @@ const reciboMensalidade = async (req, res) => {
       data_vencimento: m.data_vencimento,
       data_pagamento: pagamento?.data_pagamento,
       forma_pagamento: pagamento?.forma_pagamento,
-      plano_nome: m.Plano?.nome || 'Fatura avulsa',
+      plano_nome: m.descricao || m.Plano?.nome || 'Fatura avulsa',
       periodicidade: m.Plano?.periodicidade || null,
       escola_nome: escola?.nome || '',
       escola_assinatura_url: escola?.assinatura_url || null,

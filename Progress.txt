@@ -1109,6 +1109,41 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     desativada depois via `DELETE /matriculas/:id` (soft-delete, mesma
     rota de cancelamento já usada pelo sistema).
 
+=== FASE 27: Taxa de Matrícula + fix de vencimento da 1ª fatura ===
+[x] Taxa de Matrícula: pedido do Fulvio — nem toda turma cobra, mas quando
+    cobra, precisa gerar a fatura automaticamente ao matricular o aluno.
+    Campo novo `turmas.taxa_matricula` (DECIMAL, opcional — em branco =
+    turma sem taxa), editável na criação da turma (`Turmas.js`) e inline na
+    tela de Detalhe da Turma (`TurmaDetalhe.js`, mesmo padrão do campo
+    Professor). `matriculasController.criar` gera uma `Mensalidade` avulsa
+    (sem `plano_id`, com `descricao` e `turma_id`) só na primeira vez que a
+    matrícula é criada (`criada === true` do findOrCreate) — não recobra em
+    reativação de matrícula existente. Precisou tornar `mensalidades.
+    plano_id` nullable (schema novo: `descricao` e `turma_id`) — script
+    `backend/src/scripts/2026-09-taxa-matricula-schema.js`, já rodado em
+    produção. Telas que mostram fatura (Financeiro → Faturas, perfil do
+    aluno, recibo) caem pra `descricao` antes do nome do Plano quando não
+    há Plano vinculado.
+[x] Bug de vencimento da 1ª fatura de Assinatura: pedido do Fulvio — aluno
+    que entra no meio do mês tem que pagar o mês corrente, mesmo que o dia
+    de vencimento configurado já tenha passado (não pode pular pro mês
+    seguinte). Causa: `faturaService.calcularPrimeiroVencimento` comparava
+    o vencimento calculado com a data de início e, se já tivesse passado,
+    empurrava pro mês seguinte inteiro — ex: aluno entra dia 16 com
+    dia_vencimento=5 gerava a 1ª fatura só em outubro, pulando setembro.
+    Fix: a 1ª fatura sempre usa o mês de `data_inicio`, mesmo com o dia já
+    vencido (ela nasce vencida, mas cobra o mês certo); os ciclos seguintes
+    (`proximoCiclo`) não mudaram.
+    Testado via API real (aluna Ana Olívia): turma de teste com
+    taxa_matricula=50 → matricular gerou fatura avulsa "Taxa de Matrícula —
+    ..." pendente, R$50, vencimento no dia da matrícula. Assinatura criada
+    hoje (16/09/2026) com dia_vencimento=5 → 1ª fatura gerada com vencimento
+    05/09/2026 (mês corrente, não 05/10/2026) e `proximo_vencimento` da
+    assinatura já avançou corretamente pra 05/10/2026 pro ciclo seguinte.
+    Dados de teste (turma, matrícula, assinatura, 2 faturas) cancelados/
+    desativados depois via rotas de cancelamento/soft-delete do próprio
+    sistema.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

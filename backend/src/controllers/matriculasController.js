@@ -1,5 +1,6 @@
-const { MatriculaAluno, Usuario, Turma, Faixa } = require('../models');
+const { MatriculaAluno, Usuario, Turma, Faixa, Mensalidade } = require('../models');
 const { ehDonoDaTurma } = require('../middleware/autorizacao');
+const { dataLocalISO } = require('../utils/data');
 
 const listar = async (req, res) => {
   try {
@@ -37,6 +38,22 @@ const criar = async (req, res) => {
       },
     });
     if (!criada) await matricula.update({ ativa: true, graduacao_atual_faixa_id });
+
+    // Taxa de matrícula: cobrança única, só na primeira vez que o aluno
+    // entra nesta turma (não recobra em reativação de matrícula existente).
+    if (criada && turma.taxa_matricula && parseFloat(turma.taxa_matricula) > 0) {
+      const hoje = dataLocalISO(new Date());
+      await Mensalidade.create({
+        aluno_id,
+        turma_id: turma.id,
+        descricao: `Taxa de Matrícula — ${turma.nome.split('\n')[0]}`,
+        mes_referencia: hoje,
+        data_vencimento: hoje,
+        valor: turma.taxa_matricula,
+        status: 'pendente',
+      });
+    }
+
     res.status(criada ? 201 : 200).json(matricula);
   } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
 };

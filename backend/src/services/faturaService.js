@@ -16,13 +16,15 @@ function calcularVencimento(ano, mes, diaVencimento) {
   return dataLocalISO(new Date(ano, mes, dia));
 }
 
+// Primeira fatura sempre cobre o mês de entrada do aluno (data_inicio) —
+// mesmo que o dia de vencimento configurado já tenha passado nesse mês.
+// Ex: aluno entra dia 16 com dia_vencimento=5 → primeira fatura vence dia 5
+// do mês corrente (já vencida), não pula pro mês seguinte: ele deve o mês
+// em que está entrando, não o próximo. Os ciclos seguintes (proximoCiclo)
+// continuam normalmente a partir daí.
 function calcularPrimeiroVencimento(dataInicioISO, diaVencimento) {
   const inicio = new Date(dataInicioISO + 'T00:00:00');
-  let candidato = calcularVencimento(inicio.getFullYear(), inicio.getMonth(), diaVencimento);
-  if (candidato < dataInicioISO) {
-    candidato = calcularVencimento(inicio.getFullYear(), inicio.getMonth() + 1, diaVencimento);
-  }
-  return candidato;
+  return calcularVencimento(inicio.getFullYear(), inicio.getMonth(), diaVencimento);
 }
 
 function proximoCiclo(vencimentoAtualISO, diaVencimento, mesesIntervalo) {

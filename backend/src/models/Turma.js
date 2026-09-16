@@ -16,6 +16,9 @@ const Turma = sequelize.define('Turma', {
   // de graduação, porque esse cálculo já soma presença por arte marcial,
   // não por matrícula/turma.
   tipo: { type: DataTypes.ENUM('regular', 'treino_extra'), defaultValue: 'regular' },
+  // Cobrança única gerada (se preenchida) toda vez que um aluno é
+  // matriculado nesta turma — nem toda turma cobra taxa de matrícula.
+  taxa_matricula: { type: DataTypes.DECIMAL(10, 2) },
 }, { tableName: 'turmas', indexes: [{ unique: true, fields: ['escola_id', 'nome'] }] });
 
 module.exports = Turma;

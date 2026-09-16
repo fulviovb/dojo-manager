@@ -61,6 +61,9 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
   const [professores, setProfessores] = useState([]);
   const [editandoProfessor, setEditandoProfessor] = useState(false);
   const [professorEscolhido, setProfessorEscolhido] = useState('');
+  const [editandoTaxa, setEditandoTaxa] = useState(false);
+  const [taxaEditada, setTaxaEditada] = useState('');
+  const [erroTaxa, setErroTaxa] = useState('');
   const [erro, setErro] = useState('');
   const [salas, setSalas] = useState([]);
   const [editandoNome, setEditandoNome] = useState(false);
@@ -142,6 +145,21 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
     await axios.put(`/turmas/${turmaId}`, { professor_id: professorEscolhido });
     setEditandoProfessor(false);
     carregar();
+  };
+
+  const abrirEdicaoTaxa = () => {
+    setTaxaEditada(turma.taxa_matricula ?? '');
+    setErroTaxa('');
+    setEditandoTaxa(true);
+  };
+
+  const salvarTaxa = async () => {
+    setErroTaxa('');
+    try {
+      await axios.put(`/turmas/${turmaId}`, { taxa_matricula: taxaEditada === '' ? null : taxaEditada });
+      setEditandoTaxa(false);
+      carregar();
+    } catch (ex) { setErroTaxa(ex.response?.data?.erro || 'Erro ao salvar taxa'); }
   };
 
   if (!turma) return <p style={{ color: '#888' }}>Carregando...</p>;
@@ -299,6 +317,24 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
               </div>
               {primeiroHorario?.Sala && <div>Local: {primeiroHorario.Sala.nome}</div>}
               <div>Arte marcial: {turma.ArteMarcial?.nome || '—'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {editandoTaxa ? (
+                  <>
+                    <span>Taxa de Matrícula: R$</span>
+                    <input type="number" min={0} step="0.01" placeholder="0,00" value={taxaEditada}
+                      onChange={e => setTaxaEditada(e.target.value)}
+                      style={{ width: 90, padding: '4px 6px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }} />
+                    <button onClick={salvarTaxa} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>Salvar</button>
+                    <button onClick={() => setEditandoTaxa(false)} style={{ background: 'none', border: '1px solid #ddd', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+                  </>
+                ) : (
+                  <>
+                    <span>Taxa de Matrícula: {turma.taxa_matricula ? `R$ ${parseFloat(turma.taxa_matricula).toFixed(2)}` : 'Sem taxa'}</span>
+                    <button onClick={abrirEdicaoTaxa} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: 0 }}>Editar</button>
+                  </>
+                )}
+              </div>
+              {erroTaxa && <p style={{ color: 'red', fontSize: 12, margin: '2px 0' }}>{erroTaxa}</p>}
             </div>
             <div style={{ marginTop: 10, fontSize: 12, color: '#888' }}>
               {matriculas.length} aluno{matriculas.length !== 1 ? 's' : ''} matriculado{matriculas.length !== 1 ? 's' : ''}
