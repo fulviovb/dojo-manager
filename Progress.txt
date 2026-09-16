@@ -1093,6 +1093,22 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Testado ao vivo: selecionar "Karatê - CRIANÇA EM FOCO" reduziu a lista
     de ~50 pra 9 alunos.
 
+=== FASE 26: Botão "Matricular" na tela de Detalhe do Aluno ===
+[x] Pedido do Fulvio: matricular aluno em turma direto pela caixa "Turmas
+    Matriculadas" do perfil do aluno, sem precisar ir pela tela de Turmas.
+    Botão "+ Matricular" abre modal com busca + lista das turmas ativas
+    (exclui as em que o aluno já está matriculado). Backend não mudou —
+    reaproveita o `POST /matriculas` que já existia (findOrCreate por
+    aluno_id+turma_id, reativa se já existiu antes). `graduacao_atual_
+    faixa_id` é preenchido automaticamente a partir da graduação atual do
+    aluno na arte marcial da turma escolhida (quando existe). Só
+    `frontend/src/pages/AlunoDetalhe.js` mudou.
+    Testado end-to-end via browser real (Chrome MCP, login do admin):
+    matriculei a aluna real Ana Olívia Orth Martinez numa turma de
+    Jiu-Jitsu, turma apareceu na lista imediatamente. Matrícula de teste
+    desativada depois via `DELETE /matriculas/:id` (soft-delete, mesma
+    rota de cancelamento já usada pelo sistema).
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

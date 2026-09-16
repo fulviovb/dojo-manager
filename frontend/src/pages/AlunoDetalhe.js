@@ -297,11 +297,87 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
 
 // ── Seção: Turmas ─────────────────────────────────────────────────────────────
 
-function SecaoTurmas({ matriculas, alunoId, onRefresh }) {
+function ModalMatricular({ alunoId, turmasJaMatriculadas, graduacoes, onFechar, onSalvo }) {
+  const [turmas, setTurmas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [busca, setBusca] = useState('');
+  const [matriculando, setMatriculando] = useState(null);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    axios.get('/turmas', { params: { ativa: 'true' } })
+      .then(r => setTurmas(r.data))
+      .finally(() => setCarregando(false));
+  }, []);
+
+  const termo = busca.toLowerCase();
+  const disponiveis = turmas
+    .filter(t => !turmasJaMatriculadas.includes(t.id))
+    .filter(t => t.nome.toLowerCase().includes(termo) || (t.ArteMarcial?.nome || '').toLowerCase().includes(termo));
+
+  const matricular = async (turma) => {
+    setErro('');
+    setMatriculando(turma.id);
+    try {
+      const graduacaoAtual = graduacoes.find(g => g.arte.id === turma.arte_marcial_id)?.atual;
+      await axios.post('/matriculas', {
+        aluno_id: alunoId,
+        turma_id: turma.id,
+        graduacao_atual_faixa_id: graduacaoAtual?.Faixa?.id || null,
+      });
+      onSalvo();
+    } catch (e) {
+      setErro(e.response?.data?.erro || 'Erro ao matricular aluno nesta turma');
+      setMatriculando(null);
+    }
+  };
+
+  return (
+    <Modal titulo="Matricular em Turma" onFechar={onFechar} largura={480}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <input placeholder="Buscar turma ou arte marcial..." value={busca}
+          onChange={e => setBusca(e.target.value)} style={estiloInput} />
+        {erro && <p style={{ color: 'red', fontSize: 12, margin: 0 }}>{erro}</p>}
+        <div style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+          {carregando ? (
+            <p style={{ color: '#888', fontSize: 13, margin: '8px 0' }}>Carregando turmas...</p>
+          ) : disponiveis.length === 0 ? (
+            <p style={{ color: '#aaa', fontSize: 13, margin: '8px 0' }}>
+              {turmas.length === 0 ? 'Nenhuma turma ativa cadastrada.' : 'Nenhuma turma disponível para matrícula.'}
+            </p>
+          ) : (
+            disponiveis.map(t => (
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 2px', borderBottom: '1px solid #f5f5f5' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{t.nome}</div>
+                  <div style={{ fontSize: 11, color: '#888' }}>
+                    {t.ArteMarcial?.nome || '—'}{t.Professor?.nome ? ` · Prof. ${t.Professor.nome}` : ''}
+                  </div>
+                </div>
+                <button style={btnVerde} disabled={matriculando === t.id} onClick={() => matricular(t)}>
+                  {matriculando === t.id ? 'Matriculando...' : 'Matricular'}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+          <button style={btnCinza} onClick={onFechar}>Fechar</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function SecaoTurmas({ matriculas, alunoId, graduacoes, onRefresh }) {
+  const [modalAberto, setModalAberto] = useState(false);
+  const turmasJaMatriculadas = matriculas.map(m => m.turma_id || m.Turma?.id).filter(Boolean);
+
   return (
     <div style={card()}>
       <div style={cardHeader}>
         <span style={cardTitle}>Turmas Matriculadas</span>
+        <button style={btnVerde} onClick={() => setModalAberto(true)}>+ Matricular</button>
       </div>
       <div style={{ padding: '8px 18px 12px' }}>
         {matriculas.length === 0 ? (
@@ -330,6 +406,16 @@ function SecaoTurmas({ matriculas, alunoId, onRefresh }) {
           </table>
         )}
       </div>
+
+      {modalAberto && (
+        <ModalMatricular
+          alunoId={alunoId}
+          turmasJaMatriculadas={turmasJaMatriculadas}
+          graduacoes={graduacoes}
+          onFechar={() => setModalAberto(false)}
+          onSalvo={() => { setModalAberto(false); onRefresh(); }}
+        />
+      )}
     </div>
   );
 }
@@ -1068,7 +1154,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
         {/* Coluna principal */}
         <div>
           <SecaoGraduacao dadosGraduacao={graduacoes} alunoId={alunoId} onRefresh={carregar} />
-          <SecaoTurmas matriculas={matriculas} alunoId={alunoId} onRefresh={carregar} />
+          <SecaoTurmas matriculas={matriculas} alunoId={alunoId} graduacoes={graduacoes} onRefresh={carregar} />
           <SecaoConquistas conquistas={conquistas} alunoId={alunoId} alunoNome={aluno.nome} onRefresh={carregar} />
           <SecaoFrequencia frequencia={frequencia} />
         </div>
