@@ -153,6 +153,8 @@ Turma  *―1 Escola, *―1 ArteMarcial, *―1 Usuario (Professor)
 Turma  1―* HorarioTurma (dia_semana, hora_inicio, hora_fim, Sala)
 Turma  1―* MatriculaAluno *―1 Usuario (Aluno)
 Turma  1―* Aula (gerada a partir do HorarioTurma do dia)
+Turma.taxa_matricula (opcional) → gera Mensalidade avulsa (sem Plano) ao
+                 criar uma MatriculaAluno nova nessa turma, ver abaixo
 
 Aula   *―1 Turma, *―1 Sala
 Aula   1―* Chamada *―1 Usuario (Aluno)
@@ -174,7 +176,9 @@ AvaliacaoAluno 1―* RespostaCriterio *―1 CriterioExame  (conceito: + | +- | -
 PlanoMensalidade 1―* AssinaturaAluno *―1 Usuario (Aluno)   [vínculo recorrente: dia de
                  vencimento + status ativa/pausada/finalizada]
 AssinaturaAluno  1―* Mensalidade  ("Fatura" na UI — geradas automaticamente, ver abaixo)
-PlanoMensalidade 1―* Mensalidade  (fatura também pode ser avulsa, sem assinatura)
+PlanoMensalidade 1―* Mensalidade  (plano_id é opcional: fatura avulsa — ex: taxa de
+                 matrícula — usa `descricao` no lugar do nome do Plano, e pode
+                 linkar em Turma via `turma_id`)
 Mensalidade 1―* Pagamento
 ```
 
@@ -343,6 +347,12 @@ geração antecipa, dando tempo do aluno pagar antes da data. Pausar uma assinat
 não gera cobrança retroativa do período pausado. Existe também geração antecipada
 manual (`POST /api/assinaturas/:id/gerar-fatura`, idempotente) pra quem quer pagar
 ainda mais cedo, fora da janela automática.
+
+A 1ª fatura de uma assinatura nova (`calcularPrimeiroVencimento`) sempre cobre o
+mês de `data_inicio`, mesmo que o dia de vencimento configurado já tenha passado
+nesse mês — ela nasce vencida, mas cobra o mês em que o aluno está entrando, em
+vez de pular pro mês seguinte. Os ciclos seguintes (`proximoCiclo`) seguem o
+`dia_vencimento` normalmente a partir daí.
 
 ### Unicidade de cadastro: CPF, não e-mail
 
@@ -514,11 +524,18 @@ Clicar no nome de uma turma abre `TurmaDetalhe`, com:
   botão "Desmatricular" e um modal "+ Novo" para matricular um aluno ativo
   ainda não matriculado (com seleção opcional da faixa atual, filtrada por
   `arte_marcial_id` da turma).
-- **Informações gerais**: dias/horário, professor, sala e arte marcial.
+- **Informações gerais**: dias/horário, professor, sala, arte marcial e
+  **taxa de matrícula** (opcional, editável inline como o campo Professor —
+  em branco = turma não cobra taxa).
 - **Aulas**: histórico com presentes/ausentes por aula (via `GET /aulas?turma_id=`).
 
 Matricular um aluno numa turma é o que habilita a chamada/check-in daquela
-turma a contar presença para ele.
+turma a contar presença para ele. Dá pra matricular por dois caminhos: pelo
+modal "+ Novo" na própria `TurmaDetalhe`, ou pelo botão "+ Matricular" na
+caixa "Turmas Matriculadas" do perfil do aluno (`AlunoDetalhe`) — mesmo
+endpoint (`POST /matriculas`) nos dois casos. Se a turma tem `taxa_matricula`
+configurada, matricular gera automaticamente uma fatura avulsa dessa taxa —
+só na primeira vez (não recobra ao reativar uma matrícula existente).
 
 ### Chamadas
 
@@ -543,7 +560,9 @@ simplesmente não mostra assinatura (sem quebrar o resto). Cabeçalho da tabela
 de Faturas é clicável e ordenável (mesmo padrão de `Alunos.js`), com avatar
 do aluno na coluna Nome. Ordenação padrão é por **Status** — Vencida primeiro,
 depois Pendente (em aberto), por último Paga —, com nome do aluno como
-critério de desempate dentro do mesmo status.
+critério de desempate dentro do mesmo status. Fatura avulsa (ex: taxa de
+matrícula) não tem Plano vinculado — a coluna "Plano" cai pra `descricao`
+nesses casos.
 
 ### Exames
 

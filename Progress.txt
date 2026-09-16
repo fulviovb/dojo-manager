@@ -1143,6 +1143,21 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Dados de teste (turma, matrícula, assinatura, 2 faturas) cancelados/
     desativados depois via rotas de cancelamento/soft-delete do próprio
     sistema.
+[x] Backfill real — aluna Aurora Gregório Sinigaglia (matrícula 000144):
+    ela foi matriculada na turma "GRANDE APRENDIZ" e teve a assinatura do
+    plano "GRANDE APRENDIZ - ARTES MARCIAIS" (R$150/mês, dia_vencimento=5)
+    criada às 18:01 de 16/09/2026 — antes do backend reiniciar com o fix
+    acima (18:15) —, então a 1ª fatura dela saiu com vencimento 05/10 em
+    vez de 05/09 (bug antigo ainda ativo nesse momento). A pedido do
+    Fulvio: configurada `taxa_matricula = R$70` na turma GRANDE APRENDIZ
+    (passa a cobrar automaticamente todo aluno novo dali pra frente) +
+    gerada manualmente a cobrança pontual de R$70 pra Aurora (ela já
+    estava matriculada antes da taxa existir, não pegou o auto-charge) +
+    gerada manualmente a fatura de mensalidade que faltou, vencimento
+    05/09/2026, R$150 (mesmo plano/assinatura da fatura de 05/10 que já
+    existia — agora ela tem as duas, uma por mês, do jeito que teria saído
+    se a assinatura tivesse sido criada depois do fix). Feito via chamadas
+    diretas à API (POST /mensalidades, PUT /turmas/:id), não pela UI.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
