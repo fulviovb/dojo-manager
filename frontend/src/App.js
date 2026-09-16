@@ -19,6 +19,8 @@ import ExameDetalhe from './pages/ExameDetalhe';
 import AvaliadorExame from './pages/AvaliadorExame';
 import ExameFichaPage from './pages/ExameFichaPage';
 import ExameRelatorioPage from './pages/ExameRelatorioPage';
+import IncentivoEsporte from './pages/IncentivoEsporte';
+import ParticipanteIncentivoDetalhe from './pages/ParticipanteIncentivoDetalhe';
 
 // Nunca fixar "localhost" aqui: acessando de outro dispositivo pelo IP da
 // rede (ex: celular do avaliador), "localhost" apontaria pro próprio
@@ -51,11 +53,12 @@ const MENU = [
   { id: 'financeiro', label: 'Financeiro', icon: '💰' },
   { id: 'exames', label: 'Exames', icon: '🎖️' },
   { id: 'conquistas', label: 'Conquistas', icon: '🏆' },
+  { id: 'incentivo-esporte', label: 'Incentivo ao Esporte', icon: '📜' },
   { id: 'relatorios', label: 'Relatórios', icon: '📄' },
   { id: 'configuracoes', label: 'Configurações', icon: '⚙️' },
 ];
 
-const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, exames: Exames, conquistas: Conquistas, relatorios: Relatorios, configuracoes: Configuracoes };
+const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, exames: Exames, conquistas: Conquistas, 'incentivo-esporte': IncentivoEsporte, relatorios: Relatorios, configuracoes: Configuracoes };
 
 export default function App() {
   const checkinMatch = window.location.pathname.match(/^\/checkin\/([^/]+)/);
@@ -81,6 +84,7 @@ function AppInterna() {
   const [alunoSelecionadoId, setAlunoSelecionadoId] = useState(null);
   const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(null);
   const [exameSelecionadoId, setExameSelecionadoId] = useState(null);
+  const [participanteIncentivoId, setParticipanteIncentivoId] = useState(null);
 
   const navegarParaAluno = (id) => setAlunoSelecionadoId(id);
   const voltarDaAluno = () => setAlunoSelecionadoId(null);
@@ -88,6 +92,8 @@ function AppInterna() {
   const voltarDaTurma = () => setTurmaSelecionadaId(null);
   const navegarParaExame = (id) => setExameSelecionadoId(id);
   const voltarDoExame = () => setExameSelecionadoId(null);
+  const navegarParaParticipanteIncentivo = (id) => setParticipanteIncentivoId(id);
+  const voltarDoParticipanteIncentivo = () => setParticipanteIncentivoId(null);
 
   const handleLogin = (data) => {
     localStorage.setItem('token', data.token);
@@ -112,6 +118,7 @@ function AppInterna() {
     setAlunoSelecionadoId(null);
     setTurmaSelecionadaId(null);
     setExameSelecionadoId(null);
+    setParticipanteIncentivoId(null);
   };
 
   return (
@@ -146,6 +153,7 @@ function AppInterna() {
           {alunoSelecionadoId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Perfil</span>}
           {!alunoSelecionadoId && paginaAtiva === 'turmas' && turmaSelecionadaId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Turma</span>}
           {!alunoSelecionadoId && paginaAtiva === 'exames' && exameSelecionadoId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Exame</span>}
+          {!alunoSelecionadoId && paginaAtiva === 'incentivo-esporte' && participanteIncentivoId && <span style={{ fontWeight: 400, color: '#888', marginLeft: 8 }}>/ Participante</span>}
         </header>
         <main style={{ flex: 1, overflow: 'auto', padding: 24, background: '#f5f5f5' }}>
           {/* O perfil do aluno pode ser aberto a partir de qualquer tela (nomes
@@ -157,7 +165,9 @@ function AppInterna() {
             ? <TurmaDetalhe turmaId={turmaSelecionadaId} onVoltar={voltarDaTurma} onVerAluno={navegarParaAluno} />
             : paginaAtiva === 'exames' && exameSelecionadoId
             ? <ExameDetalhe exameId={exameSelecionadoId} onVoltar={voltarDoExame} />
-            : <PaginaAtual usuario={usuario} onVerAluno={navegarParaAluno} onVerTurma={navegarParaTurma} onVerExame={navegarParaExame} />
+            : paginaAtiva === 'incentivo-esporte' && participanteIncentivoId
+            ? <ParticipanteIncentivoDetalhe participanteId={participanteIncentivoId} onVoltar={voltarDoParticipanteIncentivo} />
+            : <PaginaAtual usuario={usuario} onVerAluno={navegarParaAluno} onVerTurma={navegarParaTurma} onVerExame={navegarParaExame} onVerParticipanteIncentivo={navegarParaParticipanteIncentivo} />
           }
         </main>
       </div>

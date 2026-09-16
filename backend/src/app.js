@@ -50,6 +50,9 @@ app.use('/api/ocorrencias', require('./routes/ocorrencias'));
 // Conquistas (histórico de resultados em competições)
 app.use('/api/conquistas', require('./routes/conquistas'));
 
+// Incentivo ao Esporte (Lei/Programa Municipal de Incentivo ao Esporte)
+app.use('/api/incentivo-esporte', require('./routes/incentivoEsporte'));
+
 // Módulo de Exame de Faixa
 app.use('/api/exames', require('./routes/exames'));
 app.use('/api/avaliacao-publica', require('./routes/avaliacaoPublica'));  // público, sem JWT no login

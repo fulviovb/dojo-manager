@@ -17,6 +17,7 @@ Repositório: [github.com/fulviovb/dojo-manager](https://github.com/fulviovb/doj
 | Banco     | MySQL 8                                          |
 | Proxy     | Nginx (alias `/escola-am`, ver `nginx.conf`)      |
 | Ambiente  | Docker Compose                                    |
+| Geração de PDF (Incentivo ao Esporte) | `docxtemplater` + `pizzip` (preenche .docx) + LibreOffice headless (`soffice --convert-to pdf`, instalado no Dockerfile do backend) |
 
 ## Estrutura do repositório
 
@@ -180,6 +181,16 @@ PlanoMensalidade 1―* Mensalidade  (plano_id é opcional: fatura avulsa — ex:
                  matrícula — usa `descricao` no lugar do nome do Plano, e pode
                  linkar em Turma via `turma_id`)
 Mensalidade 1―* Pagamento
+
+ParticipanteIncentivo *―1 Escola, *―1 Usuario (Aluno, nullable — null = atleta/
+                 técnico avulso, dados pessoais próprios como em Conquista.nome_atleta)
+ParticipanteIncentivo *―1 ParticipanteIncentivo (TecnicoResponsavel, auto-associação —
+                 só atleta aponta pra um técnico)
+ParticipanteIncentivo 1―* DocumentoIncentivo  (checklist + anexos gerados, origem
+                 upload|gerado)
+ParticipanteIncentivo 1―* ContrapartidaIncentivo
+ParticipanteIncentivo 1―* DespesaIncentivo  (comprovante_url e reportado_prefeitura
+                 são status independentes, não um ciclo de vida único)
 ```
 
 `Usuario.email` **não é único** (ver "Unicidade de cadastro" abaixo); `Usuario.cpf`
@@ -461,6 +472,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:codigo/login` (PIN, `:codigo` = `Exame.codigo`), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
+| Incentivo ao Esporte  | `GET /incentivo-esporte/catalogos`, `GET,POST,PUT,DELETE /incentivo-esporte/participantes(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/documentos(/:id)`, `PUT /documentos/:id/arquivo`, `GET /incentivo-esporte/anexos`, `POST /incentivo-esporte/documentos/gerar`, `GET,POST,PUT,DELETE /incentivo-esporte/contrapartidas(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/despesas(/:id)` | admin |
 | Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`), `GET /dashboard/semaforo-graduacao` (`?arte_marcial_id=`) | autenticado |
 | Check-in online       | `POST /checkin-online/sincronizar` (sincroniza roster + reconcilia check-ins do módulo satélite, ver seção própria acima) | admin |
 | Health check          | `GET /health`                                                                          | público                 |
@@ -580,6 +592,49 @@ por aluno, e botões pra marcar/desmarcar o exame como Roteiro Padrão e
 excluí-lo — **Roteiro Padrão nunca pode ser excluído** direto, precisa ser
 desmarcado primeiro. Ver "Módulo de Exame de Faixa" acima pras regras
 completas.
+
+### Incentivo ao Esporte
+
+Gestão do Programa Municipal de Incentivo ao Esporte de Curitiba (Resolução
+CIE 004/2026) — módulo isolado do resto do sistema (rotas só admin, como
+Financeiro). `IncentivoEsporte.js` tem 3 abas: **Participantes** (Atletas —
+aluno matriculado ou avulso — e Técnicos; avulso nunca aparece na lista de
+Alunos, mesmo padrão de `Conquista.nome_atleta` pra atleta sem cadastro
+ativo), **Contrapartidas** e **Despesas** (visão geral cruzando todos os
+participantes). Clicar num participante abre `ParticipanteIncentivoDetalhe.js`
+com:
+
+- **Documentos**: checklist auto-semeado ao criar o participante (varia por
+  tipo Atleta/Técnico e por condição — menor de 18, atua com menores —, ver
+  `constants/incentivoEsporte.js`), cada item com upload de arquivo e status
+  (pendente/recebido/aprovado/rejeitado).
+- **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
+  prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa
+  Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar.
+  Campos que já existem no cadastro do participante (e do técnico
+  vinculado, quando aplicável) vêm preenchidos sozinhos; só pede o resto.
+  Anexo XI (relação de atletas do técnico) lista automaticamente todo
+  `ParticipanteIncentivo` com `tecnico_responsavel_id` apontando pra ele.
+- **Contrapartida Social**: campanha de doação, divulgação em rede social ou
+  exposição de bandeira/banner — cada uma com status pendente/cumprida e
+  comprovante opcional.
+- **Despesas da Verba**: lançamento por rubrica do edital (categoria +
+  valor + data), com **dois status independentes** — `comprovante_url`
+  (tem o comprovante anexado?) e `reportado_prefeitura` (já foi lançado no
+  sistema da prefeitura?) — não é um único ciclo de vida, os dois evoluem
+  em paralelo pro mesmo lançamento.
+- **Taxa de gestão**: flag simples (paga/pendente) — acordo privado entre
+  quem gerencia o projeto e o participante, sem relação com o edital.
+
+**Preenchimento de anexos, por baixo dos panos**: os `.docx` originais da
+prefeitura foram editados uma vez (lacunas viraram tags `{campo}` do
+`docxtemplater`; o Anexo XI usa um loop de tabela `{#linhas}...{/linhas}`
+pra listar os atletas) e salvos em `backend/src/templates/incentivo-esporte/`.
+Em runtime, `anexoService.js` usa `docxtemplater`+`pizzip` pra preencher o
+`.docx` e `soffice --headless --convert-to pdf` (LibreOffice, instalado no
+`Dockerfile` do backend) pra converter o resultado em PDF — isola o `HOME`
+do processo a cada chamada pra evitar trava de perfil quando duas gerações
+rodam ao mesmo tempo.
 
 ### Relatórios
 

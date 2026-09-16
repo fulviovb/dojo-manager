@@ -24,6 +24,11 @@ backend/uploads/fotos/*
 backend/uploads/assinaturas/*
 !backend/uploads/assinaturas/.gitkeep
 
+# Documentos/comprovantes/anexos gerados do módulo Incentivo ao Esporte
+# (dados de usuário e PDFs gerados sob demanda, não código)
+backend/uploads/incentivo-esporte/*/*
+!backend/uploads/incentivo-esporte/*/.gitkeep
+
 # Assinatura pessoal usada no recibo — não deve ir para o repositório
 frontend/src/assets/assinatura.png
 gestao-financeira/assinatura.png

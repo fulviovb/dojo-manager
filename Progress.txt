@@ -1159,6 +1159,72 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     se a assinatura tivesse sido criada depois do fix). Feito via chamadas
     diretas à API (POST /mensalidades, PUT /turmas/:id), não pela UI.
 
+=== FASE 28: Módulo Incentivo ao Esporte ===
+[x] Módulo novo pedido pelo Fulvio pra gerenciar todo o processo da Lei/
+    Programa Municipal de Incentivo ao Esporte de Curitiba (Resolução CIE
+    004/2026, execução em 2027). Escopo combinado: Atletas (alunos
+    matriculados OU avulsos, que nunca aparecem na lista de Alunos) e
+    Técnicos (o próprio Fulvio se cadastrou como técnico) — Pessoa Jurídica
+    ficou de fora por enquanto.
+    Models novos: `ParticipanteIncentivo` (tipo_pessoa atleta/tecnico,
+    aluno_id nullable + dados pessoais próprios — mesmo padrão do
+    `Conquista.nome_atleta` pra cobrir avulso —, `tecnico_responsavel_id`
+    auto-associação pro vínculo atleta↔técnico), `DocumentoIncentivo`
+    (checklist + anexos gerados, `origem` upload/gerado), `ContrapartidaIncentivo`,
+    `DespesaIncentivo` (rubrica do edital + dois status independentes:
+    `comprovante_url` e `reportado_prefeitura` — não é um ciclo de vida
+    único, são flags que evoluem em paralelo). 4 tabelas novas, sem script
+    de migração (`sync` cria tabela nova sozinho) — só precisou de um script
+    pra uma coluna (`tecnico_responsavel_id`) que entrou depois da tabela já
+    existir.
+    Checklist de documentos é auto-semeado (`DocumentoIncentivo` status
+    pendente) ao criar o participante, baseado em `constants/
+    incentivoEsporte.js` (CHECKLIST_ATLETA/CHECKLIST_TECNICO com condição
+    sempre/menor_18/atua_com_menores/nao_atua_com_menores).
+    Preenchimento automático de Anexos (IX, XI, XII, XVII, XVIII, XIX, XXI —
+    os 4 exclusivos de Pessoa Jurídica ficaram de fora): editei os .docx
+    originais que o Fulvio forneceu (`modulo-incentivo-esporte/ANEXOS PARA
+    2027/`), troquei as lacunas por tags `{chave}` do docxtemplater
+    (`backend/src/templates/incentivo-esporte/`), e o Anexo XI usa loop de
+    tabela (`{#linhas}...{/linhas}`) pra listar os atletas do técnico
+    dinamicamente. Runtime: `docxtemplater`+`pizzip` preenchem o docx →
+    `soffice --headless --convert-to pdf` (LibreOffice, instalado no
+    Dockerfile do backend via apt) converte pra PDF final. `anexoService.js`
+    isola o HOME do processo por chamada (evita trava de perfil concorrente
+    do LibreOffice).
+    Campos com `fonte` no anexo vêm automaticamente do cadastro do
+    participante (e do técnico vinculado, via `tecnico.<campo>`); só os
+    campos sem fonte aparecem no formulário de geração.
+    Upload de documentos/comprovantes: mesmo padrão inline-multer de
+    `usuariosController`/`escolasController`, aceitando imagem ou PDF.
+    Rotas todas `autorizarRole(['admin'])` — dado sensível, mesmo padrão de
+    Mensalidades.
+    Frontend: `IncentivoEsporte.js` (abas Participantes/Contrapartidas/
+    Despesas, padrão de `Financeiro.js`) + `ParticipanteIncentivoDetalhe.js`
+    (padrão de `AlunoDetalhe.js`).
+    Testado end-to-end via browser real (login do admin): criei o Fulvio
+    como Técnico (dado real, ele confirmou), gerei os Anexos XXI e XI (PDF
+    abre certo, timbre da Prefeitura preservado, data da assinatura default
+    pro dia de hoje), matriculei uma aluna real como Atleta vinculada a ele
+    só pra validar o vínculo técnico↔atleta e o Anexo XI (listou ela
+    corretamente na tabela) — desativada depois, não era inscrição real.
+    Testei também despesa com os dois status independentes (comprovante /
+    reportado à prefeitura) e contrapartida — dados de teste removidos
+    depois, mantendo só o cadastro real do Fulvio como Técnico.
+    Bugs pegos e corrigidos durante o teste: (1) campo de data vazio ('')
+    quebrava o INSERT (MySQL rejeita '' em DATEONLY) — sanitiza pra null no
+    frontend antes de enviar; (2) fluxo "aluno matriculado" mandava os
+    campos vazios do formulário (nome, cidade, UF) e eles sobrescreviam os
+    dados reais do aluno no backend — frontend agora nem manda esses campos
+    quando a origem é aluno; (3) dia/mês da assinatura ficavam em branco no
+    PDF em vez de cair no default (hoje) — o controller só grava a chave no
+    payload quando há valor de verdade, senão deixa o anexoService aplicar
+    o default.
+    Efeito colateral descoberto e corrigido: login com admin@escola.com
+    estava caindo em conta aleatória — 11 alunos importados tinham esse
+    e-mail como placeholder, colidindo com a conta real do Administrador
+    (ver `2026-09-corrigir-email-admin-duplicado.js`).
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

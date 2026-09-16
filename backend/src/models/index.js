@@ -25,6 +25,10 @@ const AvaliacaoAluno = require('./AvaliacaoAluno');
 const RespostaCriterio = require('./RespostaCriterio');
 const Competicao = require('./Competicao');
 const Conquista = require('./Conquista');
+const ParticipanteIncentivo = require('./ParticipanteIncentivo');
+const DocumentoIncentivo = require('./DocumentoIncentivo');
+const ContrapartidaIncentivo = require('./ContrapartidaIncentivo');
+const DespesaIncentivo = require('./DespesaIncentivo');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -202,6 +206,31 @@ Conquista.belongsTo(ArteMarcial, { foreignKey: 'arte_marcial_id' });
 Faixa.hasMany(Conquista, { foreignKey: 'faixa_id' });
 Conquista.belongsTo(Faixa, { foreignKey: 'faixa_id' });
 
+// Incentivo ao Esporte (Lei/Programa Municipal de Incentivo ao Esporte)
+Escola.hasMany(ParticipanteIncentivo, { foreignKey: 'escola_id' });
+ParticipanteIncentivo.belongsTo(Escola, { foreignKey: 'escola_id' });
+
+// Nullable: participante pode ser aluno matriculado (vincula) ou atleta/
+// técnico avulso (aluno_id null) — ver comentário no model.
+Usuario.hasMany(ParticipanteIncentivo, { foreignKey: 'aluno_id' });
+ParticipanteIncentivo.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno' });
+
+ArteMarcial.hasMany(ParticipanteIncentivo, { foreignKey: 'arte_marcial_id' });
+ParticipanteIncentivo.belongsTo(ArteMarcial, { foreignKey: 'arte_marcial_id' });
+
+// Atleta → Técnico responsável (auto-associação, alimenta Anexos XI/XII).
+ParticipanteIncentivo.hasMany(ParticipanteIncentivo, { foreignKey: 'tecnico_responsavel_id', as: 'AtletasSobResponsabilidade' });
+ParticipanteIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'tecnico_responsavel_id', as: 'TecnicoResponsavel' });
+
+ParticipanteIncentivo.hasMany(DocumentoIncentivo, { foreignKey: 'participante_id' });
+DocumentoIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
+
+ParticipanteIncentivo.hasMany(ContrapartidaIncentivo, { foreignKey: 'participante_id' });
+ContrapartidaIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
+
+ParticipanteIncentivo.hasMany(DespesaIncentivo, { foreignKey: 'participante_id' });
+DespesaIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -210,4 +239,5 @@ module.exports = {
   Exame, FaseExame, CriterioExame, CriterioExameFaixa,
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
   Competicao, Conquista,
+  ParticipanteIncentivo, DocumentoIncentivo, ContrapartidaIncentivo, DespesaIncentivo,
 };
