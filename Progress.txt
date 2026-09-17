@@ -1327,6 +1327,19 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     itens novos (Anexo IX + vínculo Curitiba) na ordem certa; Emanuela e
     Otávio Augusto (menores que moram com os pais) não ganharam os itens
     novos, só o texto do comprovante ajustado pro nome dos pais.
+[x] Bug reportado pelo Fulvio: marcou "Fulvio Vilas Boas" (atleta) como
+    proprietário do imóvel, e o checklist continuou com "Declaração de
+    Residência (Anexo IX)" e "Vínculo com Curitiba" pendentes — deveriam
+    ter sumido, já que quem é proprietário não precisa mais deles. Causa:
+    `sincronizarChecklistResidencia` só tinha o caminho de ADICIONAR item
+    que passou a ser exigido, nunca o de remover um que deixou de ser.
+    Fix: agora remove os dois itens quando o caminho não é mais 'terceiro'
+    — mas só se ainda estiverem vazios (`status='pendente'` e sem
+    `arquivo_url`); um item que o usuário já preencheu nunca é apagado
+    sozinho, só pelo botão "remover" manual. Script
+    `2026-09-incentivo-residencia-remover-obsoletos.js` limpou o caso do
+    Fulvio (os 2 itens já estavam vazios, seguro remover) e revarreu todo
+    participante ativo em busca do mesmo problema — só ele estava afetado.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

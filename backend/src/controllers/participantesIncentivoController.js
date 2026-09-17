@@ -55,10 +55,12 @@ function nomeComprovanteResidencia(caminho) {
 
 // Editar proprietario_imovel/mora_com_responsavel/data_nascimento depois de
 // criado o participante não re-semeia o checklist inteiro (só a criação
-// faz isso) — mas precisa, no mínimo, adicionar os itens de residência que
-// passaram a ser exigidos. Idempotente (findOrCreate): nunca duplica, e
-// nunca remove um item que o usuário já preencheu, mesmo que o caminho
-// tenha voltado a não exigi-lo (evita apagar upload em andamento).
+// faz isso) — mas precisa reconciliar os itens de residência com o novo
+// caminho: adiciona os que passaram a ser exigidos (idempotente,
+// findOrCreate nunca duplica) e remove os que deixaram de ser exigidos —
+// mas só se ainda estiverem vazios (status 'pendente' e sem arquivo); um
+// item que o usuário já preencheu nunca é apagado automaticamente, só pelo
+// botão "remover" manual.
 async function sincronizarChecklistResidencia(participante) {
   const checklist = participante.tipo_pessoa === 'tecnico' ? CHECKLIST_TECNICO : CHECKLIST_ATLETA;
   const caminho = resolverCaminhoResidencia(participante);
@@ -68,8 +70,14 @@ async function sincronizarChecklistResidencia(participante) {
     { where: { participante_id: participante.id, tipo_documento: 'comprovante_residencia' } }
   );
 
-  if (caminho !== 'terceiro') return;
-  for (const chave of ['declaracao_residencia_anexo_ix', 'vinculo_curitiba']) {
+  const chaves = ['declaracao_residencia_anexo_ix', 'vinculo_curitiba'];
+  if (caminho !== 'terceiro') {
+    await DocumentoIncentivo.destroy({
+      where: { participante_id: participante.id, tipo_documento: chaves, status: 'pendente', arquivo_url: null },
+    });
+    return;
+  }
+  for (const chave of chaves) {
     const item = checklist.find(i => i.key === chave);
     const ordem = checklist.findIndex(i => i.key === chave);
     if (!item) continue;

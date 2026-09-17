@@ -633,8 +633,10 @@ com:
   no catálogo), e o `comprovante_residencia` ganha um `nome_exibicao`
   dinâmico deixando claro em nome de quem a conta precisa estar. Editar
   esses 2 campos depois de criado o participante roda
-  `sincronizarChecklistResidencia` (idempotente — só adiciona os itens que
-  passaram a ser exigidos, nunca remove um já preenchido).
+  `sincronizarChecklistResidencia`: adiciona os itens que passaram a ser
+  exigidos (idempotente, nunca duplica) e remove os que deixaram de ser —
+  mas só se ainda estiverem vazios (`pendente` e sem arquivo); um item já
+  preenchido nunca é apagado sozinho, só pelo botão "remover" manual.
 - **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
   prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa
   Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar.
