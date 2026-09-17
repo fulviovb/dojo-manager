@@ -616,8 +616,11 @@ com:
   Item marcado `multiplo: true, max: N` no catálogo (hoje só
   `comprovantes_resultado`, até 3 — a prefeitura exige anexos separados, não
   um PDF só) aceita várias linhas de `DocumentoIncentivo` com o mesmo
-  `tipo_documento`; a UI agrupa as instâncias sob um cabeçalho único com
-  "+ Adicionar arquivo" até o limite.
+  `tipo_documento`; a UI agrupa as instâncias sob um cabeçalho único
+  ("Comprovante 1", "Comprovante 2"...), cada uma com seu próprio "Enviar
+  arquivo" — o botão "+ Adicionar mais um comprovante" só aparece quando
+  todo slot existente já tem arquivo (senão ficava ambíguo com o "Enviar
+  arquivo" do slot ainda vazio) e some ao atingir o limite.
 - **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
   prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa
   Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar.
