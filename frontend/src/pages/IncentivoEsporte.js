@@ -225,6 +225,20 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
   );
 }
 
+function BarraProgressoDocumentos({ progresso }) {
+  const { total, entregues, percentual } = progresso || { total: 0, entregues: 0, percentual: 0 };
+  if (!total) return <span style={{ fontSize: 12, color: '#aaa' }}>—</span>;
+  const cor = percentual === 100 ? '#2e7d32' : '#ef6c00';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
+      <div style={{ flex: 1, height: 8, background: '#eee', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ width: `${percentual}%`, height: '100%', background: cor, borderRadius: 4, transition: 'width 0.3s' }} />
+      </div>
+      <span style={{ fontSize: 11, color: '#666', whiteSpace: 'nowrap' }}>{entregues}/{total}</span>
+    </div>
+  );
+}
+
 // ── Aba: Participantes ─────────────────────────────────────────────────────
 
 function ListaParticipantes({ onVerParticipante }) {
@@ -259,12 +273,12 @@ function ListaParticipantes({ onVerParticipante }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#fafafa' }}>
-              {['Nome', 'Tipo', 'Origem', 'Status', 'Taxa Gestão', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}
+              {['Nome', 'Tipo', 'Origem', 'Status', 'Documentos', 'Taxa Gestão', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {filtrados.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum participante encontrado.</td></tr>
+              <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum participante encontrado.</td></tr>
             )}
             {filtrados.map(p => (
               <tr key={p.id} style={{ borderTop: '1px solid #f0f0f0' }}>
@@ -277,6 +291,9 @@ function ListaParticipantes({ onVerParticipante }) {
                   <span style={{ background: STATUS_PROGRAMA_BG[p.status_programa], color: STATUS_PROGRAMA_COR[p.status_programa], fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
                     {STATUS_PROGRAMA_LABEL[p.status_programa]}
                   </span>
+                </td>
+                <td style={{ padding: '10px 16px' }}>
+                  <BarraProgressoDocumentos progresso={p.documentos_progresso} />
                 </td>
                 <td style={{ padding: '10px 16px', fontSize: 13 }}>
                   {p.taxa_gestao_paga

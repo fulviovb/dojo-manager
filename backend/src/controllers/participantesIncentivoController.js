@@ -32,15 +32,20 @@ async function semearChecklist(participante) {
     menorDe18: (calcularIdade(participante.data_nascimento) ?? 99) < 18,
     atuaComMenores: !!participante.atua_com_menores,
   };
+  // ordem = posição no array canônico (não no filtrado) — assim a ordem
+  // relativa dos itens que sobram é sempre a mesma, tenha sido filtrado
+  // algum item ou não.
   const itens = checklist
-    .filter(item => itemAplica(item.condicao, contexto))
-    .map(item => ({
+    .map((item, ordem) => ({ item, ordem }))
+    .filter(({ item }) => itemAplica(item.condicao, contexto))
+    .map(({ item, ordem }) => ({
       escola_id: participante.escola_id,
       participante_id: participante.id,
       tipo_documento: item.key,
       nome_exibicao: item.nome,
       origem: 'upload',
       status: 'pendente',
+      ordem,
     }));
   if (itens.length) await DocumentoIncentivo.bulkCreate(itens);
 }
@@ -54,9 +59,27 @@ const listar = async (req, res) => {
     if (ativo === 'todos') delete where.ativo;
 
     const participantes = await ParticipanteIncentivo.findAll({
-      where, include: INCLUDE_PADRAO, order: [['nome', 'ASC']],
+      where,
+      include: [...INCLUDE_PADRAO, { model: DocumentoIncentivo, attributes: ['status'] }],
+      order: [['nome', 'ASC']],
     });
-    res.json(participantes);
+    // Progresso do checklist (% de documentos já entregues, isto é, que
+    // saíram do status "pendente") — calculado aqui pra não expor a lista
+    // crua de documentos nessa tela (só o detalhe do participante precisa
+    // disso item a item).
+    const comProgresso = participantes.map(p => {
+      const docs = p.DocumentoIncentivos || [];
+      const total = docs.length;
+      const entregues = docs.filter(d => d.status !== 'pendente').length;
+      const json = p.toJSON();
+      delete json.DocumentoIncentivos;
+      json.documentos_progresso = {
+        total, entregues,
+        percentual: total ? Math.round((entregues / total) * 100) : 0,
+      };
+      return json;
+    });
+    res.json(comProgresso);
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 

@@ -40,7 +40,7 @@ const listar = async (req, res) => {
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
 
     const documentos = await DocumentoIncentivo.findAll({
-      where: { participante_id }, order: [['created_at', 'ASC']],
+      where: { participante_id }, order: [['ordem', 'ASC'], ['created_at', 'ASC']],
     });
     res.json(documentos);
   } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }

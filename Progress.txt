@@ -1224,6 +1224,22 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     estava caindo em conta aleatória — 11 alunos importados tinham esse
     e-mail como placeholder, colidindo com a conta real do Administrador
     (ver `2026-09-corrigir-email-admin-duplicado.js`).
+[x] Ajustes pedidos pelo Fulvio depois de usar o módulo com participantes
+    reais: (1) barra de progresso (X/Y documentos entregues) na coluna
+    "Documentos" da listagem de Participantes — `GET /incentivo-esporte/
+    participantes` agora inclui `documentos_progresso {total, entregues,
+    percentual}` computado no backend (entregue = status != 'pendente'),
+    sem expor a lista crua de documentos nessa tela. (2) A ordem dos itens
+    do checklist estava inconsistente entre participantes — causa: os itens
+    são semeados juntos via `bulkCreate` e ficam todos com o mesmo
+    `created_at`, então `ORDER BY created_at` empatava e o desempate saía
+    arbitrário. Fix: campo novo `DocumentoIncentivo.ordem` (posição no
+    array canônico de `CHECKLIST_ATLETA`/`CHECKLIST_TECNICO`, gravado no
+    momento do seed), listagem agora ordena por `ordem` primeiro. Script
+    `2026-09-incentivo-documento-ordem.js` fez o backfill nos documentos já
+    existentes dos participantes reais (Sandra Regina, Emanuela, Fulvio
+    avulso/técnico, José Marcio, Otávio Augusto — 58 documentos), sem
+    precisar recriar nada.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

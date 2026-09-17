@@ -607,7 +607,12 @@ com:
 - **Documentos**: checklist auto-semeado ao criar o participante (varia por
   tipo Atleta/Técnico e por condição — menor de 18, atua com menores —, ver
   `constants/incentivoEsporte.js`), cada item com upload de arquivo e status
-  (pendente/recebido/aprovado/rejeitado).
+  (pendente/recebido/aprovado/rejeitado). `DocumentoIncentivo.ordem` guarda a
+  posição no array canônico do checklist — sem isso a exibição ficaria na
+  ordem arbitrária de `created_at` (todo item semeado junto tem o mesmo
+  timestamp). A lista de Participantes mostra uma barra de progresso
+  (documentos com status ≠ pendente ÷ total do checklist), calculada em
+  `GET /incentivo-esporte/participantes` (campo `documentos_progresso`).
 - **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
   prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa
   Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar.
