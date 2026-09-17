@@ -1271,6 +1271,17 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     tem `arquivo_url` (senão o caminho certo é preencher o vazio primeiro
     via "Enviar arquivo"); rótulo também trocou de "Arquivo X de 3" (dava a
     entender que já existiam 3) pra "Comprovante X" simples.
+[x] Anexo XVII (Declaração de Vínculo Federativo): Fulvio percebeu que o PDF
+    gerado mantinha o texto "(atleta/paratleta/técnico (a))" mesmo depois de
+    preencher o campo "papel" com "atleta" — não era bug, é o texto literal
+    do modelo original da prefeitura (a lacuna do .docx tinha essa dica ao
+    lado: "como _____ (atleta/paratleta/técnico (a)) com..."). A pedido
+    dele, removi a dica do template
+    (`backend/src/templates/incentivo-esporte/anexo-xvii.docx`) — frase
+    fica só "...vínculo federativo como {papel} com {entidade}...". Nenhum
+    participante real tinha gerado esse anexo ainda, então não precisou
+    regenerar nada. Confirmado via geração de teste que o texto sai limpo,
+    sem espaço duplo nem sobra.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
