@@ -45,6 +45,7 @@ const FORM_VAZIO = {
   arte_marcial_id: '', confef_cref: '', tecnico_responsavel_id: '',
   vinculo_federativo: 'nao_possui', vinculo_federativo_entidade: '', vinculo_federativo_cidade: '',
   atua_com_menores: false,
+  proprietario_imovel: false, mora_com_responsavel: true,
 };
 
 function calcularIdade(dataNascimentoIso) {
@@ -213,6 +214,27 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
             <input type="checkbox" checked={form.atua_com_menores} onChange={e => setForm(f => ({ ...f, atua_com_menores: e.target.checked }))} />
             Atua com menores de 18
           </label>
+        </div>
+
+        <div style={{ background: '#f9f9f9', padding: 10, borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase' }}>Comprovação de residência (Art. 17 do edital)</div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <input type="checkbox" checked={form.proprietario_imovel} onChange={e => setForm(f => ({ ...f, proprietario_imovel: e.target.checked }))} />
+            É proprietário do imóvel onde reside
+          </label>
+          {!form.proprietario_imovel && menorDe18 && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input type="checkbox" checked={form.mora_com_responsavel} onChange={e => setForm(f => ({ ...f, mora_com_responsavel: e.target.checked }))} />
+              Mora com os pais/responsável legal
+            </label>
+          )}
+          <div style={{ fontSize: 11, color: '#888' }}>
+            {form.proprietario_imovel
+              ? 'Só precisa da própria conta de água/luz/telefone fixo/internet fixa/TV assinatura/gás.'
+              : (menorDe18 && form.mora_com_responsavel)
+              ? 'Nascido a partir de 2009 e mora com os pais: só a conta no nome dos pais/responsável.'
+              : 'Vai precisar também de Declaração de Residência (Anexo IX) e comprovar vínculo com Curitiba.'}
+          </div>
         </div>
 
         {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}

@@ -4,14 +4,22 @@
 
 // Checklist padrão de documentos por tipo de participante. `condicao`
 // decide se o item entra no checklist auto-semeado ao criar o participante:
-// 'sempre' | 'menor_18' | 'atua_com_menores' | 'nao_atua_com_menores'.
+// 'sempre' | 'menor_18' | 'atua_com_menores' | 'nao_atua_com_menores' |
+// 'requer_declaracao_residencia'. Esse último (Art. 17 da Resolução): quem
+// NÃO é proprietário do imóvel E não se enquadra na exceção do §4 (menor
+// nascido a partir de 2009 que mora com o responsável) precisa, além da
+// conta, de Declaração de Residência (Anexo IX) assinada por quem é
+// proprietário/locador/locatário + comprovação de vínculo com Curitiba —
+// ver `resolverCaminhoResidencia` em participantesIncentivoController.js.
 // `multiplo`+`max`: item aceita mais de um arquivo independente (ex: até 3
 // comprovantes de resultado, anexados separados no sistema da prefeitura) —
 // sem isso, um upload novo substitui o anterior.
 const CHECKLIST_ATLETA = [
   { key: 'rg_cpf_proponente', nome: 'RG e CPF do atleta', condicao: 'sempre' },
   { key: 'rg_cpf_responsavel', nome: 'RG e CPF do responsável legal', condicao: 'menor_18' },
-  { key: 'comprovante_residencia', nome: 'Comprovante de residência (água/luz/telefone fixo/internet fixa/TV assinatura/gás — 2º semestre)', condicao: 'sempre' },
+  { key: 'comprovante_residencia', nome: 'Comprovante de residência (água/luz/telefone fixo/internet fixa/TV assinatura/gás — 2º semestre/2026)', condicao: 'sempre' },
+  { key: 'declaracao_residencia_anexo_ix', nome: 'Declaração de Residência assinada pelo proprietário/locador/locatário (Anexo IX, com RG dele em anexo)', condicao: 'requer_declaracao_residencia' },
+  { key: 'vinculo_curitiba', nome: 'Comprovação de vínculo com Curitiba (nascimento em Curitiba, título de eleitor, federação por equipe sediada em Curitiba, vínculo trabalhista ou matrícula escolar em Curitiba)', condicao: 'requer_declaracao_residencia' },
   { key: 'certidao_federal', nome: 'Certidão negativa de débitos federais', condicao: 'sempre' },
   { key: 'certidao_estadual', nome: 'Certidão negativa de débitos estaduais', condicao: 'sempre' },
   { key: 'certidao_municipal', nome: 'Certidão negativa de débitos municipais', condicao: 'sempre' },
@@ -25,7 +33,9 @@ const CHECKLIST_ATLETA = [
 
 const CHECKLIST_TECNICO = [
   { key: 'cedula_confef_cref', nome: 'Cédula CONFEF/CREF válida', condicao: 'sempre' },
-  { key: 'comprovante_residencia', nome: 'Comprovante de residência (água/luz/telefone fixo/internet fixa/TV assinatura/gás — 2º semestre)', condicao: 'sempre' },
+  { key: 'comprovante_residencia', nome: 'Comprovante de residência (água/luz/telefone fixo/internet fixa/TV assinatura/gás — 2º semestre/2026)', condicao: 'sempre' },
+  { key: 'declaracao_residencia_anexo_ix', nome: 'Declaração de Residência assinada pelo proprietário/locador/locatário (Anexo IX, com RG dele em anexo)', condicao: 'requer_declaracao_residencia' },
+  { key: 'vinculo_curitiba', nome: 'Comprovação de vínculo com Curitiba (nascimento em Curitiba, título de eleitor, federação por equipe sediada em Curitiba ou vínculo trabalhista em Curitiba)', condicao: 'requer_declaracao_residencia' },
   { key: 'certidao_federal', nome: 'Certidão negativa de débitos federais', condicao: 'sempre' },
   { key: 'certidao_estadual', nome: 'Certidão negativa de débitos estaduais', condicao: 'sempre' },
   { key: 'certidao_municipal', nome: 'Certidão negativa de débitos municipais', condicao: 'sempre' },

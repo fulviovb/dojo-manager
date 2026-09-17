@@ -621,6 +621,20 @@ com:
   arquivo" — o botão "+ Adicionar mais um comprovante" só aparece quando
   todo slot existente já tem arquivo (senão ficava ambíguo com o "Enviar
   arquivo" do slot ainda vazio) e some ao atingir o limite.
+  Comprovação de residência (Art. 17 da Resolução) tem 3 caminhos, não é um
+  item genérico: proprietário do imóvel → só a própria conta; menor nascido
+  a partir de 2009 que mora com o responsável (§4) → só a conta no nome
+  dele; todo o resto → conta em nome de terceiro + Declaração de Residência
+  assinada por ele (Anexo IX) + comprovação de vínculo com Curitiba.
+  Campos `ParticipanteIncentivo.proprietario_imovel`/`mora_com_responsavel`
+  decidem o caminho (`resolverCaminhoResidencia`); os itens
+  `declaracao_residencia_anexo_ix`/`vinculo_curitiba` só entram no
+  checklist no terceiro caminho (`condicao: 'requer_declaracao_residencia'`
+  no catálogo), e o `comprovante_residencia` ganha um `nome_exibicao`
+  dinâmico deixando claro em nome de quem a conta precisa estar. Editar
+  esses 2 campos depois de criado o participante roda
+  `sincronizarChecklistResidencia` (idempotente — só adiciona os itens que
+  passaram a ser exigidos, nunca remove um já preenchido).
 - **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
   prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa
   Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar.

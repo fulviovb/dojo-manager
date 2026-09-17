@@ -494,6 +494,8 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
             <LinhaInfo label="Arte marcial" valor={participante.ArteMarcial?.nome} />
             <LinhaInfo label="Vínculo federativo" valor={participante.vinculo_federativo === 'possui' ? `${participante.vinculo_federativo_entidade || ''} (${participante.vinculo_federativo_cidade || ''})` : 'Não possui'} />
             <LinhaInfo label="Atua c/ menores" valor={participante.atua_com_menores ? 'Sim' : 'Não'} />
+            <LinhaInfo label="Proprietário imóvel" valor={participante.proprietario_imovel ? 'Sim' : 'Não'} />
+            {!participante.proprietario_imovel && <LinhaInfo label="Mora c/ responsável" valor={participante.mora_com_responsavel ? 'Sim' : 'Não'} />}
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -518,6 +520,16 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
               <input type="checkbox" checked={!!form.atua_com_menores} onChange={e => setForm(f => ({ ...f, atua_com_menores: e.target.checked }))} />
               Atua com menores de 18
             </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input type="checkbox" checked={!!form.proprietario_imovel} onChange={e => setForm(f => ({ ...f, proprietario_imovel: e.target.checked }))} />
+              É proprietário do imóvel onde reside
+            </label>
+            {!form.proprietario_imovel && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                <input type="checkbox" checked={form.mora_com_responsavel !== false} onChange={e => setForm(f => ({ ...f, mora_com_responsavel: e.target.checked }))} />
+                Mora com os pais/responsável legal (se menor de 18)
+              </label>
+            )}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
               <button onClick={() => setEditando(false)} style={btnCinza}>Cancelar</button>
               <button onClick={salvar} style={btnVerde}>Salvar</button>

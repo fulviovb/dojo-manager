@@ -1297,6 +1297,36 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     refletir a nova posição do array (comprovantes_resultado passou do
     índice 8 pro 7). Confirmado: Sandra Regina ficou com 7 itens no
     checklist (era 8), sem antecedentes_criminais.
+[x] Comprovação de residência (Art. 17 da Resolução CIE 004/2026), a pedido
+    do Fulvio — regra tem 3 caminhos, não um item genérico só: (1)
+    proprietário do imóvel → só a própria conta; (2) menor nascido a partir
+    de 2009 que mora com o responsável (§4) → só a conta no nome dele; (3)
+    todo o resto (§5/§6/§7/§8) → conta em nome de terceiro + Declaração de
+    Residência assinada por ele (Anexo IX) + comprovação de vínculo com
+    Curitiba (nascimento/título de eleitor/federação/vínculo trabalhista, e
+    pra atleta também matrícula escolar).
+    Campos novos em `ParticipanteIncentivo`: `proprietario_imovel`
+    (default false) e `mora_com_responsavel` (default true — só relevante
+    quando nascido a partir de 2009). `resolverCaminhoResidencia` em
+    `participantesIncentivoController.js` decide o caminho; itens novos no
+    checklist (`declaracao_residencia_anexo_ix`, `vinculo_curitiba`) só
+    entram no caminho 3, com `condicao: 'requer_declaracao_residencia'`
+    novo no catálogo. O item `comprovante_residencia` já existente ganhou
+    nome_exibicao dinâmico (deixa claro em nome de quem a conta precisa
+    estar, conforme o caminho).
+    Editar esses 2 campos depois de criado o participante não re-semeia o
+    checklist inteiro, mas `atualizar` chama
+    `sincronizarChecklistResidencia` — adiciona os itens que passaram a ser
+    exigidos (idempotente, nunca duplica, nunca apaga o que já tinha),
+    então mudar de propriedade/moradia continua tendo efeito depois.
+    Script `2026-09-incentivo-comprovante-residencia.js` fez a migração das
+    2 colunas + backfill nos 6 participantes reais existentes (todos com os
+    defaults — precisam revisar manualmente se algum for proprietário do
+    imóvel) + recálculo de `ordem` de todo documento de checklist.
+    Confirmado via consulta direta: Sandra Regina (adulta) ficou com os 2
+    itens novos (Anexo IX + vínculo Curitiba) na ordem certa; Emanuela e
+    Otávio Augusto (menores que moram com os pais) não ganharam os itens
+    novos, só o texto do comprovante ajustado pro nome dos pais.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

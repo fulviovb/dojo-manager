@@ -45,6 +45,16 @@ const ParticipanteIncentivo = sequelize.define('ParticipanteIncentivo', {
   vinculo_federativo: { type: DataTypes.ENUM('nao_possui', 'possui'), defaultValue: 'nao_possui' },
   vinculo_federativo_entidade: { type: DataTypes.STRING },
   vinculo_federativo_cidade: { type: DataTypes.STRING },
+
+  // Comprovação de residência (Resolução CIE 004/2026, Art. 17) — define o
+  // caminho do checklist: proprietário só apresenta a própria conta; menor
+  // nascido a partir de 2009 que mora com o responsável só precisa da conta
+  // no nome dele; todo o resto precisa da conta em nome de terceiro +
+  // Declaração de Residência (Anexo IX) + comprovação de vínculo com
+  // Curitiba. `mora_com_responsavel` só é relevante quando o participante
+  // se enquadra na idade do §4 (nascido a partir de 2009).
+  proprietario_imovel: { type: DataTypes.BOOLEAN, defaultValue: false },
+  mora_com_responsavel: { type: DataTypes.BOOLEAN, defaultValue: true },
   // Define se o checklist pede Certidão de Antecedentes Criminais ou a
   // declaração de não-enquadramento (Anexo XIX/XX) no lugar dela.
   atua_com_menores: { type: DataTypes.BOOLEAN, defaultValue: false },
