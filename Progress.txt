@@ -1282,6 +1282,21 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     participante real tinha gerado esse anexo ainda, então não precisou
     regenerar nada. Confirmado via geração de teste que o texto sai limpo,
     sem espaço duplo nem sobra.
+[x] Bug real no checklist de Atleta: "Certidão negativa de antecedentes
+    criminais" nunca deveria estar lá — conferido direto no texto da
+    Resolução CIE 004/2026 (§17 e §20, extraído via `pdftotext -layout`),
+    essa exigência é só de Técnico (Pessoa Física) e Pessoa Jurídica que
+    atuam com menores de 18; atleta/paratleta não é mencionado em nenhum
+    dos dois parágrafos, de qualquer idade. Removido de `CHECKLIST_ATLETA`
+    em `constants/incentivoEsporte.js` (continua correto em
+    `CHECKLIST_TECNICO`). Script `2026-09-incentivo-remove-antecedentes-
+    atleta.js` removeu as 4 linhas já semeadas erradas em participantes
+    reais tipo atleta (Sandra Regina, Fulvio-atleta, Emanuela, Otávio
+    Augusto — todas ainda pendentes, sem arquivo, seguro remover) e
+    recalculou `ordem` de todo documento de checklist existente pra
+    refletir a nova posição do array (comprovantes_resultado passou do
+    índice 8 pro 7). Confirmado: Sandra Regina ficou com 7 itens no
+    checklist (era 8), sem antecedentes_criminais.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

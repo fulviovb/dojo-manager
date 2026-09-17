@@ -16,7 +16,10 @@ const CHECKLIST_ATLETA = [
   { key: 'certidao_estadual', nome: 'Certidão negativa de débitos estaduais', condicao: 'sempre' },
   { key: 'certidao_municipal', nome: 'Certidão negativa de débitos municipais', condicao: 'sempre' },
   { key: 'vinculo_federativo', nome: 'Declaração de vínculo federativo (Anexo XVII) ou de não-enquadramento (Anexo XVIII)', condicao: 'sempre' },
-  { key: 'antecedentes_criminais', nome: 'Certidão negativa de antecedentes criminais', condicao: 'atua_com_menores' },
+  // Antecedentes criminais NÃO é exigido de atleta/paratleta — Resolução
+  // CIE 004/2026, §17 e §20, obriga só Técnico (Pessoa Física) e Pessoa
+  // Jurídica que atuam com menores de 18. Item existe só em
+  // CHECKLIST_TECNICO.
   { key: 'comprovantes_resultado', nome: 'Comprovantes de resultado (até 3, 2025/2026)', condicao: 'sempre', multiplo: true, max: 3 },
 ];
 
