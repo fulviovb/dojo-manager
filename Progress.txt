@@ -1240,6 +1240,28 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     existentes dos participantes reais (Sandra Regina, Emanuela, Fulvio
     avulso/técnico, José Marcio, Otávio Augusto — 58 documentos), sem
     precisar recriar nada.
+[x] Item de checklist com múltiplos arquivos: pedido do Fulvio — a
+    prefeitura aceita até 3 "Comprovantes de resultado" anexados
+    separadamente (não um PDF só). Item novo no catálogo: `multiplo: true,
+    max: 3` em `constants/incentivoEsporte.js` (só `comprovantes_resultado`
+    por enquanto — outros itens que precisarem disso no futuro só ganham as
+    mesmas duas chaves). `DocumentoIncentivo` já suportava várias linhas
+    com o mesmo `tipo_documento` (sem índice único), então não precisou de
+    mudança de schema. `documentosIncentivoController.criar` ganhou um
+    helper (`buscarItemChecklist`) que reconhece quando o `tipo_documento`
+    enviado já existe no checklist canônico: se for múltiplo, valida o
+    limite (conta quantas linhas já existem pro par participante+tipo) e
+    sempre usa `ordem`/`nome_exibicao` do catálogo (ignora o que o cliente
+    mandar) — assim as instâncias ficam sempre agrupadas na posição certa,
+    mesmo vindas de uploads separados. Frontend (`SecaoDocumentos`) agrupa
+    visualmente as instâncias de um item múltiplo sob um cabeçalho único
+    ("Arquivo 1 de 3", "Arquivo 2 de 3"...) com botão "+ Adicionar arquivo"
+    que some ao atingir o limite.
+    Testado via API real (Sandra Regina): adicionei um 2º e um 3º
+    comprovante (sucesso), um 4º foi bloqueado com a mensagem de limite
+    (400 "Limite de 3 arquivos atingido..."), e a barra de progresso da
+    listagem contou os 3 como entregues corretamente. Dados de teste
+    removidos depois, mantendo o item original (pendente) dela.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

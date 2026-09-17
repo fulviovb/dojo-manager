@@ -5,6 +5,9 @@
 // Checklist padrão de documentos por tipo de participante. `condicao`
 // decide se o item entra no checklist auto-semeado ao criar o participante:
 // 'sempre' | 'menor_18' | 'atua_com_menores' | 'nao_atua_com_menores'.
+// `multiplo`+`max`: item aceita mais de um arquivo independente (ex: até 3
+// comprovantes de resultado, anexados separados no sistema da prefeitura) —
+// sem isso, um upload novo substitui o anterior.
 const CHECKLIST_ATLETA = [
   { key: 'rg_cpf_proponente', nome: 'RG e CPF do atleta', condicao: 'sempre' },
   { key: 'rg_cpf_responsavel', nome: 'RG e CPF do responsável legal', condicao: 'menor_18' },
@@ -14,7 +17,7 @@ const CHECKLIST_ATLETA = [
   { key: 'certidao_municipal', nome: 'Certidão negativa de débitos municipais', condicao: 'sempre' },
   { key: 'vinculo_federativo', nome: 'Declaração de vínculo federativo (Anexo XVII) ou de não-enquadramento (Anexo XVIII)', condicao: 'sempre' },
   { key: 'antecedentes_criminais', nome: 'Certidão negativa de antecedentes criminais', condicao: 'atua_com_menores' },
-  { key: 'comprovantes_resultado', nome: 'Comprovantes de resultado (até 3, 2025/2026)', condicao: 'sempre' },
+  { key: 'comprovantes_resultado', nome: 'Comprovantes de resultado (até 3, 2025/2026)', condicao: 'sempre', multiplo: true, max: 3 },
 ];
 
 const CHECKLIST_TECNICO = [
@@ -163,4 +166,15 @@ const ANEXOS = {
   },
 };
 
-module.exports = { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA, ANEXOS };
+// Busca um item do checklist canônico (por tipo_pessoa + key), com a
+// posição real no array embutida em `ordemCanonica` — usado tanto pro seed
+// quanto pra validar/enriquecer uploads avulsos que "completam" um item já
+// previsto no checklist (ex: mais um comprovante de resultado).
+function buscarItemChecklist(tipoPessoa, tipoDocumento) {
+  const checklist = tipoPessoa === 'tecnico' ? CHECKLIST_TECNICO : CHECKLIST_ATLETA;
+  const ordemCanonica = checklist.findIndex(item => item.key === tipoDocumento);
+  if (ordemCanonica === -1) return null;
+  return { ...checklist[ordemCanonica], ordemCanonica };
+}
+
+module.exports = { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA, ANEXOS, buscarItemChecklist };

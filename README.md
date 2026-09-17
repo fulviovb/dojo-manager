@@ -613,6 +613,11 @@ com:
   timestamp). A lista de Participantes mostra uma barra de progresso
   (documentos com status ≠ pendente ÷ total do checklist), calculada em
   `GET /incentivo-esporte/participantes` (campo `documentos_progresso`).
+  Item marcado `multiplo: true, max: N` no catálogo (hoje só
+  `comprovantes_resultado`, até 3 — a prefeitura exige anexos separados, não
+  um PDF só) aceita várias linhas de `DocumentoIncentivo` com o mesmo
+  `tipo_documento`; a UI agrupa as instâncias sob um cabeçalho único com
+  "+ Adicionar arquivo" até o limite.
 - **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
   prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa
   Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar.

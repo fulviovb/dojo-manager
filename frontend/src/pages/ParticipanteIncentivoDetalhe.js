@@ -66,19 +66,54 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
   );
 }
 
+function LinhaDocumento({ doc, rotulo, mudarStatus, enviarArquivo, remover }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, minWidth: 180 }}>
+        {rotulo && <div style={{ fontSize: 12, color: '#888' }}>{rotulo}</div>}
+        {!rotulo && <div style={{ fontSize: 13, fontWeight: 600 }}>{doc.nome_exibicao}</div>}
+        <div style={{ fontSize: 11, color: '#aaa' }}>
+          {doc.origem === 'gerado' ? 'Gerado pelo sistema' : 'Upload'}
+          {doc.data_validade ? ` · válido até ${formatData(doc.data_validade)}` : ''}
+        </div>
+      </div>
+      <select value={doc.status} onChange={e => mudarStatus(doc, e.target.value)}
+        style={{ fontSize: 11, padding: '3px 6px', borderRadius: 10, border: 'none', fontWeight: 700, background: STATUS_DOC_BG[doc.status], color: STATUS_DOC_COR[doc.status] }}>
+        {Object.entries(STATUS_DOC_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+      {doc.arquivo_url && (
+        <a href={`${SERVER_ORIGIN}${doc.arquivo_url}`} target="_blank" rel="noreferrer" style={{ ...btnAzul, textDecoration: 'none', display: 'inline-block' }}>Ver</a>
+      )}
+      <label style={{ ...btnCinza, cursor: 'pointer', margin: 0 }}>
+        {doc.arquivo_url ? 'Trocar arquivo' : 'Enviar arquivo'}
+        <input type="file" hidden onChange={e => e.target.files[0] && enviarArquivo(doc, e.target.files[0])} />
+      </label>
+      <button onClick={() => remover(doc)} style={btnPerigo}>✕</button>
+    </div>
+  );
+}
+
 function SecaoDocumentos({ participante, onRefresh }) {
   const [documentos, setDocumentos] = useState([]);
+  const [checklistDef, setChecklistDef] = useState({});
   const [anexosDisponiveis, setAnexosDisponiveis] = useState([]);
   const [anexoEscolhido, setAnexoEscolhido] = useState(null);
   const [modalExtra, setModalExtra] = useState(false);
   const [formExtra, setFormExtra] = useState({ nome_exibicao: '', arquivo: null });
   const [erroExtra, setErroExtra] = useState('');
+  const [erroGrupo, setErroGrupo] = useState('');
 
   const carregar = useCallback(() => {
     axios.get(`/incentivo-esporte/documentos?participante_id=${participante.id}`).then(r => setDocumentos(r.data));
   }, [participante.id]);
   useEffect(() => { carregar(); }, [carregar]);
   useEffect(() => { axios.get('/incentivo-esporte/anexos').then(r => setAnexosDisponiveis(r.data)); }, []);
+  useEffect(() => {
+    axios.get('/incentivo-esporte/catalogos').then(r => {
+      const lista = participante.tipo_pessoa === 'tecnico' ? r.data.checklistTecnico : r.data.checklistAtleta;
+      setChecklistDef(Object.fromEntries(lista.map(i => [i.key, i])));
+    });
+  }, [participante.tipo_pessoa]);
 
   const anexosParaEsteTipo = anexosDisponiveis.filter(a => a.gerar_para === 'ambos' || a.gerar_para === participante.tipo_pessoa);
 
@@ -100,6 +135,19 @@ function SecaoDocumentos({ participante, onRefresh }) {
     carregar();
   };
 
+  const adicionarInstancia = async (tipoDocumento, nomeExibicao, file) => {
+    setErroGrupo('');
+    const fd = new FormData();
+    fd.append('participante_id', participante.id);
+    fd.append('tipo_documento', tipoDocumento);
+    fd.append('nome_exibicao', nomeExibicao);
+    fd.append('arquivo', file);
+    try {
+      await axios.post('/incentivo-esporte/documentos', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      carregar();
+    } catch (ex) { setErroGrupo(ex.response?.data?.erro || 'Erro ao adicionar arquivo'); }
+  };
+
   const salvarExtra = async () => {
     setErroExtra('');
     if (!formExtra.nome_exibicao.trim()) return setErroExtra('Informe o nome do documento');
@@ -116,6 +164,11 @@ function SecaoDocumentos({ participante, onRefresh }) {
     } catch (ex) { setErroExtra(ex.response?.data?.erro || 'Erro ao salvar'); }
   };
 
+  // documentos já vem ordenado por `ordem` (backend) — instâncias de um
+  // mesmo item múltiplo (ex: comprovantes de resultado) ficam sempre juntas
+  // na lista, então basta agrupar a primeira vez que a chave aparece.
+  const gruposRenderizados = new Set();
+
   return (
     <div style={card()}>
       <div style={cardHeader}>
@@ -131,33 +184,41 @@ function SecaoDocumentos({ participante, onRefresh }) {
           <button onClick={() => setModalExtra(true)} style={btnVerde}>+ Documento</button>
         </div>
       </div>
+      {erroGrupo && <p style={{ color: 'red', fontSize: 12, margin: '4px 18px 0' }}>{erroGrupo}</p>}
       <div style={{ padding: '4px 0' }}>
         {documentos.length === 0 ? (
           <p style={{ color: '#aaa', fontSize: 13, margin: '12px 18px' }}>Nenhum documento no checklist.</p>
         ) : (
-          documentos.map(doc => (
-            <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', borderBottom: '1px solid #f5f5f5', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{doc.nome_exibicao}</div>
-                <div style={{ fontSize: 11, color: '#aaa' }}>
-                  {doc.origem === 'gerado' ? 'Gerado pelo sistema' : 'Upload'}
-                  {doc.data_validade ? ` · válido até ${formatData(doc.data_validade)}` : ''}
+          documentos.map(doc => {
+            const def = checklistDef[doc.tipo_documento];
+            if (def?.multiplo) {
+              if (gruposRenderizados.has(doc.tipo_documento)) return null;
+              gruposRenderizados.add(doc.tipo_documento);
+              const instancias = documentos.filter(d => d.tipo_documento === doc.tipo_documento);
+              return (
+                <div key={doc.tipo_documento} style={{ padding: '10px 18px', borderBottom: '1px solid #f5f5f5' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{def.nome}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {instancias.map((inst, i) => (
+                      <LinhaDocumento key={inst.id} doc={inst} rotulo={`Arquivo ${i + 1} de ${def.max}`}
+                        mudarStatus={mudarStatus} enviarArquivo={enviarArquivo} remover={remover} />
+                    ))}
+                  </div>
+                  {instancias.length < def.max && (
+                    <label style={{ ...btnCinza, cursor: 'pointer', display: 'inline-block', marginTop: 8 }}>
+                      + Adicionar arquivo ({instancias.length}/{def.max})
+                      <input type="file" hidden onChange={e => e.target.files[0] && adicionarInstancia(doc.tipo_documento, def.nome, e.target.files[0])} />
+                    </label>
+                  )}
                 </div>
+              );
+            }
+            return (
+              <div key={doc.id} style={{ padding: '10px 18px', borderBottom: '1px solid #f5f5f5' }}>
+                <LinhaDocumento doc={doc} mudarStatus={mudarStatus} enviarArquivo={enviarArquivo} remover={remover} />
               </div>
-              <select value={doc.status} onChange={e => mudarStatus(doc, e.target.value)}
-                style={{ fontSize: 11, padding: '3px 6px', borderRadius: 10, border: 'none', fontWeight: 700, background: STATUS_DOC_BG[doc.status], color: STATUS_DOC_COR[doc.status] }}>
-                {Object.entries(STATUS_DOC_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-              {doc.arquivo_url && (
-                <a href={`${SERVER_ORIGIN}${doc.arquivo_url}`} target="_blank" rel="noreferrer" style={{ ...btnAzul, textDecoration: 'none', display: 'inline-block' }}>Ver</a>
-              )}
-              <label style={{ ...btnCinza, cursor: 'pointer', margin: 0 }}>
-                {doc.arquivo_url ? 'Trocar arquivo' : 'Enviar arquivo'}
-                <input type="file" hidden onChange={e => e.target.files[0] && enviarArquivo(doc, e.target.files[0])} />
-              </label>
-              <button onClick={() => remover(doc)} style={btnPerigo}>✕</button>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

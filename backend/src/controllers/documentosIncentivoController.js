@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { DocumentoIncentivo, ParticipanteIncentivo } = require('../models');
-const { ANEXOS } = require('../constants/incentivoEsporte');
+const { ANEXOS, buscarItemChecklist } = require('../constants/incentivoEsporte');
 const { gerarAnexo, montarLinhasAnexoXI } = require('../services/anexoService');
 
 const PASTA_DOCS = path.join(__dirname, '..', '..', 'uploads', 'incentivo-esporte', 'documentos');
@@ -46,8 +46,11 @@ const listar = async (req, res) => {
   } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-// Cria um item extra de checklist (não previsto no checklist padrão),
-// opcionalmente já com arquivo anexado.
+// Cria um documento novo: ou um item extra de checklist (tipo_documento não
+// previsto no checklist padrão), ou mais uma instância de um item já
+// previsto que aceita múltiplos arquivos (ex: outro comprovante de
+// resultado) — nesse caso ordem/nome_exibicao vêm sempre do checklist
+// canônico (ignora o que o cliente mandar), e o limite é validado aqui.
 const criar = async (req, res) => {
   uploadMiddleware(req, res, async (err) => {
     if (err) return res.status(400).json({ erro: err.message || 'Erro no upload' });
@@ -56,11 +59,24 @@ const criar = async (req, res) => {
       const participante = await ParticipanteIncentivo.findOne({ where: { id: participante_id, escola_id: req.usuario.escola_id } });
       if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
 
+      const itemChecklist = tipo_documento ? buscarItemChecklist(participante.tipo_pessoa, tipo_documento) : null;
+
+      if (itemChecklist) {
+        if (!itemChecklist.multiplo) {
+          return res.status(400).json({ erro: 'Este documento já existe no checklist — use "Enviar arquivo" nele em vez de criar um novo.' });
+        }
+        const existentes = await DocumentoIncentivo.count({ where: { participante_id, tipo_documento } });
+        if (existentes >= itemChecklist.max) {
+          return res.status(400).json({ erro: `Limite de ${itemChecklist.max} arquivos atingido para "${itemChecklist.nome}".` });
+        }
+      }
+
       const documento = await DocumentoIncentivo.create({
         escola_id: req.usuario.escola_id,
         participante_id,
-        tipo_documento: tipo_documento || 'extra',
-        nome_exibicao: nome_exibicao || 'Documento adicional',
+        tipo_documento: itemChecklist ? itemChecklist.key : (tipo_documento || 'extra'),
+        nome_exibicao: itemChecklist ? itemChecklist.nome : (nome_exibicao || 'Documento adicional'),
+        ordem: itemChecklist ? itemChecklist.ordemCanonica : 1000,
         origem: 'upload',
         status: req.file ? 'recebido' : 'pendente',
         arquivo_url: req.file ? `/uploads/incentivo-esporte/documentos/${req.file.filename}` : null,
