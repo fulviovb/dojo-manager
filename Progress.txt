@@ -1262,6 +1262,15 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     (400 "Limite de 3 arquivos atingido..."), e a barra de progresso da
     listagem contou os 3 como entregues corretamente. Dados de teste
     removidos depois, mantendo o item original (pendente) dela.
+[x] Fulvio reportou confusão visual no item múltiplo: "Enviar arquivo" (no
+    slot vazio já existente) e "+ Adicionar arquivo (1/3)" apareciam juntos,
+    parecendo duas formas de fazer a mesma coisa. Causa: o botão de
+    adicionar não checava se já havia um slot sem arquivo — sempre que
+    `instancias.length < max` ele aparecia, mesmo com o slot atual ainda
+    pendente. Fix: "+ Adicionar" só aparece quando todo slot existente já
+    tem `arquivo_url` (senão o caminho certo é preencher o vazio primeiro
+    via "Enviar arquivo"); rótulo também trocou de "Arquivo X de 3" (dava a
+    entender que já existiam 3) pra "Comprovante X" simples.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
