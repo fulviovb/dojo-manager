@@ -1358,6 +1358,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     turmas ABMT 10:00/15:00) — a turma não tem mais aula, mas a matrícula
     continuava ativa. Include de `Turma` agora filtra `ativa: true` e
     `tipo: 'regular'` (mesma regra do Semáforo de Graduação).
+[x] Semáforo de Ausência contava como falta as aulas da turma ANTERIORES à
+    `data_matricula` do aluno (ex: Theo Valero Cari, matriculado em
+    21/09/2026, aparecia com 9 "faltas" de aulas de antes da entrada).
+    Aulas agora filtradas por `data >= data_matricula`; o critério de % de
+    faltas (vermelho) só vale com pelo menos 3 aulas desde a matrícula.
+    Alertas na base real: 31 → 20.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

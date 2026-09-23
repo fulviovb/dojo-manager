@@ -213,9 +213,14 @@ const semaforo = async (req, res) => {
     const alertas = [];
 
     for (const m of matriculas) {
-      // Busca últimas aulas da turma
+      // Busca últimas aulas da turma a partir da data de matrícula — aula
+      // anterior à entrada do aluno na turma não é falta dele.
       const ultimasAulas = await Aula.findAll({
-        where: { turma_id: m.turma_id, status: 'fechada' },
+        where: {
+          turma_id: m.turma_id,
+          status: 'fechada',
+          ...(m.data_matricula ? { data: { [Op.gte]: m.data_matricula } } : {}),
+        },
         order: [['data', 'DESC']],
         limit: 10,
       });
@@ -241,7 +246,10 @@ const semaforo = async (req, res) => {
       let cor = null;
       let motivo = null;
 
-      if (pctFaltas >= threshold) { cor = 'vermelho'; motivo = `${pctFaltas}% de faltas (limite ${threshold}%)`; }
+      // % de faltas só é avaliado com pelo menos 3 aulas desde a matrícula —
+      // senão aluno recém-matriculado com 1 falta em 1 aula já cairia no
+      // vermelho (100%).
+      if (ultimasAulas.length >= 3 && pctFaltas >= threshold) { cor = 'vermelho'; motivo = `${pctFaltas}% de faltas (limite ${threshold}%)`; }
       else if (sequenciaFaltas >= 14 / 7 * 2) { cor = 'laranja'; motivo = '2+ semanas consecutivas sem presença'; }
       else if (sequenciaFaltas >= 3) { cor = 'amarelo'; motivo = `${sequenciaFaltas} aulas seguidas sem presença`; }
 
