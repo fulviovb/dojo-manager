@@ -202,7 +202,11 @@ const semaforo = async (req, res) => {
       where: { ativa: true },
       include: [
         { model: Usuario, as: 'Aluno', where: { escola_id, role: 'aluno', ativo: true }, attributes: ['id', 'nome'] },
-        { model: Turma, attributes: ['id', 'nome'] },
+        // Só turmas ativas e regulares: turma desativada não tem mais aula,
+        // então a matrícula nela (que pode continuar ativa) viraria um
+        // alerta de ausência eterno. A turma oculta de Treino Extra também
+        // fica de fora — não tem frequência esperada.
+        { model: Turma, attributes: ['id', 'nome'], where: { escola_id, ativa: true, tipo: 'regular' } },
       ],
     });
 

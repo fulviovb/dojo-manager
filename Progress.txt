@@ -1353,6 +1353,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     naveguei entre Chamadas ↔ outras telas várias vezes — console limpo,
     sem nenhum erro. Considerado resolvido pela reescrita; sem ação
     adicional necessária.
+[x] Semáforo de Ausência (`GET /api/dashboard/semaforo`) gerava alertas
+    para matrículas ativas em turmas DESATIVADAS (ex: "_INATIVA - KM3",
+    turmas ABMT 10:00/15:00) — a turma não tem mais aula, mas a matrícula
+    continuava ativa. Include de `Turma` agora filtra `ativa: true` e
+    `tipo: 'regular'` (mesma regra do Semáforo de Graduação).
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
