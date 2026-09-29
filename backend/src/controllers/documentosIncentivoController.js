@@ -7,9 +7,7 @@ const { ANEXOS, ITEM_CREDENCIAL, buscarItemChecklist } = require('../constants/i
 const { gerarAnexo, montarLinhasAnexoXI } = require('../services/anexoService');
 
 const PASTA_DOCS = path.join(__dirname, '..', '..', 'uploads', 'incentivo-esporte', 'documentos');
-const PASTA_GERADOS = path.join(__dirname, '..', '..', 'uploads', 'incentivo-esporte', 'gerados');
 fs.mkdirSync(PASTA_DOCS, { recursive: true });
-fs.mkdirSync(PASTA_GERADOS, { recursive: true });
 
 const uploadMiddleware = multer({
   storage: multer.diskStorage({
@@ -162,6 +160,26 @@ const listarAnexosDisponiveis = (req, res) => {
   res.json(lista);
 };
 
+// Documento gerado sai SEM assinatura — não é entregável. Por isso gerar
+// não cria item "recebido": o PDF só é devolvido pra download, e o usuário
+// assina e envia pelo item correspondente do checklist. Só se esse item
+// não existir (ex: usuário removeu) ele é (re)criado como pendente — com
+// nome/ordem canônicos quando o anexo mapeia pra um item do checklist do
+// participante, ou como item avulso `anexo_<código>` quando não mapeia.
+async function garantirItemNoChecklist(participante, tipoAnexo, def) {
+  const canonico = def.item_checklist ? buscarItemChecklist(participante.tipo_pessoa, def.item_checklist) : null;
+  const tipo_documento = canonico ? canonico.key : `anexo_${tipoAnexo.toLowerCase()}`;
+  const [doc, adicionado] = await DocumentoIncentivo.findOrCreate({
+    where: { participante_id: participante.id, tipo_documento },
+    defaults: {
+      escola_id: participante.escola_id, participante_id: participante.id, tipo_documento,
+      nome_exibicao: canonico ? canonico.nome : `Anexo ${tipoAnexo} — ${def.nome}`,
+      origem: 'upload', status: 'pendente', ordem: canonico ? canonico.ordemCanonica : 1000,
+    },
+  });
+  return { nome_exibicao: doc.nome_exibicao, adicionado };
+}
+
 const gerar = async (req, res) => {
   try {
     const { participante_id, tipo_anexo, campos, atletas_ids } = req.body;
@@ -193,21 +211,18 @@ const gerar = async (req, res) => {
     }
 
     const pdfBuffer = await gerarAnexo(tipo_anexo, dados);
-    const nomeArquivo = `${uuidv4()}.pdf`;
-    fs.writeFileSync(path.join(PASTA_GERADOS, nomeArquivo), pdfBuffer);
+    const item = await garantirItemNoChecklist(participante, tipo_anexo, def);
 
-    const documento = await DocumentoIncentivo.create({
-      escola_id: req.usuario.escola_id,
-      participante_id,
-      tipo_documento: `anexo_${tipo_anexo.toLowerCase()}`,
-      nome_exibicao: `Anexo ${tipo_anexo} — ${def.nome}`,
-      origem: 'gerado',
-      tipo_anexo,
-      dados_preenchidos: dados,
-      status: 'recebido',
-      arquivo_url: `/uploads/incentivo-esporte/gerados/${nomeArquivo}`,
+    const nomeArquivo = `Anexo_${tipo_anexo}_${participante.nome}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9_-]+/g, '_') + '.pdf';
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${nomeArquivo}"`,
+      // Frontend (outra porta) só enxerga headers custom se expostos.
+      'Access-Control-Expose-Headers': 'Content-Disposition, X-Item-Checklist, X-Item-Adicionado',
+      'X-Item-Checklist': encodeURIComponent(item.nome_exibicao),
+      'X-Item-Adicionado': item.adicionado ? '1' : '0',
     });
-    res.status(201).json(documento);
+    res.send(pdfBuffer);
   } catch (e) {
     console.error(e);
     res.status(500).json({ erro: 'Erro ao gerar documento. Verifique se o LibreOffice está disponível no servidor.' });

@@ -657,7 +657,14 @@ com:
   antigo (XVII↔XVIII) e gerar o novo.
 - **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
   prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa
-  Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar.
+  Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar
+  — **direto como download, sem entrar no checklist como entregue** (sem
+  assinatura o documento não vale). O usuário assina e envia pelo item
+  correspondente (`item_checklist` em `ANEXOS`, ex: XVII/XVIII →
+  `vinculo_federativo`). Só se esse item não existir mais no checklist
+  (usuário removeu, ou anexo sem item — XII de atleta, XXI) ele é criado
+  como **pendente**; a tela mostra um aviso dizendo em qual item enviar o
+  arquivo assinado.
   Campos que já existem no cadastro do participante (e do técnico
   vinculado, quando aplicável) vêm preenchidos sozinhos; só pede o resto.
   Anexo XI (relação de atletas do técnico): o modal de geração lista os

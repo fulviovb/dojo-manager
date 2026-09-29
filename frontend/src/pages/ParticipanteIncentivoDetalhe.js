@@ -55,12 +55,29 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
     if (ehRelacaoAtletas && selecionados.size === 0) return setErro('Selecione ao menos um atleta');
     setSalvando(true); setErro('');
     try {
-      await axios.post('/incentivo-esporte/documentos/gerar', {
+      // Documento gerado sai sem assinatura: vai direto pra download (não
+      // entra no checklist como entregue) — o backend só cria o item
+      // pendente se ele não existir mais no checklist.
+      const r = await axios.post('/incentivo-esporte/documentos/gerar', {
         participante_id: participanteId, tipo_anexo: anexo.codigo, campos,
         ...(ehRelacaoAtletas ? { atletas_ids: [...selecionados] } : {}),
+      }, { responseType: 'blob' });
+      const nomeArquivo = /filename="([^"]+)"/.exec(r.headers['content-disposition'] || '')?.[1] || `Anexo_${anexo.codigo}.pdf`;
+      const url = URL.createObjectURL(r.data);
+      const link = document.createElement('a');
+      link.href = url; link.download = nomeArquivo;
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      onGerado({
+        item: decodeURIComponent(r.headers['x-item-checklist'] || ''),
+        adicionado: r.headers['x-item-adicionado'] === '1',
       });
-      onGerado();
-    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao gerar documento'); }
+    } catch (ex) {
+      // Com responseType 'blob' o corpo de erro (JSON) também vem como Blob.
+      let msg = 'Erro ao gerar documento';
+      try { msg = JSON.parse(await ex.response.data.text()).erro || msg; } catch { /* mantém genérica */ }
+      setErro(msg);
+    }
     finally { setSalvando(false); }
   };
 
@@ -107,7 +124,7 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
         {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <button onClick={onFechar} style={btnCinza}>Cancelar</button>
-          <button onClick={gerar} disabled={salvando} style={btnVerde}>{salvando ? 'Gerando...' : 'Gerar PDF'}</button>
+          <button onClick={gerar} disabled={salvando} style={btnVerde}>{salvando ? 'Gerando...' : 'Gerar e baixar PDF'}</button>
         </div>
       </div>
     </Modal>
@@ -276,6 +293,7 @@ function SecaoDocumentos({ participante, onRefresh }) {
   const [formExtra, setFormExtra] = useState({ nome_exibicao: '', arquivo: null });
   const [erroExtra, setErroExtra] = useState('');
   const [erroGrupo, setErroGrupo] = useState('');
+  const [avisoGerado, setAvisoGerado] = useState('');
 
   const carregar = useCallback(() => {
     axios.get(`/incentivo-esporte/documentos?participante_id=${participante.id}`).then(r => setDocumentos(r.data));
@@ -359,6 +377,12 @@ function SecaoDocumentos({ participante, onRefresh }) {
         </div>
       </div>
       {erroGrupo && <p style={{ color: 'red', fontSize: 12, margin: '4px 18px 0' }}>{erroGrupo}</p>}
+      {avisoGerado && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', margin: '8px 18px 0', padding: '8px 12px', background: '#fff8e1', border: '1px solid #ffe082', borderRadius: 6, fontSize: 12, color: '#6d4c00' }}>
+          <span style={{ flex: 1 }}>✍️ {avisoGerado}</span>
+          <button onClick={() => setAvisoGerado('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6d4c00' }}>✕</button>
+        </div>
+      )}
       <div style={{ padding: '4px 0' }}>
         {documentos.length === 0 ? (
           <p style={{ color: '#aaa', fontSize: 13, margin: '12px 18px' }}>Nenhum documento no checklist.</p>
@@ -411,7 +435,11 @@ function SecaoDocumentos({ participante, onRefresh }) {
       {anexoEscolhido && (
         <ModalGerarAnexo participanteId={participante.id} anexo={anexoEscolhido}
           onFechar={() => setAnexoEscolhido(null)}
-          onGerado={() => { setAnexoEscolhido(null); carregar(); }} />
+          onGerado={({ item, adicionado }) => {
+            setAnexoEscolhido(null);
+            setAvisoGerado(`Documento baixado. Imprima, colete a(s) assinatura(s) e envie o arquivo assinado no item "${item}"${adicionado ? ' (item adicionado de volta ao checklist como pendente)' : ''}.`);
+            carregar();
+          }} />
       )}
 
       {modalExtra && (

@@ -86,11 +86,16 @@ const TIPOS_CONTRAPARTIDA = [
 // Metadados dos anexos com preenchimento automático. `campos` define o
 // formulário exibido na geração; `fonte` (quando presente) é o campo do
 // ParticipanteIncentivo usado pra pré-preencher — o resto é digitado a mão.
+// `item_checklist`: chave do item do checklist que esse anexo atende (o
+// documento gerado sai SEM assinatura, então nunca conta como entregue —
+// só é baixado; o usuário assina e envia pelo item). Sem chave, ou item
+// ausente no checklist do participante: vira item pendente `anexo_<código>`.
 // `gerar_para` restringe de qual tipo de participante o anexo pode ser
 // gerado ('atleta' | 'tecnico' | 'ambos').
 const ANEXOS = {
   IX: {
     nome: 'Declaração de Residência',
+    item_checklist: 'declaracao_residencia_anexo_ix',
     gerar_para: 'ambos',
     template: 'anexo-ix.docx',
     campos: [
@@ -107,6 +112,7 @@ const ANEXOS = {
   },
   XI: {
     nome: 'Relação de Atletas sob Responsabilidade do Técnico',
+    item_checklist: 'relacao_atletas',
     gerar_para: 'tecnico',
     template: 'anexo-xi.docx',
     campos: [
@@ -124,6 +130,7 @@ const ANEXOS = {
   },
   XII: {
     nome: 'Declaração de Vínculo Atleta / Técnico',
+    item_checklist: null,
     gerar_para: 'atleta',
     template: 'anexo-xii.docx',
     campos: [
@@ -139,6 +146,7 @@ const ANEXOS = {
   },
   XVII: {
     nome: 'Declaração de Vínculo Federativo (possui vínculo)',
+    item_checklist: 'vinculo_federativo',
     gerar_para: 'ambos',
     template: 'anexo-xvii.docx',
     campos: [
@@ -154,6 +162,7 @@ const ANEXOS = {
   },
   XVIII: {
     nome: 'Vínculo Federativo — Declaração de Não-Enquadramento',
+    item_checklist: 'vinculo_federativo',
     gerar_para: 'ambos',
     template: 'anexo-xviii.docx',
     campos: [
@@ -166,6 +175,7 @@ const ANEXOS = {
   },
   XIX: {
     nome: 'Antecedentes Criminais — Declaração de Não-Enquadramento (Técnico)',
+    item_checklist: 'declaracao_nao_enquadramento_antecedentes',
     gerar_para: 'tecnico',
     template: 'anexo-xix.docx',
     campos: [
@@ -180,6 +190,7 @@ const ANEXOS = {
   },
   XXI: {
     nome: 'Declaração de Responsável Técnico pelo Planejamento',
+    item_checklist: null,
     gerar_para: 'tecnico',
     template: 'anexo-xxi.docx',
     campos: [

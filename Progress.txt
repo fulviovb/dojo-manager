@@ -1381,6 +1381,17 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     único técnico (Fulvio), adicionou o XII, recalculou ordem. Anexo XXI já
     gerado pelo Fulvio (PDF, anexo_xxi) foi mantido — apagar pelo ✕ se
     quiser. Testado: 5 declarações XII no mesmo técnico, todas aceitas.
+[x] Gerar anexo não marca mais nada como "Recebido" (sugestão do Fulvio:
+    documento sem assinatura não é válido e induzia a achar que estava
+    tudo ok). `POST /documentos/gerar` agora devolve o PDF direto (download
+    no navegador, nome `Anexo_<cód>_<participante>.pdf`) e não grava
+    arquivo nem cria DocumentoIncentivo 'gerado'. Cada anexo aponta pro seu
+    item do checklist (`item_checklist`); se o item não existir mais, é
+    (re)criado como pendente (nome/ordem canônicos, ou item avulso
+    `anexo_<cód>` quando o anexo não tem item — XII de atleta, XXI). Tela
+    mostra aviso "assine e envie no item X". Testado via API: item
+    existente não muda; item removido volta pendente; XII duas vezes não
+    duplica; nenhum doc 'gerado' criado.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
