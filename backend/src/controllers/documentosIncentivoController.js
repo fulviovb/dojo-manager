@@ -144,8 +144,20 @@ const remover = async (req, res) => {
 
 // Resolve o valor de um campo com `fonte` (ex: 'nome', 'tecnico.rg') a
 // partir do participante (e seu técnico responsável, quando aplicável).
+// Endereço completo pro Anexo IX: "Rua, nº - Bairro" / "CEP 00000-000 -
+// Cidade/UF" (linebreaks do docxtemplater viram quebra de linha no PDF).
+function enderecoCompleto(p) {
+  const cepDigitos = String(p.cep || '').replace(/\D/g, '');
+  const cep = cepDigitos.length === 8 ? `${cepDigitos.slice(0, 5)}-${cepDigitos.slice(5)}` : (p.cep || '');
+  const linha1 = [p.endereco, p.bairro].filter(Boolean).join(' - ');
+  const cidadeUf = [p.cidade, p.estado].filter(Boolean).join('/');
+  const linha2 = [cep && `CEP ${cep}`, cidadeUf].filter(Boolean).join(' - ');
+  return [linha1, linha2].filter(Boolean).join('\n');
+}
+
 function resolverFonte(participante, fonte) {
   if (!fonte) return undefined;
+  if (fonte === 'endereco_completo') return enderecoCompleto(participante);
   const partes = fonte.split('.');
   if (partes[0] === 'tecnico') {
     return participante.TecnicoResponsavel?.[partes[1]] ?? '';
@@ -205,6 +217,12 @@ const gerar = async (req, res) => {
       ],
     });
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
+
+    if (tipo_anexo === 'IX') {
+      const faltando = [['endereco', 'endereço'], ['bairro', 'bairro'], ['cep', 'CEP'], ['cidade', 'cidade'], ['estado', 'UF']]
+        .filter(([k]) => !String(participante[k] || '').trim()).map(([, l]) => l);
+      if (faltando.length) return res.status(400).json({ erro: `Endereço incompleto no cadastro do participante — falta: ${faltando.join(', ')}. Complete em "✎ Editar" antes de gerar a declaração.` });
+    }
 
     const dados = {};
     for (const campoDef of def.campos) {

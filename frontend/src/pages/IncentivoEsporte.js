@@ -9,6 +9,11 @@ const btnCinza = { background: 'none', border: '1px solid #ddd', padding: '6px 1
 const cardEstilo = { background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' };
 const thEstilo = { padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 };
 
+export function formatarCep(v) {
+  const d = String(v || '').replace(/\D/g, '').slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+}
+
 export function formatData(iso) {
   return iso ? iso.slice(0, 10).split('-').reverse().join('/') : '—';
 }
@@ -145,9 +150,10 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
               <div><label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Telefone</label><input value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} style={estiloInput} /></div>
               <div><label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Email</label><input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={estiloInput} /></div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8 }}>
-              <div><label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Endereço</label><input value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} style={estiloInput} /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 0.6fr', gap: 8 }}>
+              <div><label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Endereço (rua, nº, compl.)</label><input value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} style={estiloInput} /></div>
               <div><label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Bairro</label><input value={form.bairro} onChange={e => setForm(f => ({ ...f, bairro: e.target.value }))} style={estiloInput} /></div>
+              <div><label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>CEP</label><input value={form.cep} placeholder="00000-000" onChange={e => setForm(f => ({ ...f, cep: formatarCep(e.target.value) }))} style={estiloInput} /></div>
               <div><label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Cidade</label><input value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))} style={estiloInput} /></div>
               <div><label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>UF</label><input value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} style={estiloInput} /></div>
             </div>

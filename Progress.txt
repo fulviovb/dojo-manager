@@ -1407,6 +1407,18 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     CNPJ inválido/duplicado/sem nome → 400; entidade de outra escola →
     400; "não possui" zera a entidade; PDF do XVII conferido com
     pdftotext.
+[x] Anexo IX (Declaração de Residência) com endereço completo: antes só
+    saía a rua (campo `endereco`); agora "Rua, nº - Bairro" + "CEP
+    00000-000 - Cidade/UF" em 2 linhas (as 2 linhas do modelo oficial).
+    Geração bloqueada (400, lista o que falta) se faltar endereço/bairro/
+    CEP/cidade/UF. Campo CEP não existia nas telas de cadastro/edição do
+    participante — adicionado (com máscara). Parágrafo do endereço no
+    template passou de justificado pra alinhado à esquerda (o LibreOffice
+    esticava a 1ª linha antes da quebra). Dados: CEP da Emanuela copiado do
+    cadastro de aluna; CEP do Adrian estava digitado dentro do endereço
+    ("..., Cep: 81170-420") — movido pro campo. Ainda sem CEP (precisa
+    preencher na tela): Sandra, Fulvio (atleta e técnico), José Marcio,
+    Lucas, Giovanna; Thyago sem endereço nenhum.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

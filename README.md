@@ -674,6 +674,10 @@ com:
   arquivo assinado.
   Campos que já existem no cadastro do participante (e do técnico
   vinculado, quando aplicável) vêm preenchidos sozinhos; só pede o resto.
+  Anexo IX (Declaração de Residência) sai com o endereço completo em 2
+  linhas — "Rua, nº - Bairro" / "CEP 00000-000 - Cidade/UF" (`fonte:
+  'endereco_completo'`) — e só é gerado se o participante tiver endereço,
+  bairro, CEP, cidade e UF preenchidos (senão 400 com o que falta).
   Anexo XI (relação de atletas do técnico): o modal de geração lista os
   atletas ativos do módulo com checkbox e o usuário escolhe quem entra
   (pré-marca os que têm `tecnico_responsavel_id` apontando pro técnico);

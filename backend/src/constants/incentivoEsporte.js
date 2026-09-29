@@ -105,7 +105,8 @@ const ANEXOS = {
       { key: 'morador_nome', label: 'Nome do morador', fonte: 'nome' },
       { key: 'morador_rg', label: 'RG do morador', fonte: 'rg' },
       { key: 'morador_cpf', label: 'CPF do morador', fonte: 'cpf' },
-      { key: 'endereco', label: 'Endereço completo', fonte: 'endereco' },
+      // Rua/nº - bairro + CEP - cidade/UF, em 2 linhas (as 2 linhas do modelo).
+      { key: 'endereco', label: 'Endereço completo', fonte: 'endereco_completo' },
       { key: 'dia', label: 'Dia (assinatura)' },
       { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },
     ],

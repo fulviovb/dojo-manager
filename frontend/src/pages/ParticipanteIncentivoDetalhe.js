@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Modal, SeletorEntidade, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
+import { Modal, SeletorEntidade, formatarCep, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
 import { SERVER_ORIGIN } from '../components/Avatar';
 
 const card = (extra = {}) => ({ background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16, ...extra });
@@ -697,7 +697,7 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
             <LinhaInfo label="Nascimento" valor={formatData(participante.data_nascimento)} />
             <LinhaInfo label="Telefone" valor={participante.telefone} />
             <LinhaInfo label="Email" valor={participante.email} />
-            <LinhaInfo label="Endereço" valor={[participante.endereco, participante.bairro, participante.cidade, participante.estado].filter(Boolean).join(', ')} />
+            <LinhaInfo label="Endereço" valor={[participante.endereco, participante.bairro, participante.cep && `CEP ${participante.cep}`, [participante.cidade, participante.estado].filter(Boolean).join('/')].filter(Boolean).join(' - ')} />
             {participante.tipo_pessoa === 'tecnico' && <LinhaInfo label="CONFEF/CREF" valor={participante.confef_cref} />}
             {participante.tipo_pessoa === 'atleta' && <LinhaInfo label="Técnico" valor={participante.TecnicoResponsavel?.nome} />}
             <LinhaInfo label="Arte marcial" valor={participante.ArteMarcial?.nome} />
@@ -719,9 +719,10 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
             <input type="date" value={form.data_nascimento || ''} onChange={e => setForm(f => ({ ...f, data_nascimento: e.target.value }))} style={estiloInput} />
             <input placeholder="Telefone" value={form.telefone || ''} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} style={estiloInput} />
             <input placeholder="Email" value={form.email || ''} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={estiloInput} />
-            <input placeholder="Endereço" value={form.endereco || ''} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} style={estiloInput} />
+            <input placeholder="Endereço (rua, nº, compl.)" value={form.endereco || ''} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} style={estiloInput} />
             <div style={{ display: 'flex', gap: 8 }}>
               <input placeholder="Bairro" value={form.bairro || ''} onChange={e => setForm(f => ({ ...f, bairro: e.target.value }))} style={estiloInput} />
+              <input placeholder="CEP" value={form.cep || ''} onChange={e => setForm(f => ({ ...f, cep: formatarCep(e.target.value) }))} style={{ ...estiloInput, maxWidth: 110 }} />
               <input placeholder="Cidade" value={form.cidade || ''} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))} style={estiloInput} />
               <input placeholder="UF" value={form.estado || ''} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} style={{ ...estiloInput, maxWidth: 60 }} />
             </div>
