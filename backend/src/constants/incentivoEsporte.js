@@ -14,7 +14,14 @@
 // `multiplo`+`max`: item aceita mais de um arquivo independente (ex: até 3
 // comprovantes de resultado, anexados separados no sistema da prefeitura) —
 // sem isso, um upload novo substitui o anterior.
+// `tipo: 'credencial'`: não é upload — é o login/senha do participante no
+// Sistema Incentivo online (e-Cidadão), guardado cifrado em
+// CredencialIncentivo; o status do item vira 'recebido' ao salvar e volta a
+// 'pendente' ao apagar (credenciaisIncentivoController.js).
+const ITEM_CREDENCIAL = { key: 'credencial_sistema_prefeitura', nome: 'Login e senha do Sistema Incentivo online (e-Cidadão)', condicao: 'sempre', tipo: 'credencial' };
+
 const CHECKLIST_ATLETA = [
+  ITEM_CREDENCIAL,
   { key: 'rg_cpf_proponente', nome: 'RG e CPF do atleta', condicao: 'sempre' },
   { key: 'rg_cpf_responsavel', nome: 'RG e CPF do responsável legal', condicao: 'menor_18' },
   { key: 'comprovante_residencia', nome: 'Comprovante de residência (água/luz/telefone fixo/internet fixa/TV assinatura/gás — 2º semestre/2026)', condicao: 'sempre' },
@@ -32,6 +39,7 @@ const CHECKLIST_ATLETA = [
 ];
 
 const CHECKLIST_TECNICO = [
+  ITEM_CREDENCIAL,
   { key: 'cedula_confef_cref', nome: 'Cédula CONFEF/CREF válida', condicao: 'sempre' },
   { key: 'comprovante_residencia', nome: 'Comprovante de residência (água/luz/telefone fixo/internet fixa/TV assinatura/gás — 2º semestre/2026)', condicao: 'sempre' },
   { key: 'declaracao_residencia_anexo_ix', nome: 'Declaração de Residência assinada pelo proprietário/locador/locatário (Anexo IX, com RG dele em anexo)', condicao: 'requer_declaracao_residencia' },
@@ -190,4 +198,4 @@ function buscarItemChecklist(tipoPessoa, tipoDocumento) {
   return { ...checklist[ordemCanonica], ordemCanonica };
 }
 
-module.exports = { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA, ANEXOS, buscarItemChecklist };
+module.exports = { ITEM_CREDENCIAL, CHECKLIST_ATLETA, CHECKLIST_TECNICO, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA, ANEXOS, buscarItemChecklist };

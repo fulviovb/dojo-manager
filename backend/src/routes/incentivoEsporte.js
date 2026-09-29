@@ -5,6 +5,7 @@ const participantes = require('../controllers/participantesIncentivoController')
 const documentos = require('../controllers/documentosIncentivoController');
 const contrapartidas = require('../controllers/contrapartidasIncentivoController');
 const despesas = require('../controllers/despesasIncentivoController');
+const credenciais = require('../controllers/credenciaisIncentivoController');
 const { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA } = require('../constants/incentivoEsporte');
 
 // Módulo sensível (dados pessoais + financeiro) — só admin, como Mensalidades.
@@ -20,6 +21,14 @@ router.get('/participantes/:id', participantes.buscar);
 router.post('/participantes', participantes.criar);
 router.put('/participantes/:id', participantes.atualizar);
 router.delete('/participantes/:id', participantes.desativar);
+
+// Login/senha do Sistema Incentivo online. GET devolve só o login; a senha
+// em texto claro sai apenas pelo POST .../revelar (POST pra não ficar em
+// cache/histórico de URL).
+router.get('/participantes/:id/credencial', credenciais.buscar);
+router.put('/participantes/:id/credencial', credenciais.salvar);
+router.post('/participantes/:id/credencial/revelar', credenciais.revelar);
+router.delete('/participantes/:id/credencial', credenciais.remover);
 
 router.get('/documentos', documentos.listar);
 router.get('/anexos', documentos.listarAnexosDisponiveis);

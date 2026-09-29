@@ -1340,6 +1340,27 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     `2026-09-incentivo-residencia-remover-obsoletos.js` limpou o caso do
     Fulvio (os 2 itens já estavam vazios, seguro remover) e revarreu todo
     participante ativo em busca do mesmo problema — só ele estava afetado.
+[x] Login e senha do Sistema Incentivo online (e-Cidadão) no checklist, a
+    pedido do Fulvio (29/09/2026) — primeiro item, atleta e técnico. Tabela
+    nova `credenciais_incentivo` (model CredencialIncentivo, 1 por
+    participante); senha cifrada com AES-256-GCM (`utils/cifra.js`, chave
+    `CREDENCIAIS_KEY` no backend/.env, id do participante como AAD).
+    Reversível de propósito (o admin precisa ler a senha pra entrar no
+    sistema da prefeitura) — bcrypt continua valendo pras senhas DESTE
+    sistema. Rotas GET/PUT/DELETE `/participantes/:id/credencial` + POST
+    `.../revelar` (única que devolve a senha em claro; loga quem revelou).
+    Script `2026-09-incentivo-credencial-prefeitura.js`: criou a tabela,
+    adicionou o item aos 8 participantes existentes e recalculou `ordem` de
+    65 documentos (todos os índices andaram +1). Testado via API com
+    participante temporário: senha não aparece em texto claro no banco nem
+    no GET do participante; revelar funciona; trocar só o login mantém a
+    senha; outra escola → 404; professor → 403; apagar volta o item a
+    pendente.
+[x] Vínculo federativo editável depois do cadastro — antes só existia no
+    formulário de criação, e o "✎ Editar" do participante não tinha o
+    campo (Fulvio não tinha como corrigir quem informou "não possui" e
+    depois mudou). Ao trocar, a tela avisa pra remover o anexo antigo
+    (XVII↔XVIII) e gerar o novo.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

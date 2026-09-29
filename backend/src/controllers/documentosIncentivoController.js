@@ -2,8 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { DocumentoIncentivo, ParticipanteIncentivo } = require('../models');
-const { ANEXOS, buscarItemChecklist } = require('../constants/incentivoEsporte');
+const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo } = require('../models');
+const { ANEXOS, ITEM_CREDENCIAL, buscarItemChecklist } = require('../constants/incentivoEsporte');
 const { gerarAnexo, montarLinhasAnexoXI } = require('../services/anexoService');
 
 const PASTA_DOCS = path.join(__dirname, '..', '..', 'uploads', 'incentivo-esporte', 'documentos');
@@ -132,6 +132,11 @@ const remover = async (req, res) => {
     if (!documento) return res.status(404).json({ erro: 'Documento não encontrado' });
     if (documento.arquivo_url?.startsWith('/uploads/incentivo-esporte/')) {
       fs.unlink(path.join(__dirname, '..', '..', documento.arquivo_url), () => {});
+    }
+    // Tirar o item de login/senha do checklist apaga a credencial junto —
+    // não deixa senha cifrada órfã sem item visível na tela.
+    if (documento.tipo_documento === ITEM_CREDENCIAL.key) {
+      await CredencialIncentivo.destroy({ where: { participante_id: documento.participante_id, escola_id: req.usuario.escola_id } });
     }
     await documento.destroy();
     res.json({ mensagem: 'Documento removido' });

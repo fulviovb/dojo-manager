@@ -29,6 +29,7 @@ const ParticipanteIncentivo = require('./ParticipanteIncentivo');
 const DocumentoIncentivo = require('./DocumentoIncentivo');
 const ContrapartidaIncentivo = require('./ContrapartidaIncentivo');
 const DespesaIncentivo = require('./DespesaIncentivo');
+const CredencialIncentivo = require('./CredencialIncentivo');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -231,6 +232,10 @@ ContrapartidaIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participa
 ParticipanteIncentivo.hasMany(DespesaIncentivo, { foreignKey: 'participante_id' });
 DespesaIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
 
+// Login/senha do Sistema Incentivo online — 1 por participante, senha cifrada.
+ParticipanteIncentivo.hasOne(CredencialIncentivo, { foreignKey: 'participante_id' });
+CredencialIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -240,4 +245,5 @@ module.exports = {
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
   Competicao, Conquista,
   ParticipanteIncentivo, DocumentoIncentivo, ContrapartidaIncentivo, DespesaIncentivo,
+  CredencialIncentivo,
 };
