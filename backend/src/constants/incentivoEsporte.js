@@ -113,7 +113,9 @@ const ANEXOS = {
       { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },
     ],
     // linhas[] (numero/nome/documento) é montado pelo backend a partir dos
-    // atletas com tecnico_responsavel_id apontando pra esse técnico.
+    // atletas que o usuário seleciona na geração (`atletas_ids`, entre os
+    // participantes atleta ativos do módulo) — a tela pré-marca os que têm
+    // tecnico_responsavel_id apontando pra esse técnico.
   },
   XII: {
     nome: 'Declaração de Vínculo Atleta / Técnico',

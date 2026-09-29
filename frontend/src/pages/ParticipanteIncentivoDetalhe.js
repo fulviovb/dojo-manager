@@ -31,11 +31,34 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
   const [campos, setCampos] = useState(() => Object.fromEntries(anexo.campos.filter(c => !c.temFonte).map(c => [c.key, ''])));
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  // Anexo XI (relação de atletas do técnico): o usuário escolhe quais
+  // atletas do módulo entram no documento — pré-marca os que já têm este
+  // técnico como responsável.
+  const ehRelacaoAtletas = anexo.codigo === 'XI';
+  const [atletas, setAtletas] = useState(null);
+  const [selecionados, setSelecionados] = useState(new Set());
+  useEffect(() => {
+    if (!ehRelacaoAtletas) return;
+    axios.get('/incentivo-esporte/participantes?tipo_pessoa=atleta').then(r => {
+      setAtletas(r.data);
+      setSelecionados(new Set(r.data.filter(a => a.tecnico_responsavel_id === participanteId).map(a => a.id)));
+    }).catch(() => setErro('Erro ao carregar atletas'));
+  }, [ehRelacaoAtletas, participanteId]);
+
+  const alternarAtleta = (id) => setSelecionados(prev => {
+    const novo = new Set(prev);
+    if (novo.has(id)) novo.delete(id); else novo.add(id);
+    return novo;
+  });
 
   const gerar = async () => {
+    if (ehRelacaoAtletas && selecionados.size === 0) return setErro('Selecione ao menos um atleta');
     setSalvando(true); setErro('');
     try {
-      await axios.post('/incentivo-esporte/documentos/gerar', { participante_id: participanteId, tipo_anexo: anexo.codigo, campos });
+      await axios.post('/incentivo-esporte/documentos/gerar', {
+        participante_id: participanteId, tipo_anexo: anexo.codigo, campos,
+        ...(ehRelacaoAtletas ? { atletas_ids: [...selecionados] } : {}),
+      });
       onGerado();
     } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao gerar documento'); }
     finally { setSalvando(false); }
@@ -56,6 +79,31 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
           </div>
         ))}
         {camposManuais.length === 0 && <p style={{ fontSize: 13, color: '#888' }}>Nenhum campo adicional — tudo vem do cadastro.</p>}
+        {ehRelacaoAtletas && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <label style={{ fontSize: 12 }}>Atletas na relação ({selecionados.size} selecionado{selecionados.size === 1 ? '' : 's'})</label>
+              {atletas?.length > 0 && (
+                <span style={{ fontSize: 11 }}>
+                  <button type="button" onClick={() => setSelecionados(new Set(atletas.map(a => a.id)))} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', padding: 0 }}>todos</button>
+                  {' · '}
+                  <button type="button" onClick={() => setSelecionados(new Set())} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', padding: 0 }}>nenhum</button>
+                </span>
+              )}
+            </div>
+            <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: 6, padding: '4px 8px' }}>
+              {atletas === null && <p style={{ fontSize: 12, color: '#888', margin: '6px 0' }}>Carregando...</p>}
+              {atletas?.length === 0 && <p style={{ fontSize: 12, color: '#888', margin: '6px 0' }}>Nenhum atleta cadastrado no módulo.</p>}
+              {atletas?.map(a => (
+                <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '4px 0', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={selecionados.has(a.id)} onChange={() => alternarAtleta(a.id)} />
+                  <span style={{ flex: 1 }}>{a.nome}</span>
+                  {!a.cpf && !a.rg && <span style={{ fontSize: 11, color: '#ef6c00' }}>sem CPF/RG</span>}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
           <button onClick={onFechar} style={btnCinza}>Cancelar</button>

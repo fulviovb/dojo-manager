@@ -50,10 +50,14 @@ async function converterParaPdf(docxBuffer) {
 
 // Monta os dados do Anexo XI a partir dos atletas vinculados ao técnico
 // (ParticipanteIncentivo.tecnico_responsavel_id).
-async function montarLinhasAnexoXI(tecnicoId) {
+// Linhas do Anexo XI: os atletas que o usuário marcou na geração (entre os
+// participantes atleta ativos do módulo, da mesma escola). A ordem segue o
+// nome, não a ordem de seleção. Ids de outra escola/inativos/técnicos são
+// simplesmente ignorados pelo filtro.
+async function montarLinhasAnexoXI(escolaId, atletaIds) {
   const { ParticipanteIncentivo } = require('../models');
   const atletas = await ParticipanteIncentivo.findAll({
-    where: { tecnico_responsavel_id: tecnicoId, tipo_pessoa: 'atleta' },
+    where: { id: atletaIds, escola_id: escolaId, tipo_pessoa: 'atleta', ativo: true },
     order: [['nome', 'ASC']],
   });
   return atletas.map((a, i) => ({ numero: i + 1, nome: a.nome, documento: a.cpf || a.rg || '' }));

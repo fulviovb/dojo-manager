@@ -164,9 +164,12 @@ const listarAnexosDisponiveis = (req, res) => {
 
 const gerar = async (req, res) => {
   try {
-    const { participante_id, tipo_anexo, campos } = req.body;
+    const { participante_id, tipo_anexo, campos, atletas_ids } = req.body;
     const def = ANEXOS[tipo_anexo];
     if (!def) return res.status(400).json({ erro: 'Anexo desconhecido' });
+    if (tipo_anexo === 'XI' && (!Array.isArray(atletas_ids) || atletas_ids.length === 0)) {
+      return res.status(400).json({ erro: 'Selecione ao menos um atleta para a relação' });
+    }
 
     const participante = await ParticipanteIncentivo.findOne({
       where: { id: participante_id, escola_id: req.usuario.escola_id },
@@ -185,7 +188,8 @@ const gerar = async (req, res) => {
       else if (doFormulario) dados[campoDef.key] = doFormulario;
     }
     if (tipo_anexo === 'XI') {
-      dados.linhas = await montarLinhasAnexoXI(participante.id);
+      dados.linhas = await montarLinhasAnexoXI(req.usuario.escola_id, atletas_ids);
+      if (dados.linhas.length === 0) return res.status(400).json({ erro: 'Nenhum dos atletas selecionados foi encontrado' });
     }
 
     const pdfBuffer = await gerarAnexo(tipo_anexo, dados);

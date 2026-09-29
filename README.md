@@ -659,8 +659,11 @@ com:
   Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar.
   Campos que já existem no cadastro do participante (e do técnico
   vinculado, quando aplicável) vêm preenchidos sozinhos; só pede o resto.
-  Anexo XI (relação de atletas do técnico) lista automaticamente todo
-  `ParticipanteIncentivo` com `tecnico_responsavel_id` apontando pra ele.
+  Anexo XI (relação de atletas do técnico): o modal de geração lista os
+  atletas ativos do módulo com checkbox e o usuário escolhe quem entra
+  (pré-marca os que têm `tecnico_responsavel_id` apontando pro técnico);
+  o backend recebe `atletas_ids` e ignora ids de outra escola, inativos ou
+  que não sejam atleta.
 - **Contrapartida Social**: campanha de doação, divulgação em rede social ou
   exposição de bandeira/banner — cada uma com status pendente/cumprida e
   comprovante opcional.

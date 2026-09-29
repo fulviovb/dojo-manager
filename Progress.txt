@@ -1361,6 +1361,14 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     campo (Fulvio não tinha como corrigir quem informou "não possui" e
     depois mudou). Ao trocar, a tela avisa pra remover o anexo antigo
     (XVII↔XVIII) e gerar o novo.
+[x] Anexo XI (Relação de Atletas sob Responsabilidade do Técnico): usuário
+    seleciona na geração quais atletas entram, entre os participantes
+    atleta ativos do módulo (antes listava sozinho só quem tinha
+    tecnico_responsavel_id = técnico). Pré-marca esses; botões todos/nenhum;
+    avisa atleta sem CPF/RG. Backend exige ao menos 1 (`atletas_ids`) e
+    filtra por escola/ativo/tipo atleta. Testado via API com técnico
+    temporário: sem seleção → 400; id inválido → 400; 2 atletas + id do
+    próprio técnico → PDF com os 2 atletas em ordem alfabética.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
