@@ -380,19 +380,19 @@ function SecaoDocumentos({ participante, onRefresh }) {
               // arquivo — senão fica ambíguo com o "Enviar arquivo" do slot
               // vazio (as duas ações pareciam fazer a mesma coisa).
               const temSlotVazio = instancias.some(i => !i.arquivo_url);
-              const podeAdicionar = !temSlotVazio && instancias.length < def.max;
+              const podeAdicionar = !temSlotVazio && (!def.max || instancias.length < def.max);
               return (
                 <div key={doc.tipo_documento} style={{ padding: '10px 18px', borderBottom: '1px solid #f5f5f5' }}>
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{def.nome}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {instancias.map((inst, i) => (
-                      <LinhaDocumento key={inst.id} doc={inst} rotulo={`Comprovante ${i + 1}`}
+                      <LinhaDocumento key={inst.id} doc={inst} rotulo={`${def.rotulo_instancia || 'Arquivo'} ${i + 1}`}
                         mudarStatus={mudarStatus} enviarArquivo={enviarArquivo} remover={remover} />
                     ))}
                   </div>
                   {podeAdicionar && (
                     <label style={{ ...btnCinza, cursor: 'pointer', display: 'inline-block', marginTop: 8 }}>
-                      + Adicionar mais um comprovante ({instancias.length}/{def.max})
+                      + Adicionar mais um{def.max ? ` (${instancias.length}/${def.max})` : ''}
                       <input type="file" hidden onChange={e => e.target.files[0] && adicionarInstancia(doc.tipo_documento, def.nome, e.target.files[0])} />
                     </label>
                   )}

@@ -617,9 +617,10 @@ com:
   timestamp). A lista de Participantes mostra uma barra de progresso
   (documentos com status ≠ pendente ÷ total do checklist), calculada em
   `GET /incentivo-esporte/participantes` (campo `documentos_progresso`).
-  Item marcado `multiplo: true, max: N` no catálogo (hoje só
-  `comprovantes_resultado`, até 3 — a prefeitura exige anexos separados, não
-  um PDF só) aceita várias linhas de `DocumentoIncentivo` com o mesmo
+  Item marcado `multiplo: true` no catálogo (`comprovantes_resultado` do
+  atleta, `max: 3` — a prefeitura exige anexos separados, não um PDF só; e
+  `vinculo_atleta_tecnico` do técnico, Anexo XII, uma declaração por atleta,
+  sem `max` = sem limite) aceita várias linhas de `DocumentoIncentivo` com o mesmo
   `tipo_documento`; a UI agrupa as instâncias sob um cabeçalho único
   ("Comprovante 1", "Comprovante 2"...), cada uma com seu próprio "Enviar
   arquivo" — o botão "+ Adicionar mais um comprovante" só aparece quando

@@ -1369,6 +1369,18 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     filtra por escola/ativo/tipo atleta. Testado via API com técnico
     temporário: sem seleção → 400; id inválido → 400; 2 atletas + id do
     próprio técnico → PDF com os 2 atletas em ordem alfabética.
+[x] Checklist do técnico conferido contra o Quadro de Normas da Resolução
+    CIE 004/2026: entrou "Declarações de vínculo atleta/técnico (Anexo XII)"
+    (Art. 8º §1º II — uma por atleta, assinada pelo atleta/responsável),
+    item múltiplo SEM limite (`multiplo` sem `max`; UI rotula "Declaração
+    1, 2..." via `rotulo_instancia`); saiu "Declaração de responsável
+    técnico (Anexo XXI)" — só exigida de Pessoa Jurídica. Antecedentes
+    criminais / Anexo XIX ficam no checklist por decisão do Fulvio (pela
+    Resolução só são cobrados pós-aprovação, mar e jul/2027). Script
+    `2026-09-incentivo-tecnico-anexo-xii.js`: removeu o item XXI vazio do
+    único técnico (Fulvio), adicionou o XII, recalculou ordem. Anexo XXI já
+    gerado pelo Fulvio (PDF, anexo_xxi) foi mantido — apagar pelo ✕ se
+    quiser. Testado: 5 declarações XII no mesmo técnico, todas aceitas.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

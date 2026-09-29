@@ -66,7 +66,7 @@ const criar = async (req, res) => {
           return res.status(400).json({ erro: 'Este documento já existe no checklist — use "Enviar arquivo" nele em vez de criar um novo.' });
         }
         const existentes = await DocumentoIncentivo.count({ where: { participante_id, tipo_documento } });
-        if (existentes >= itemChecklist.max) {
+        if (itemChecklist.max && existentes >= itemChecklist.max) {
           return res.status(400).json({ erro: `Limite de ${itemChecklist.max} arquivos atingido para "${itemChecklist.nome}".` });
         }
       }

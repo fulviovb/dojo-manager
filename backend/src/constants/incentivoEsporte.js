@@ -13,7 +13,8 @@
 // ver `resolverCaminhoResidencia` em participantesIncentivoController.js.
 // `multiplo`+`max`: item aceita mais de um arquivo independente (ex: até 3
 // comprovantes de resultado, anexados separados no sistema da prefeitura) —
-// sem isso, um upload novo substitui o anterior.
+// sem isso, um upload novo substitui o anterior. `multiplo` sem `max` = sem
+// limite. `rotulo_instancia` nomeia cada arquivo na tela ("Declaração 1"...).
 // `tipo: 'credencial'`: não é upload — é o login/senha do participante no
 // Sistema Incentivo online (e-Cidadão), guardado cifrado em
 // CredencialIncentivo; o status do item vira 'recebido' ao salvar e volta a
@@ -35,7 +36,7 @@ const CHECKLIST_ATLETA = [
   // CIE 004/2026, §17 e §20, obriga só Técnico (Pessoa Física) e Pessoa
   // Jurídica que atuam com menores de 18. Item existe só em
   // CHECKLIST_TECNICO.
-  { key: 'comprovantes_resultado', nome: 'Comprovantes de resultado (até 3, 2025/2026)', condicao: 'sempre', multiplo: true, max: 3 },
+  { key: 'comprovantes_resultado', nome: 'Comprovantes de resultado (até 3, 2025/2026)', condicao: 'sempre', multiplo: true, max: 3, rotulo_instancia: 'Comprovante' },
 ];
 
 const CHECKLIST_TECNICO = [
@@ -48,10 +49,14 @@ const CHECKLIST_TECNICO = [
   { key: 'certidao_estadual', nome: 'Certidão negativa de débitos estaduais', condicao: 'sempre' },
   { key: 'certidao_municipal', nome: 'Certidão negativa de débitos municipais', condicao: 'sempre' },
   { key: 'relacao_atletas', nome: 'Relação de atletas sob responsabilidade (Anexo XI)', condicao: 'sempre' },
+  // Art. 8º §1º II: uma declaração por atleta listado no Anexo XI, assinada
+  // pelo atleta (e responsável legal, se menor) — sem `max`, sem limite.
+  { key: 'vinculo_atleta_tecnico', nome: 'Declarações de vínculo atleta/técnico (Anexo XII — uma por atleta)', condicao: 'sempre', multiplo: true, rotulo_instancia: 'Declaração' },
   { key: 'vinculo_federativo', nome: 'Declaração de vínculo federativo (Anexo XVII) ou de não-enquadramento (Anexo XVIII)', condicao: 'sempre' },
   { key: 'antecedentes_criminais', nome: 'Certidão negativa de antecedentes criminais', condicao: 'atua_com_menores' },
   { key: 'declaracao_nao_enquadramento_antecedentes', nome: 'Declaração de não-enquadramento — antecedentes criminais (Anexo XIX)', condicao: 'nao_atua_com_menores' },
-  { key: 'responsavel_tecnico', nome: 'Declaração de responsável técnico pelo planejamento (Anexo XXI)', condicao: 'sempre' },
+  // Anexo XXI (responsável técnico pelo planejamento) NÃO entra: no Quadro
+  // de Normas da Resolução ele só é exigido de Pessoa Jurídica (item 13).
 ];
 
 // Rubricas de despesa permitidas pelo edital (Anexos VI/VII/VIII — o
