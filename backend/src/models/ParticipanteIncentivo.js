@@ -43,6 +43,10 @@ const ParticipanteIncentivo = sequelize.define('ParticipanteIncentivo', {
   classificacao: { type: DataTypes.STRING },
 
   vinculo_federativo: { type: DataTypes.ENUM('nao_possui', 'possui'), defaultValue: 'nao_possui' },
+  // Entidade do cadastro (EntidadeFederativa) — fonte principal. Os 2
+  // campos de texto abaixo ficam como espelho (preenchidos a partir dela ao
+  // salvar) e como legado de quem foi cadastrado antes do cadastro existir.
+  entidade_federativa_id: { type: DataTypes.UUID },
   vinculo_federativo_entidade: { type: DataTypes.STRING },
   vinculo_federativo_cidade: { type: DataTypes.STRING },
 

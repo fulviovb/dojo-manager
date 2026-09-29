@@ -1,11 +1,28 @@
-const { ParticipanteIncentivo, DocumentoIncentivo, Usuario, ArteMarcial } = require('../models');
+const { ParticipanteIncentivo, DocumentoIncentivo, Usuario, ArteMarcial, EntidadeFederativa } = require('../models');
+const { textoEntidade } = require('./entidadesFederativasController');
 const { CHECKLIST_ATLETA, CHECKLIST_TECNICO } = require('../constants/incentivoEsporte');
 
 const INCLUDE_PADRAO = [
   { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'] },
   { model: ArteMarcial, attributes: ['id', 'nome'] },
   { model: ParticipanteIncentivo, as: 'TecnicoResponsavel', attributes: ['id', 'nome'] },
+  { model: EntidadeFederativa, attributes: ['id', 'nome', 'cnpj', 'cidade'] },
 ];
+
+// Vínculo federativo: "não possui" zera a entidade; com entidade escolhida
+// (precisa ser da mesma escola), os campos de texto viram espelho dela.
+// Devolve mensagem de erro (string) ou null. Muta `dados`.
+async function aplicarVinculoFederativo(dados, escola_id) {
+  if (dados.vinculo_federativo === 'nao_possui') {
+    Object.assign(dados, { entidade_federativa_id: null, vinculo_federativo_entidade: null, vinculo_federativo_cidade: null });
+    return null;
+  }
+  if (!dados.entidade_federativa_id) return null;
+  const entidade = await EntidadeFederativa.findOne({ where: { id: dados.entidade_federativa_id, escola_id } });
+  if (!entidade) return 'Entidade federativa não encontrada';
+  Object.assign(dados, { vinculo_federativo_entidade: textoEntidade(entidade), vinculo_federativo_cidade: entidade.cidade });
+  return null;
+}
 
 function calcularIdade(dataNascimentoIso) {
   if (!dataNascimentoIso) return null;
@@ -180,9 +197,10 @@ const criar = async (req, res) => {
       };
     }
 
-    const participante = await ParticipanteIncentivo.create({
-      ...dadosBase, ...req.body, escola_id, aluno_id: aluno_id || null,
-    });
+    const dados = { ...dadosBase, ...req.body, escola_id, aluno_id: aluno_id || null };
+    const erroVinculo = await aplicarVinculoFederativo(dados, escola_id);
+    if (erroVinculo) return res.status(400).json({ erro: erroVinculo });
+    const participante = await ParticipanteIncentivo.create(dados);
     await semearChecklist(participante);
 
     const completo = await ParticipanteIncentivo.findByPk(participante.id, { include: INCLUDE_PADRAO });
@@ -194,7 +212,11 @@ const atualizar = async (req, res) => {
   try {
     const participante = await ParticipanteIncentivo.findOne({ where: { id: req.params.id, escola_id: req.usuario.escola_id } });
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
-    await participante.update(req.body);
+    const dados = { ...req.body };
+    delete dados.escola_id;
+    const erroVinculo = await aplicarVinculoFederativo(dados, req.usuario.escola_id);
+    if (erroVinculo) return res.status(400).json({ erro: erroVinculo });
+    await participante.update(dados);
     await sincronizarChecklistResidencia(participante);
     const completo = await ParticipanteIncentivo.findByPk(participante.id, { include: INCLUDE_PADRAO });
     res.json(completo);

@@ -189,6 +189,8 @@ ParticipanteIncentivo *―1 ParticipanteIncentivo (TecnicoResponsavel, auto-asso
                  só atleta aponta pra um técnico)
 ParticipanteIncentivo 1―* DocumentoIncentivo  (checklist + anexos gerados, origem
                  upload|gerado)
+EntidadeFederativa 1―* ParticipanteIncentivo  (vínculo federativo — combo do cadastro;
+                 vinculo_federativo_entidade/cidade viram espelho/legado)
 ParticipanteIncentivo 1―1 CredencialIncentivo  (login/senha do Sistema Incentivo
                  online, senha cifrada — tabela própria pra nunca vazar nas
                  rotas de participante)
@@ -476,7 +478,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:codigo/login` (PIN, `:codigo` = `Exame.codigo`), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
-| Incentivo ao Esporte  | `GET /incentivo-esporte/catalogos`, `GET,POST,PUT,DELETE /incentivo-esporte/participantes(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/documentos(/:id)`, `PUT /documentos/:id/arquivo`, `GET /incentivo-esporte/anexos`, `POST /incentivo-esporte/documentos/gerar`, `GET,POST,PUT,DELETE /incentivo-esporte/contrapartidas(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/despesas(/:id)`, `GET,PUT,DELETE /incentivo-esporte/participantes/:id/credencial`, `POST .../credencial/revelar` | admin |
+| Incentivo ao Esporte  | `GET /incentivo-esporte/catalogos`, `GET,POST,PUT,DELETE /incentivo-esporte/participantes(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/documentos(/:id)`, `PUT /documentos/:id/arquivo`, `GET /incentivo-esporte/anexos`, `POST /incentivo-esporte/documentos/gerar`, `GET,POST,PUT,DELETE /incentivo-esporte/contrapartidas(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/despesas(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/entidades(/:id)`, `GET,PUT,DELETE /incentivo-esporte/participantes/:id/credencial`, `POST .../credencial/revelar` | admin |
 | Dashboard             | `GET /dashboard`, `GET /dashboard/semaforo`, `GET /dashboard/graduacao` (`?arte_marcial_id=`), `GET /dashboard/semaforo-graduacao` (`?arte_marcial_id=`) | autenticado |
 | Check-in online       | `POST /checkin-online/sincronizar` (sincroniza roster + reconcilia check-ins do módulo satélite, ver seção própria acima) | admin |
 | Health check          | `GET /health`                                                                          | público                 |
@@ -652,8 +654,13 @@ com:
   revelou, `Cache-Control: no-store`). Salvar marca o item como `recebido`,
   apagar volta pra `pendente`; remover o item do checklist apaga a
   credencial junto.
-  Vínculo federativo (possui/não possui + entidade/cidade) é editável no
-  "✎ Editar" do participante; ao trocar, a tela avisa pra remover o anexo
+  Vínculo federativo (possui/não possui + entidade) usa o cadastro da aba
+  **Entidades** (`EntidadeFederativa`: nome, CNPJ validado e formatado,
+  cidade sede, soft delete) — combo no cadastro e no "✎ Editar" do
+  participante. Ao salvar, `vinculo_federativo_entidade/cidade` viram
+  espelho da entidade ("NOME - CNPJ ..."); o Anexo XVII lê a entidade na
+  hora da geração (`fonte: 'entidade.nome_cnpj'` / `'entidade.cidade'`),
+  com fallback pro texto legado. É editável no "✎ Editar" do participante; ao trocar, a tela avisa pra remover o anexo
   antigo (XVII↔XVIII) e gerar o novo.
 - **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
   prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa

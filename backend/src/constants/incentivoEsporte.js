@@ -154,8 +154,9 @@ const ANEXOS = {
       { key: 'declarante_rg', label: 'RG do declarante', fonte: 'rg' },
       { key: 'declarante_cpf', label: 'CPF do declarante', fonte: 'cpf' },
       { key: 'papel', label: 'Atleta/paratleta/técnico(a)' },
-      { key: 'entidade', label: 'Entidade federativa', fonte: 'vinculo_federativo_entidade' },
-      { key: 'cidade', label: 'Cidade sede da entidade', fonte: 'vinculo_federativo_cidade' },
+      // "NOME - CNPJ ..." do cadastro de entidades (fallback: texto legado).
+      { key: 'entidade', label: 'Entidade federativa', fonte: 'entidade.nome_cnpj' },
+      { key: 'cidade', label: 'Cidade sede da entidade', fonte: 'entidade.cidade' },
       { key: 'dia', label: 'Dia (assinatura)' },
       { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },
     ],

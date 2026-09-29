@@ -6,6 +6,7 @@ const documentos = require('../controllers/documentosIncentivoController');
 const contrapartidas = require('../controllers/contrapartidasIncentivoController');
 const despesas = require('../controllers/despesasIncentivoController');
 const credenciais = require('../controllers/credenciaisIncentivoController');
+const entidades = require('../controllers/entidadesFederativasController');
 const { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA } = require('../constants/incentivoEsporte');
 
 // Módulo sensível (dados pessoais + financeiro) — só admin, como Mensalidades.
@@ -29,6 +30,11 @@ router.get('/participantes/:id/credencial', credenciais.buscar);
 router.put('/participantes/:id/credencial', credenciais.salvar);
 router.post('/participantes/:id/credencial/revelar', credenciais.revelar);
 router.delete('/participantes/:id/credencial', credenciais.remover);
+
+router.get('/entidades', entidades.listar);
+router.post('/entidades', entidades.criar);
+router.put('/entidades/:id', entidades.atualizar);
+router.delete('/entidades/:id', entidades.desativar);
 
 router.get('/documentos', documentos.listar);
 router.get('/anexos', documentos.listarAnexosDisponiveis);

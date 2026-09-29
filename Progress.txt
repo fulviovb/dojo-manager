@@ -1392,6 +1392,21 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     mostra aviso "assine e envie no item X". Testado via API: item
     existente não muda; item removido volta pendente; XII duas vezes não
     duplica; nenhum doc 'gerado' criado.
+[x] Cadastro de entidades federativas (pedido do Fulvio): aba "Entidades"
+    no Incentivo ao Esporte (nome, CNPJ com máscara + validação de dígito
+    verificador + único por escola, cidade sede, desativar/reativar,
+    contagem de participantes). Vínculo federativo no cadastro e na
+    edição do participante virou combo do cadastro; Anexo XVII sai com
+    "NOME DA ENTIDADE - CNPJ 00.000.000/0000-00" e a cidade sede da
+    entidade. Script `2026-09-incentivo-entidades-federativas.js` criou a
+    tabela/coluna, montou 2 entidades a partir dos textos digitados
+    (Nataraja 82.379.876/0001-55 e Oss Karatê 79.731.816/0001-45) e
+    vinculou os 11 participantes "possui" — inclusive Adrian (texto
+    "Karatê-dô Shotokan" sem CNPJ, casado por nome) e Sandra (cidade
+    "Curiiba" corrigida pra Curitiba via entidade). Testado via API:
+    CNPJ inválido/duplicado/sem nome → 400; entidade de outra escola →
+    400; "não possui" zera a entidade; PDF do XVII conferido com
+    pdftotext.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

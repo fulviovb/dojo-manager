@@ -43,7 +43,7 @@ const FORM_VAZIO = {
   endereco: '', bairro: '', cidade: 'Curitiba', estado: 'PR', cep: '',
   responsavel_legal_nome: '', responsavel_legal_rg: '', responsavel_legal_cpf: '',
   arte_marcial_id: '', confef_cref: '', tecnico_responsavel_id: '',
-  vinculo_federativo: 'nao_possui', vinculo_federativo_entidade: '', vinculo_federativo_cidade: '',
+  vinculo_federativo: 'nao_possui', entidade_federativa_id: '',
   atua_com_menores: false,
   proprietario_imovel: false, mora_com_responsavel: true,
 };
@@ -199,16 +199,7 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
             </select>
           </div>
           {form.vinculo_federativo === 'possui' && (
-            <>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Entidade</label>
-                <input value={form.vinculo_federativo_entidade} onChange={e => setForm(f => ({ ...f, vinculo_federativo_entidade: e.target.value }))} style={estiloInput} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Cidade sede</label>
-                <input value={form.vinculo_federativo_cidade} onChange={e => setForm(f => ({ ...f, vinculo_federativo_cidade: e.target.value }))} style={estiloInput} />
-              </div>
-            </>
+            <SeletorEntidade valor={form.entidade_federativa_id} onChange={v => setForm(f => ({ ...f, entidade_federativa_id: v }))} />
           )}
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 8, whiteSpace: 'nowrap' }}>
             <input type="checkbox" checked={form.atua_com_menores} onChange={e => setForm(f => ({ ...f, atua_com_menores: e.target.checked }))} />
@@ -333,6 +324,137 @@ function ListaParticipantes({ onVerParticipante }) {
 
       {modalNovo && (
         <ModalNovoParticipante onFechar={() => setModalNovo(false)} onSalvo={() => { setModalNovo(false); carregar(); }} />
+      )}
+    </div>
+  );
+}
+
+// ── Seletor de entidade (vínculo federativo) ───────────────────────────────
+// Combo alimentado pelo cadastro da aba Entidades. Mostra também a entidade
+// atual mesmo se tiver sido desativada, e o texto antigo digitado à mão
+// (participantes de antes do cadastro que não casaram com nenhuma entidade).
+export function SeletorEntidade({ valor, onChange, textoLegado }) {
+  const [entidades, setEntidades] = useState(null);
+  useEffect(() => { axios.get('/incentivo-esporte/entidades?ativo=todos').then(r => setEntidades(r.data)); }, []);
+  const opcoes = (entidades || []).filter(e => e.ativo || e.id === valor);
+  const escolhida = opcoes.find(e => e.id === valor);
+  return (
+    <div style={{ flex: 2, minWidth: 220 }}>
+      <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Entidade</label>
+      <select value={valor || ''} onChange={e => onChange(e.target.value || null)} style={estiloInput}>
+        <option value="">{entidades === null ? 'Carregando...' : 'Selecione a entidade...'}</option>
+        {opcoes.map(e => <option key={e.id} value={e.id}>{e.nome}{e.ativo ? '' : ' (inativa)'}</option>)}
+      </select>
+      <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>
+        {escolhida
+          ? `${escolhida.cnpj ? `CNPJ ${escolhida.cnpj}` : 'sem CNPJ'} · sede: ${escolhida.cidade || '—'}`
+          : entidades?.length === 0
+            ? 'Nenhuma entidade cadastrada — cadastre na aba "Entidades".'
+            : textoLegado ? `Texto antigo: "${textoLegado}" — selecione a entidade correspondente.` : ''}
+      </div>
+    </div>
+  );
+}
+
+// ── Aba: Entidades ─────────────────────────────────────────────────────────
+
+function formatarCnpjDigitado(v) {
+  const d = v.replace(/\D/g, '').slice(0, 14);
+  return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
+}
+
+function ListaEntidades() {
+  const [lista, setLista] = useState([]);
+  const [mostrarInativas, setMostrarInativas] = useState(false);
+  const [form, setForm] = useState(null); // null = modal fechado
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const carregar = () => axios.get('/incentivo-esporte/entidades?ativo=todos').then(r => setLista(r.data));
+  useEffect(() => { carregar(); }, []);
+
+  const visiveis = lista.filter(e => mostrarInativas || e.ativo);
+
+  const salvar = async () => {
+    setErro(''); setSalvando(true);
+    try {
+      if (form.id) await axios.put(`/incentivo-esporte/entidades/${form.id}`, form);
+      else await axios.post('/incentivo-esporte/entidades', form);
+      setForm(null); carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+    finally { setSalvando(false); }
+  };
+
+  const alternarAtiva = async (e) => {
+    if (e.ativo && !window.confirm(`Desativar "${e.nome}"? Ela some das opções de vínculo federativo (${e.participantes} participante(s) vinculado(s) continuam apontando pra ela).`)) return;
+    if (e.ativo) await axios.delete(`/incentivo-esporte/entidades/${e.id}`);
+    else await axios.put(`/incentivo-esporte/entidades/${e.id}`, { ...e, ativo: true });
+    carregar();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+          <input type="checkbox" checked={mostrarInativas} onChange={e => setMostrarInativas(e.target.checked)} />
+          Mostrar inativas
+        </label>
+        <button onClick={() => { setErro(''); setForm({ nome: '', cnpj: '', cidade: 'Curitiba' }); }} style={btnPrimario}>+ Nova Entidade</button>
+      </div>
+      <div style={cardEstilo}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#fafafa' }}>
+              {['Entidade', 'CNPJ', 'Cidade sede', 'Participantes', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {visiveis.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhuma entidade cadastrada.</td></tr>
+            )}
+            {visiveis.map(e => (
+              <tr key={e.id} style={{ borderTop: '1px solid #f0f0f0', opacity: e.ativo ? 1 : 0.55 }}>
+                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600 }}>{e.nome}{!e.ativo && <span style={{ fontWeight: 400, color: '#888' }}> (inativa)</span>}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{e.cnpj || '—'}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{e.cidade || '—'}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{e.participantes}</td>
+                <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => { setErro(''); setForm({ ...e, cnpj: e.cnpj || '', cidade: e.cidade || '' }); }} style={btnAzul}>Editar</button>{' '}
+                  <button onClick={() => alternarAtiva(e)} style={btnCinza}>{e.ativo ? 'Desativar' : 'Reativar'}</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {form && (
+        <Modal titulo={form.id ? 'Editar Entidade' : 'Nova Entidade'} onFechar={() => setForm(null)} largura={440}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Nome da entidade</label>
+              <input value={form.nome} onChange={ev => setForm(f => ({ ...f, nome: ev.target.value }))} style={estiloInput} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>CNPJ</label>
+                <input value={form.cnpj} placeholder="00.000.000/0000-00" onChange={ev => setForm(f => ({ ...f, cnpj: formatarCnpjDigitado(ev.target.value) }))} style={estiloInput} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Cidade sede</label>
+                <input value={form.cidade} onChange={ev => setForm(f => ({ ...f, cidade: ev.target.value }))} style={estiloInput} />
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: '#888', margin: 0 }}>No Anexo XVII sai como: <b>{form.nome || 'NOME'}{form.cnpj ? ` - CNPJ ${form.cnpj}` : ''}</b></p>
+            {form.id && form.participantes > 0 && <p style={{ fontSize: 11, color: '#ef6c00', margin: 0 }}>A alteração vale para os {form.participantes} participante(s) vinculado(s).</p>}
+            {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setForm(null)} style={btnCinza}>Cancelar</button>
+              <button onClick={salvar} disabled={salvando} style={btnVerde}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -475,6 +597,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
     ['participantes', 'Participantes'],
     ['contrapartidas', 'Contrapartidas'],
     ['despesas', 'Despesas'],
+    ['entidades', 'Entidades'],
   ];
 
   return (
@@ -492,6 +615,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
       {aba === 'participantes' && <ListaParticipantes onVerParticipante={onVerParticipanteIncentivo} />}
       {aba === 'contrapartidas' && <ListaContrapartidasGeral />}
       {aba === 'despesas' && <ListaDespesasGeral />}
+      {aba === 'entidades' && <ListaEntidades />}
     </div>
   );
 }

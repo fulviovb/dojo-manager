@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Modal, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
+import { Modal, SeletorEntidade, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
 import { SERVER_ORIGIN } from '../components/Avatar';
 
 const card = (extra = {}) => ({ background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16, ...extra });
@@ -701,7 +701,10 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
             {participante.tipo_pessoa === 'tecnico' && <LinhaInfo label="CONFEF/CREF" valor={participante.confef_cref} />}
             {participante.tipo_pessoa === 'atleta' && <LinhaInfo label="Técnico" valor={participante.TecnicoResponsavel?.nome} />}
             <LinhaInfo label="Arte marcial" valor={participante.ArteMarcial?.nome} />
-            <LinhaInfo label="Vínculo federativo" valor={participante.vinculo_federativo === 'possui' ? `${participante.vinculo_federativo_entidade || ''} (${participante.vinculo_federativo_cidade || ''})` : 'Não possui'} />
+            <LinhaInfo label="Vínculo federativo" valor={participante.vinculo_federativo !== 'possui' ? 'Não possui'
+              : participante.EntidadeFederativa
+                ? `${participante.EntidadeFederativa.nome}${participante.EntidadeFederativa.cnpj ? ` - CNPJ ${participante.EntidadeFederativa.cnpj}` : ''} (${participante.EntidadeFederativa.cidade || '—'})`
+                : `${participante.vinculo_federativo_entidade || '—'} (${participante.vinculo_federativo_cidade || '—'}) — sem entidade do cadastro`} />
             <LinhaInfo label="Atua c/ menores" valor={participante.atua_com_menores ? 'Sim' : 'Não'} />
             <LinhaInfo label="Proprietário imóvel" valor={participante.proprietario_imovel ? 'Sim' : 'Não'} />
             {!participante.proprietario_imovel && <LinhaInfo label="Mora c/ responsável" valor={participante.mora_com_responsavel ? 'Sim' : 'Não'} />}
@@ -734,10 +737,8 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
                 </select>
               </div>
               {form.vinculo_federativo === 'possui' && (
-                <>
-                  <input placeholder="Entidade (federação)" value={form.vinculo_federativo_entidade || ''} onChange={e => setForm(f => ({ ...f, vinculo_federativo_entidade: e.target.value }))} style={{ ...estiloInput, flex: 1, minWidth: 140 }} />
-                  <input placeholder="Cidade sede" value={form.vinculo_federativo_cidade || ''} onChange={e => setForm(f => ({ ...f, vinculo_federativo_cidade: e.target.value }))} style={{ ...estiloInput, flex: 1, minWidth: 120 }} />
-                </>
+                <SeletorEntidade valor={form.entidade_federativa_id} onChange={v => setForm(f => ({ ...f, entidade_federativa_id: v }))}
+                  textoLegado={!form.entidade_federativa_id ? participante.vinculo_federativo_entidade : null} />
               )}
             </div>
             {form.vinculo_federativo !== participante.vinculo_federativo && (

@@ -2,7 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo } = require('../models');
+const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo, EntidadeFederativa } = require('../models');
+const { textoEntidade } = require('./entidadesFederativasController');
 const { ANEXOS, ITEM_CREDENCIAL, buscarItemChecklist } = require('../constants/incentivoEsporte');
 const { gerarAnexo, montarLinhasAnexoXI } = require('../services/anexoService');
 
@@ -149,6 +150,13 @@ function resolverFonte(participante, fonte) {
   if (partes[0] === 'tecnico') {
     return participante.TecnicoResponsavel?.[partes[1]] ?? '';
   }
+  // Entidade do cadastro (dados atuais, "NOME - CNPJ ..."); sem entidade
+  // vinculada cai no texto legado digitado no participante.
+  if (partes[0] === 'entidade') {
+    const entidade = participante.EntidadeFederativa;
+    if (partes[1] === 'nome_cnpj') return entidade ? textoEntidade(entidade) : (participante.vinculo_federativo_entidade ?? '');
+    if (partes[1] === 'cidade') return entidade?.cidade || (participante.vinculo_federativo_cidade ?? '');
+  }
   return participante[partes[0]] ?? '';
 }
 
@@ -191,7 +199,10 @@ const gerar = async (req, res) => {
 
     const participante = await ParticipanteIncentivo.findOne({
       where: { id: participante_id, escola_id: req.usuario.escola_id },
-      include: [{ model: ParticipanteIncentivo, as: 'TecnicoResponsavel', attributes: ['id', 'nome', 'rg', 'cpf'] }],
+      include: [
+        { model: ParticipanteIncentivo, as: 'TecnicoResponsavel', attributes: ['id', 'nome', 'rg', 'cpf'] },
+        { model: EntidadeFederativa },
+      ],
     });
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
 
