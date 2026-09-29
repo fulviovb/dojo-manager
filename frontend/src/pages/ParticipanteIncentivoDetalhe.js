@@ -93,6 +93,132 @@ function LinhaDocumento({ doc, rotulo, mudarStatus, enviarArquivo, remover }) {
   );
 }
 
+// Item "Login e senha do Sistema Incentivo online": não tem arquivo — a
+// senha fica cifrada no backend (CredencialIncentivo) e só vem em texto
+// claro quando o admin clica em "Mostrar"/"Copiar".
+function LinhaCredencial({ doc, participanteId, mudarStatus, onAlterado }) {
+  const [credencial, setCredencial] = useState(undefined);
+  const [senhaVisivel, setSenhaVisivel] = useState(null);
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ login: '', senha: '' });
+  const [mostrarNoForm, setMostrarNoForm] = useState(false);
+  const [erro, setErro] = useState('');
+  const [aviso, setAviso] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const base = `/incentivo-esporte/participantes/${participanteId}/credencial`;
+
+  const carregar = useCallback(() => {
+    axios.get(base).then(r => setCredencial(r.data)).catch(() => setCredencial(null));
+  }, [base]);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  const obterSenha = async () => {
+    if (senhaVisivel !== null) return senhaVisivel;
+    const r = await axios.post(`${base}/revelar`);
+    return r.data.senha;
+  };
+
+  const alternarMostrar = async () => {
+    setErro('');
+    if (senhaVisivel !== null) return setSenhaVisivel(null);
+    try { setSenhaVisivel(await obterSenha()); }
+    catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao buscar senha'); }
+  };
+
+  const copiar = async (texto, rotulo) => {
+    setErro('');
+    try {
+      await navigator.clipboard.writeText(texto);
+      setAviso(`${rotulo} copiado`);
+      setTimeout(() => setAviso(''), 2000);
+    } catch { setErro('Não foi possível copiar'); }
+  };
+
+  const copiarSenha = async () => {
+    try { await copiar(await obterSenha(), 'Senha'); }
+    catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao buscar senha'); }
+  };
+
+  const abrirModal = () => {
+    setForm({ login: credencial?.login || '', senha: '' });
+    setMostrarNoForm(false); setErro(''); setModal(true);
+  };
+
+  const salvar = async () => {
+    setSalvando(true); setErro('');
+    try {
+      await axios.put(base, form);
+      setModal(false); setSenhaVisivel(null);
+      carregar(); onAlterado();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+    finally { setSalvando(false); }
+  };
+
+  const apagar = async () => {
+    if (!window.confirm('Apagar o login e a senha salvos deste participante?')) return;
+    await axios.delete(base);
+    setSenhaVisivel(null); carregar(); onAlterado();
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, minWidth: 180 }}>
+        <div style={{ fontSize: 13, fontWeight: 600 }}>{doc.nome_exibicao}</div>
+        {credencial ? (
+          <div style={{ fontSize: 12, color: '#444', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <span>Login: <b>{credencial.login}</b></span>
+            <span>Senha: <b style={{ fontFamily: 'monospace' }}>{senhaVisivel ?? '••••••••'}</b></span>
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: '#aaa' }}>{credencial === undefined ? 'Carregando...' : 'Não cadastrado · senha salva criptografada'}</div>
+        )}
+        {aviso && <div style={{ fontSize: 11, color: '#2e7d32' }}>{aviso}</div>}
+        {erro && !modal && <div style={{ fontSize: 11, color: '#c62828' }}>{erro}</div>}
+      </div>
+      <select value={doc.status} onChange={e => mudarStatus(doc, e.target.value)}
+        style={{ fontSize: 11, padding: '3px 6px', borderRadius: 10, border: 'none', fontWeight: 700, background: STATUS_DOC_BG[doc.status], color: STATUS_DOC_COR[doc.status] }}>
+        {Object.entries(STATUS_DOC_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+      {credencial && (
+        <>
+          <button onClick={() => copiar(credencial.login, 'Login')} style={btnCinza}>Copiar login</button>
+          <button onClick={alternarMostrar} style={btnAzul}>{senhaVisivel !== null ? 'Ocultar' : 'Mostrar'}</button>
+          <button onClick={copiarSenha} style={btnCinza}>Copiar senha</button>
+        </>
+      )}
+      <button onClick={abrirModal} style={credencial ? btnCinza : btnVerde}>{credencial ? 'Editar' : 'Cadastrar'}</button>
+      {credencial && <button onClick={apagar} style={btnPerigo}>✕</button>}
+
+      {modal && (
+        <Modal titulo="Login e senha — Sistema Incentivo online" onFechar={() => setModal(false)} largura={400}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Login (e-Cidadão)</label>
+              <input value={form.login} autoComplete="off" onChange={e => setForm(f => ({ ...f, login: e.target.value }))} style={estiloInput} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                Senha{credencial ? ' (deixe em branco para manter a atual)' : ''}
+              </label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input type={mostrarNoForm ? 'text' : 'password'} value={form.senha} autoComplete="new-password"
+                  onChange={e => setForm(f => ({ ...f, senha: e.target.value }))} style={estiloInput} />
+                <button type="button" onClick={() => setMostrarNoForm(v => !v)} style={btnCinza}>{mostrarNoForm ? 'Ocultar' : 'Ver'}</button>
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: '#888', margin: 0 }}>A senha é guardada criptografada e só aparece para administradores.</p>
+            {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModal(false)} style={btnCinza}>Cancelar</button>
+              <button onClick={salvar} disabled={salvando} style={btnVerde}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 function SecaoDocumentos({ participante, onRefresh }) {
   const [documentos, setDocumentos] = useState([]);
   const [checklistDef, setChecklistDef] = useState({});
@@ -191,6 +317,13 @@ function SecaoDocumentos({ participante, onRefresh }) {
         ) : (
           documentos.map(doc => {
             const def = checklistDef[doc.tipo_documento];
+            if (def?.tipo === 'credencial') {
+              return (
+                <div key={doc.id} style={{ padding: '10px 18px', borderBottom: '1px solid #f5f5f5' }}>
+                  <LinhaCredencial doc={doc} participanteId={participante.id} mudarStatus={mudarStatus} onAlterado={carregar} />
+                </div>
+              );
+            }
             if (def?.multiplo) {
               if (gruposRenderizados.has(doc.tipo_documento)) return null;
               gruposRenderizados.add(doc.tipo_documento);
@@ -515,6 +648,26 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
             </div>
             {form.tipo_pessoa === 'tecnico' && (
               <input placeholder="CONFEF/CREF" value={form.confef_cref || ''} onChange={e => setForm(f => ({ ...f, confef_cref: e.target.value }))} style={estiloInput} />
+            )}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Vínculo federativo</label>
+                <select value={form.vinculo_federativo || 'nao_possui'} onChange={e => setForm(f => ({ ...f, vinculo_federativo: e.target.value }))} style={estiloInput}>
+                  <option value="nao_possui">Não possui</option>
+                  <option value="possui">Possui</option>
+                </select>
+              </div>
+              {form.vinculo_federativo === 'possui' && (
+                <>
+                  <input placeholder="Entidade (federação)" value={form.vinculo_federativo_entidade || ''} onChange={e => setForm(f => ({ ...f, vinculo_federativo_entidade: e.target.value }))} style={{ ...estiloInput, flex: 1, minWidth: 140 }} />
+                  <input placeholder="Cidade sede" value={form.vinculo_federativo_cidade || ''} onChange={e => setForm(f => ({ ...f, vinculo_federativo_cidade: e.target.value }))} style={{ ...estiloInput, flex: 1, minWidth: 120 }} />
+                </>
+              )}
+            </div>
+            {form.vinculo_federativo !== participante.vinculo_federativo && (
+              <p style={{ fontSize: 12, color: '#ef6c00', margin: 0 }}>
+                Vínculo alterado: em Documentos, remova o Anexo {participante.vinculo_federativo === 'possui' ? 'XVII' : 'XVIII'} já gerado (se houver) e gere o Anexo {form.vinculo_federativo === 'possui' ? 'XVII' : 'XVIII'}.
+              </p>
             )}
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
               <input type="checkbox" checked={!!form.atua_com_menores} onChange={e => setForm(f => ({ ...f, atua_com_menores: e.target.checked }))} />
