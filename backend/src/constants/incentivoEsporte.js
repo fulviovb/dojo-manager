@@ -125,7 +125,7 @@ const TIPOS_CONTRAPARTIDA = [
 // `gerar_para`: tipos de participante que podem gerar o anexo (validado no
 // backend). `fonte` com ponto é resolvido em documentosIncentivoController
 // (resolverFonte): 'tecnico.x', 'entidade.x', 'pj.nome_cnpj',
-// 'arte_marcial.nome'.
+// 'esporte.nome'.
 // Declarações assinadas pelo responsável legal da PJ (Anexos XV/XVI/XX).
 const CAMPOS_DECLARACAO_PJ = [
   { key: 'declarante_nome', label: 'Nome do responsável legal', fonte: 'responsavel_legal_nome' },
@@ -164,7 +164,7 @@ const ANEXOS = {
     campos: [
       { key: 'tecnico_nome', label: 'Nome do técnico', fonte: 'nome' },
       { key: 'tecnico_cpf', label: 'CPF do técnico', fonte: 'cpf' },
-      { key: 'modalidade', label: 'Modalidade' },
+      { key: 'modalidade', label: 'Modalidade', fonte: 'esporte.nome' },
       { key: 'confef_cref', label: 'CONFEF/CREF', fonte: 'confef_cref' },
       { key: 'dia', label: 'Dia (assinatura)' },
       { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },
@@ -260,7 +260,7 @@ const ANEXOS = {
     template: 'anexo-x.docx',
     campos: [
       { key: 'pj_nome', label: 'PJ proponente', fonte: 'pj.nome_cnpj' },
-      { key: 'modalidade', label: 'Modalidade', fonte: 'arte_marcial.nome' },
+      { key: 'modalidade', label: 'Modalidade', fonte: 'esporte.nome' },
       { key: 'local', label: 'Local/endereço de execução', fonte: 'local_execucao' },
       { key: 'dia', label: 'Dia (assinatura)' },
       { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },

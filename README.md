@@ -189,6 +189,8 @@ ParticipanteIncentivo *―1 ParticipanteIncentivo (TecnicoResponsavel, auto-asso
                  só atleta aponta pra um técnico)
 ParticipanteIncentivo 1―* DocumentoIncentivo  (checklist + anexos gerados, origem
                  upload|gerado)
+EsporteIncentivo 1―* ParticipanteIncentivo  (esporte/modalidade — cadastro próprio do
+                 módulo; arte_marcial_id do participante é legado sem uso)
 EntidadeFederativa 1―* ParticipanteIncentivo  (vínculo federativo — combo do cadastro;
                  vinculo_federativo_entidade/cidade viram espelho/legado)
 ParticipanteIncentivo 1―1 CredencialIncentivo  (login/senha do Sistema Incentivo
@@ -676,6 +678,12 @@ com:
   hora da geração (`fonte: 'entidade.nome_cnpj'` / `'entidade.cidade'`),
   com fallback pro texto legado. É editável no "✎ Editar" do participante; ao trocar, a tela avisa pra remover o anexo
   antigo (XVII↔XVIII) e gerar o novo.
+- **Esportes** (aba própria): o esporte/modalidade do participante vem do
+  cadastro `EsporteIncentivo` do módulo — não das artes marciais da escola,
+  pra consultoria atender qualquer esporte (natação etc.) sem poluir
+  turmas/graduação. Flag `olimpico` (programa de LA 2028 → Anexo I x II),
+  só informativa. O combo de esporte tem "+ Novo esporte..." pra cadastrar
+  na hora. Alimenta a modalidade dos Anexos X e XI.
 - **Contrato de consultoria** (botão no topo do participante): formulário
   com os dados do consultor, do contratante (vindos do cadastro, editáveis
   sem alterar o cadastro; PF, PF menor com responsável legal, ou PJ com

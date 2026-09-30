@@ -2,7 +2,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo, EntidadeFederativa, ArteMarcial } = require('../models');
+const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo, EntidadeFederativa, EsporteIncentivo } = require('../models');
 const { textoEntidade } = require('./entidadesFederativasController');
 const { ANEXOS, ITEM_CREDENCIAL, buscarItemChecklist } = require('../constants/incentivoEsporte');
 const { gerarAnexo, montarLinhasAnexoXI, montarLinhasAnexoX } = require('../services/anexoService');
@@ -165,7 +165,7 @@ function resolverFonte(participante, fonte) {
   // Entidade do cadastro (dados atuais, "NOME - CNPJ ..."); sem entidade
   // vinculada cai no texto legado digitado no participante.
   if (fonte === 'pj.nome_cnpj') return participante.cnpj ? `${participante.nome} - CNPJ ${participante.cnpj}` : participante.nome;
-  if (fonte === 'arte_marcial.nome') return participante.ArteMarcial?.nome ?? '';
+  if (fonte === 'esporte.nome') return participante.Esporte?.nome ?? '';
   if (partes[0] === 'entidade') {
     const entidade = participante.EntidadeFederativa;
     if (partes[1] === 'nome_cnpj') return entidade ? textoEntidade(entidade) : (participante.vinculo_federativo_entidade ?? '');
@@ -219,7 +219,7 @@ const gerar = async (req, res) => {
       include: [
         { model: ParticipanteIncentivo, as: 'TecnicoResponsavel', attributes: ['id', 'nome', 'rg', 'cpf'] },
         { model: EntidadeFederativa },
-        { model: ArteMarcial, attributes: ['nome'] },
+        { model: EsporteIncentivo, as: 'Esporte', attributes: ['nome'] },
       ],
     });
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });

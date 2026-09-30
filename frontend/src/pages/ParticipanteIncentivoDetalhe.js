@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Modal, SeletorEntidade, CamposPJ, formatarCep, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
+import { Modal, SeletorEntidade, SeletorEsporte, CamposPJ, formatarCep, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
 import { SERVER_ORIGIN } from '../components/Avatar';
 
 const card = (extra = {}) => ({ background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16, ...extra });
@@ -901,7 +901,7 @@ function SecaoDadosPJ({ participante, onAtualizado }) {
             <LinhaInfo label="Presidente" valor={pessoa(participante.responsavel_legal_nome, participante.responsavel_legal_rg, participante.responsavel_legal_cpf)} />
             <LinhaInfo label="Resp. financeiro" valor={pessoa(participante.responsavel_financeiro_nome, participante.responsavel_financeiro_rg, participante.responsavel_financeiro_cpf)} />
             <LinhaInfo label="Projeto" valor={participante.projeto_nome} />
-            <LinhaInfo label="Modalidade" valor={participante.ArteMarcial?.nome} />
+            <LinhaInfo label="Modalidade" valor={participante.Esporte?.nome} />
             <LinhaInfo label="Local execução" valor={participante.local_execucao} />
             <LinhaInfo label="Atende menores" valor={participante.atua_com_menores ? 'Sim' : 'Não'} />
           </>
@@ -961,7 +961,7 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
             <LinhaInfo label="Endereço" valor={[participante.endereco, participante.bairro, participante.cep && `CEP ${participante.cep}`, [participante.cidade, participante.estado].filter(Boolean).join('/')].filter(Boolean).join(' - ')} />
             {participante.tipo_pessoa === 'tecnico' && <LinhaInfo label="CONFEF/CREF" valor={participante.confef_cref} />}
             {participante.tipo_pessoa === 'atleta' && <LinhaInfo label="Técnico" valor={participante.TecnicoResponsavel?.nome} />}
-            <LinhaInfo label="Arte marcial" valor={participante.ArteMarcial?.nome} />
+            <LinhaInfo label="Esporte" valor={participante.Esporte ? `${participante.Esporte.nome}${participante.Esporte.olimpico === true ? ' (olímpico — Anexo I)' : participante.Esporte.olimpico === false ? ' (não olímpico — Anexo II)' : ''}` : null} />
             <LinhaInfo label="Vínculo federativo" valor={participante.vinculo_federativo !== 'possui' ? 'Não possui'
               : participante.EntidadeFederativa
                 ? `${participante.EntidadeFederativa.nome}${participante.EntidadeFederativa.cnpj ? ` - CNPJ ${participante.EntidadeFederativa.cnpj}` : ''} (${participante.EntidadeFederativa.cidade || '—'})`
@@ -990,6 +990,7 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
             {form.tipo_pessoa === 'tecnico' && (
               <input placeholder="CONFEF/CREF" value={form.confef_cref || ''} onChange={e => setForm(f => ({ ...f, confef_cref: e.target.value }))} style={estiloInput} />
             )}
+            <SeletorEsporte valor={form.esporte_id} onChange={v => setForm(f => ({ ...f, esporte_id: v }))} />
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 140 }}>
                 <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Vínculo federativo</label>

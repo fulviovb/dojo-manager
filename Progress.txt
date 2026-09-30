@@ -1462,6 +1462,19 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     (editar contrato-consultoria.py e regerar o .docx). Testado via API:
     adulto, menor (proporcional 15%) e PJ; PDFs de 4 páginas conferidos
     com pdftotext, sem tag sobrando.
+[x] Esportes no Incentivo ao Esporte (Fulvio vai atender atleta de
+    natação): "Arte marcial" do participante virou "Esporte", com cadastro
+    próprio do módulo (model EsporteIncentivo, aba "Esportes", flag
+    olímpico LA 2028, desativar/reativar, "+ Novo esporte..." direto no
+    combo). Não usa ArteMarcial, que alimenta turmas/graduação da escola.
+    Esporte editável também no "✎ Editar" de PF (antes não dava pra mudar
+    a arte marcial depois do cadastro). Anexos X e XI puxam a modalidade
+    do esporte (XI antes era digitada). Script
+    `2026-09-incentivo-esportes.js`: tabela + coluna esporte_id, criou
+    "Karatê Shotokan" e apontou os 11 participantes que usavam a arte
+    marcial; arte_marcial_id ficou como legado sem uso. Testado via API:
+    nome repetido (maiúsc./minúsc.) → 400; esporte de outra escola → 400;
+    Anexo XI saiu com a modalidade; desativar mantém o participante.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

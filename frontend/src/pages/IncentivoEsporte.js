@@ -47,7 +47,7 @@ const FORM_VAZIO = {
   nome: '', cpf: '', rg: '', data_nascimento: '', telefone: '', email: '',
   endereco: '', bairro: '', cidade: 'Curitiba', estado: 'PR', cep: '',
   responsavel_legal_nome: '', responsavel_legal_rg: '', responsavel_legal_cpf: '',
-  arte_marcial_id: '', confef_cref: '', tecnico_responsavel_id: '',
+  esporte_id: '', confef_cref: '', tecnico_responsavel_id: '',
   vinculo_federativo: 'nao_possui', entidade_federativa_id: '',
   atua_com_menores: false,
   proprietario_imovel: false, mora_com_responsavel: true,
@@ -68,14 +68,12 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
   const [form, setForm] = useState(FORM_VAZIO);
   const [alunos, setAlunos] = useState([]);
   const [buscaAluno, setBuscaAluno] = useState('');
-  const [artes, setArtes] = useState([]);
   const [tecnicos, setTecnicos] = useState([]);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
   useEffect(() => {
     axios.get('/usuarios?role=aluno').then(r => setAlunos(r.data));
-    axios.get('/artes-marciais').then(r => setArtes(r.data));
     axios.get('/incentivo-esporte/participantes?tipo_pessoa=tecnico').then(r => setTecnicos(r.data));
   }, []);
 
@@ -185,13 +183,7 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
         <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '4px 0' }} />
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Arte marcial</label>
-            <select value={form.arte_marcial_id} onChange={e => setForm(f => ({ ...f, arte_marcial_id: e.target.value }))} style={estiloInput}>
-              <option value="">—</option>
-              {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-            </select>
-          </div>
+          <SeletorEsporte valor={form.esporte_id} onChange={v => setForm(f => ({ ...f, esporte_id: v }))} />
           {form.tipo_pessoa === 'tecnico' ? (
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>CONFEF/CREF</label>
@@ -354,10 +346,8 @@ function ListaParticipantes({ onVerParticipante }) {
 // PJ reaproveita nome (razão social), endereço (sede) e responsavel_legal_*
 // (presidente/representante legal) do model.
 export function CamposPJ({ form, setForm, permitirPreencherDeEntidade }) {
-  const [artes, setArtes] = useState([]);
   const [entidades, setEntidades] = useState([]);
   useEffect(() => {
-    axios.get('/artes-marciais').then(r => setArtes(r.data));
     if (permitirPreencherDeEntidade) axios.get('/incentivo-esporte/entidades').then(r => setEntidades(r.data));
   }, [permitirPreencherDeEntidade]);
   const campo = (k) => ({ value: form[k] || '', onChange: e => setForm(f => ({ ...f, [k]: e.target.value })), style: estiloInput });
@@ -409,14 +399,147 @@ export function CamposPJ({ form, setForm, permitirPreencherDeEntidade }) {
       {secao('Projeto')}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
         <div>{rotulo('Nome do projeto')}<input {...campo('projeto_nome')} /></div>
-        <div>{rotulo('Modalidade')}
-          <select value={form.arte_marcial_id || ''} onChange={e => setForm(f => ({ ...f, arte_marcial_id: e.target.value }))} style={estiloInput}>
-            <option value="">—</option>
-            {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-          </select>
-        </div>
+        <SeletorEsporte valor={form.esporte_id} onChange={v => setForm(f => ({ ...f, esporte_id: v }))} rotulo="Modalidade" />
       </div>
       <div>{rotulo('Local / endereço de execução do projeto')}<input {...campo('local_execucao')} /></div>
+    </div>
+  );
+}
+
+// ── Seletor de esporte (com cadastro rápido) ──────────────────────────────
+// Cadastro próprio do módulo (aba Esportes) — não usa as artes marciais da
+// escola. "+ Novo esporte" cadastra na hora e já seleciona.
+export function SeletorEsporte({ valor, onChange, rotulo = 'Esporte' }) {
+  const [esportes, setEsportes] = useState(null);
+  const [novo, setNovo] = useState(null); // null = fechado; string = nome digitado
+  const [erro, setErro] = useState('');
+  const carregar = () => axios.get('/incentivo-esporte/esportes?ativo=todos').then(r => setEsportes(r.data));
+  useEffect(() => { carregar(); }, []);
+  const opcoes = (esportes || []).filter(e => e.ativo || e.id === valor);
+
+  const cadastrar = async () => {
+    setErro('');
+    try {
+      const r = await axios.post('/incentivo-esporte/esportes', { nome: novo });
+      await carregar();
+      onChange(r.data.id);
+      setNovo(null);
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao cadastrar'); }
+  };
+
+  return (
+    <div style={{ flex: 1, minWidth: 180 }}>
+      <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>{rotulo}</label>
+      {novo === null ? (
+        <select value={valor || ''} onChange={e => (e.target.value === '__novo' ? setNovo('') : onChange(e.target.value || null))} style={estiloInput}>
+          <option value="">{esportes === null ? 'Carregando...' : '—'}</option>
+          {opcoes.map(e => <option key={e.id} value={e.id}>{e.nome}{e.ativo ? '' : ' (inativo)'}</option>)}
+          <option value="__novo">+ Novo esporte...</option>
+        </select>
+      ) : (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input autoFocus placeholder="Ex.: Natação" value={novo} onChange={e => setNovo(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); cadastrar(); } }} style={estiloInput} />
+          <button type="button" onClick={cadastrar} style={btnVerde}>Salvar</button>
+          <button type="button" onClick={() => { setNovo(null); setErro(''); }} style={btnCinza}>✕</button>
+        </div>
+      )}
+      {erro && <div style={{ fontSize: 11, color: '#c62828', marginTop: 3 }}>{erro}</div>}
+    </div>
+  );
+}
+
+// ── Aba: Esportes ──────────────────────────────────────────────────────────
+
+const OLIMPICO_LABEL = { true: 'Sim', false: 'Não', null: '—' };
+
+function ListaEsportes() {
+  const [lista, setLista] = useState([]);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
+  const [form, setForm] = useState(null);
+  const [erro, setErro] = useState('');
+
+  const carregar = () => axios.get('/incentivo-esporte/esportes?ativo=todos').then(r => setLista(r.data));
+  useEffect(() => { carregar(); }, []);
+  const visiveis = lista.filter(e => mostrarInativos || e.ativo);
+
+  const salvar = async () => {
+    setErro('');
+    try {
+      if (form.id) await axios.put(`/incentivo-esporte/esportes/${form.id}`, form);
+      else await axios.post('/incentivo-esporte/esportes', form);
+      setForm(null); carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+  };
+
+  const alternarAtivo = async (e) => {
+    if (e.ativo && !window.confirm(`Desativar "${e.nome}"? Ele some das opções (${e.participantes} participante(s) continuam com ele).`)) return;
+    if (e.ativo) await axios.delete(`/incentivo-esporte/esportes/${e.id}`);
+    else await axios.put(`/incentivo-esporte/esportes/${e.id}`, { ...e, ativo: true });
+    carregar();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+          <input type="checkbox" checked={mostrarInativos} onChange={e => setMostrarInativos(e.target.checked)} />
+          Mostrar inativos
+        </label>
+        <button onClick={() => { setErro(''); setForm({ nome: '', olimpico: null }); }} style={btnPrimario}>+ Novo Esporte</button>
+      </div>
+      <div style={cardEstilo}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#fafafa' }}>
+              {['Esporte', 'Olímpico (LA 2028)', 'Participantes', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {visiveis.length === 0 && (
+              <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum esporte cadastrado.</td></tr>
+            )}
+            {visiveis.map(e => (
+              <tr key={e.id} style={{ borderTop: '1px solid #f0f0f0', opacity: e.ativo ? 1 : 0.55 }}>
+                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600 }}>{e.nome}{!e.ativo && <span style={{ fontWeight: 400, color: '#888' }}> (inativo)</span>}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{OLIMPICO_LABEL[e.olimpico]}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{e.participantes}</td>
+                <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => { setErro(''); setForm({ ...e }); }} style={btnAzul}>Editar</button>{' '}
+                  <button onClick={() => alternarAtivo(e)} style={btnCinza}>{e.ativo ? 'Desativar' : 'Reativar'}</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ fontSize: 12, color: '#888', marginTop: 10 }}>
+        "Olímpico" = está no programa dos Jogos de Los Angeles 2028 (Resolução, Art. 3º §1º). Define se o atleta é classificado pelo Anexo I (olímpicas) ou Anexo II (não olímpicas).
+      </p>
+
+      {form && (
+        <Modal titulo={form.id ? 'Editar Esporte' : 'Novo Esporte'} onFechar={() => setForm(null)} largura={400}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Nome</label>
+              <input autoFocus value={form.nome} onChange={ev => setForm(f => ({ ...f, nome: ev.target.value }))} style={estiloInput} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Está no programa olímpico/paralímpico de LA 2028?</label>
+              <select value={String(form.olimpico)} onChange={ev => setForm(f => ({ ...f, olimpico: { true: true, false: false }[ev.target.value] ?? null }))} style={estiloInput}>
+                <option value="null">Não informado</option>
+                <option value="true">Sim (Anexo I)</option>
+                <option value="false">Não (Anexo II)</option>
+              </select>
+            </div>
+            {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setForm(null)} style={btnCinza}>Cancelar</button>
+              <button onClick={salvar} style={btnVerde}>Salvar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -690,6 +813,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
     ['contrapartidas', 'Contrapartidas'],
     ['despesas', 'Despesas'],
     ['entidades', 'Entidades'],
+    ['esportes', 'Esportes'],
   ];
 
   return (
@@ -708,6 +832,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
       {aba === 'contrapartidas' && <ListaContrapartidasGeral />}
       {aba === 'despesas' && <ListaDespesasGeral />}
       {aba === 'entidades' && <ListaEntidades />}
+      {aba === 'esportes' && <ListaEsportes />}
     </div>
   );
 }

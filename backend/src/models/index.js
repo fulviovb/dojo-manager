@@ -31,6 +31,7 @@ const ContrapartidaIncentivo = require('./ContrapartidaIncentivo');
 const DespesaIncentivo = require('./DespesaIncentivo');
 const CredencialIncentivo = require('./CredencialIncentivo');
 const EntidadeFederativa = require('./EntidadeFederativa');
+const EsporteIncentivo = require('./EsporteIncentivo');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -241,6 +242,10 @@ CredencialIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante
 EntidadeFederativa.hasMany(ParticipanteIncentivo, { foreignKey: 'entidade_federativa_id' });
 ParticipanteIncentivo.belongsTo(EntidadeFederativa, { foreignKey: 'entidade_federativa_id' });
 
+// Esporte/modalidade (cadastro próprio do módulo, não ArteMarcial).
+EsporteIncentivo.hasMany(ParticipanteIncentivo, { foreignKey: 'esporte_id' });
+ParticipanteIncentivo.belongsTo(EsporteIncentivo, { foreignKey: 'esporte_id', as: 'Esporte' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -250,5 +255,5 @@ module.exports = {
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
   Competicao, Conquista,
   ParticipanteIncentivo, DocumentoIncentivo, ContrapartidaIncentivo, DespesaIncentivo,
-  CredencialIncentivo, EntidadeFederativa,
+  CredencialIncentivo, EntidadeFederativa, EsporteIncentivo,
 };

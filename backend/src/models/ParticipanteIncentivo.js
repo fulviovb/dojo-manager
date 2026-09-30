@@ -45,7 +45,11 @@ const ParticipanteIncentivo = sequelize.define('ParticipanteIncentivo', {
   responsavel_legal_rg: { type: DataTypes.STRING },
   responsavel_legal_cpf: { type: DataTypes.STRING },
 
+  // Legado: antes do cadastro de esportes (EsporteIncentivo). Não é mais
+  // lido nem gravado pelo módulo — ver esporte_id.
   arte_marcial_id: { type: DataTypes.UUID },
+  // Esporte/modalidade do participante (cadastro próprio do módulo).
+  esporte_id: { type: DataTypes.UUID },
   // Só atleta: técnico responsável (outro ParticipanteIncentivo, tipo_pessoa
   // 'tecnico') — alimenta a geração dos Anexos XI (relação de atletas do
   // técnico) e XII (vínculo atleta/técnico).

@@ -1,10 +1,10 @@
-const { ParticipanteIncentivo, DocumentoIncentivo, Usuario, ArteMarcial, EntidadeFederativa } = require('../models');
+const { ParticipanteIncentivo, DocumentoIncentivo, Usuario, EntidadeFederativa, EsporteIncentivo } = require('../models');
 const { textoEntidade, normalizarCnpj } = require('./entidadesFederativasController');
 const { checklistPorTipo } = require('../constants/incentivoEsporte');
 
 const INCLUDE_PADRAO = [
   { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'] },
-  { model: ArteMarcial, attributes: ['id', 'nome'] },
+  { model: EsporteIncentivo, as: 'Esporte', attributes: ['id', 'nome', 'olimpico'] },
   { model: ParticipanteIncentivo, as: 'TecnicoResponsavel', attributes: ['id', 'nome'] },
   { model: EntidadeFederativa, attributes: ['id', 'nome', 'cnpj', 'cidade'] },
 ];
@@ -14,6 +14,14 @@ const INCLUDE_PADRAO = [
 // Devolve mensagem de erro (string) ou null. Muta `dados`.
 // PJ: CNPJ opcional, mas se vier precisa ser válido (grava formatado).
 // Devolve mensagem de erro ou null. Muta `dados`.
+// Esporte precisa ser da mesma escola. Devolve mensagem de erro ou null.
+async function validarEsporte(dados, escola_id) {
+  delete dados.arte_marcial_id; // legado, não gravado mais
+  if (!dados.esporte_id) return null;
+  const esporte = await EsporteIncentivo.findOne({ where: { id: dados.esporte_id, escola_id } });
+  return esporte ? null : 'Esporte não encontrado';
+}
+
 function aplicarCnpj(dados) {
   if (dados.cnpj === undefined) return null;
   try { dados.cnpj = normalizarCnpj(dados.cnpj); return null; } catch (e) { return e.message; }
@@ -232,7 +240,7 @@ const criar = async (req, res) => {
     }
 
     const dados = { ...dadosBase, ...req.body, escola_id, aluno_id: aluno_id || null };
-    const erroVinculo = aplicarCnpj(dados) || await aplicarVinculoFederativo(dados, escola_id);
+    const erroVinculo = aplicarCnpj(dados) || await validarEsporte(dados, escola_id) || await aplicarVinculoFederativo(dados, escola_id);
     if (erroVinculo) return res.status(400).json({ erro: erroVinculo });
     const participante = await ParticipanteIncentivo.create(dados);
     await semearChecklist(participante);
@@ -249,7 +257,7 @@ const atualizar = async (req, res) => {
     const dados = { ...req.body };
     delete dados.escola_id;
     delete dados.tipo_pessoa; // trocar PF↔PJ bagunçaria o checklist já semeado
-    const erroVinculo = aplicarCnpj(dados) || await aplicarVinculoFederativo(dados, req.usuario.escola_id);
+    const erroVinculo = aplicarCnpj(dados) || await validarEsporte(dados, req.usuario.escola_id) || await aplicarVinculoFederativo(dados, req.usuario.escola_id);
     if (erroVinculo) return res.status(400).json({ erro: erroVinculo });
     const menoresAntes = !!participante.atua_com_menores;
     await participante.update(dados);
