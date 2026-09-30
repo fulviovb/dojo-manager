@@ -16,11 +16,13 @@ const { buscarItemChecklist } = require('../constants/incentivoEsporte');
 async function main() {
   await sequelize.authenticate();
 
+  // Só técnicos — Pessoa Jurídica usa a mesma chave e precisa do item.
+  const idsTecnicos = (await ParticipanteIncentivo.findAll({ where: { tipo_pessoa: 'tecnico' }, attributes: ['id'] })).map(t => t.id);
   const removidos = await DocumentoIncentivo.destroy({
-    where: { tipo_documento: 'responsavel_tecnico', status: 'pendente', arquivo_url: null },
+    where: { tipo_documento: 'responsavel_tecnico', status: 'pendente', arquivo_url: null, participante_id: idsTecnicos },
   });
   console.log(`✓ item Anexo XXI vazio removido de ${removidos} técnico(s)`);
-  const restantes = await DocumentoIncentivo.count({ where: { tipo_documento: 'responsavel_tecnico' } });
+  const restantes = await DocumentoIncentivo.count({ where: { tipo_documento: 'responsavel_tecnico', participante_id: idsTecnicos } });
   if (restantes) console.log(`· ${restantes} item(ns) Anexo XXI preenchido(s) mantido(s) — remover manualmente se quiser`);
 
   const item = buscarItemChecklist('tecnico', 'vinculo_atleta_tecnico');

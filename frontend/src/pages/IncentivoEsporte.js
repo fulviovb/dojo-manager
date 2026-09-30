@@ -35,7 +35,7 @@ export function Modal({ titulo, onFechar, children, largura = 440 }) {
   );
 }
 
-const TIPO_PESSOA_LABEL = { atleta: 'Atleta', tecnico: 'Técnico' };
+const TIPO_PESSOA_LABEL = { atleta: 'Atleta', tecnico: 'Técnico', pessoa_juridica: 'Pessoa Jurídica' };
 const STATUS_PROGRAMA_LABEL = { inscrito: 'Inscrito', documentacao_pendente: 'Documentação Pendente', habilitado: 'Habilitado', indeferido: 'Indeferido', inabilitado: 'Inabilitado' };
 const STATUS_PROGRAMA_COR = { inscrito: '#607d8b', documentacao_pendente: '#ef6c00', habilitado: '#2e7d32', indeferido: '#c62828', inabilitado: '#c62828' };
 const STATUS_PROGRAMA_BG = { inscrito: '#eceff1', documentacao_pendente: '#fff3e0', habilitado: '#e8f5e9', indeferido: '#ffebee', inabilitado: '#ffebee' };
@@ -51,6 +51,8 @@ const FORM_VAZIO = {
   vinculo_federativo: 'nao_possui', entidade_federativa_id: '',
   atua_com_menores: false,
   proprietario_imovel: false, mora_com_responsavel: true,
+  cnpj: '', responsavel_financeiro_nome: '', responsavel_financeiro_rg: '', responsavel_financeiro_cpf: '',
+  local_execucao: '', projeto_nome: '',
 };
 
 function calcularIdade(dataNascimentoIso) {
@@ -113,9 +115,10 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Tipo</label>
-            <select value={form.tipo_pessoa} onChange={e => setForm(f => ({ ...f, tipo_pessoa: e.target.value, origem: e.target.value === 'tecnico' ? 'avulso' : f.origem }))} style={estiloInput}>
+            <select value={form.tipo_pessoa} onChange={e => setForm(f => ({ ...f, tipo_pessoa: e.target.value, origem: e.target.value !== 'atleta' ? 'avulso' : f.origem }))} style={estiloInput}>
               <option value="atleta">Atleta</option>
               <option value="tecnico">Técnico</option>
+              <option value="pessoa_juridica">Pessoa Jurídica (entidade/CNPJ)</option>
             </select>
           </div>
           {form.tipo_pessoa === 'atleta' && (
@@ -129,6 +132,15 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
           )}
         </div>
 
+        {form.tipo_pessoa === 'pessoa_juridica' ? (
+          <>
+            <CamposPJ form={form} setForm={setForm} permitirPreencherDeEntidade />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input type="checkbox" checked={form.atua_com_menores} onChange={e => setForm(f => ({ ...f, atua_com_menores: e.target.checked }))} />
+              O projeto atende menores de 18 (exige certidão de antecedentes de todos os colaboradores; senão, Anexo XX)
+            </label>
+          </>
+        ) : (<>
         {form.origem === 'aluno' ? (
           <div>
             <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Aluno</label>
@@ -234,6 +246,8 @@ function ModalNovoParticipante({ onFechar, onSalvo }) {
           </div>
         </div>
 
+        </>)}
+
         {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onFechar} style={btnCinza}>Cancelar</button>
@@ -283,6 +297,7 @@ function ListaParticipantes({ onVerParticipante }) {
             <option value="todos">Todos os tipos</option>
             <option value="atleta">Atletas</option>
             <option value="tecnico">Técnicos</option>
+            <option value="pessoa_juridica">Pessoas Jurídicas</option>
           </select>
         </div>
         <button onClick={() => setModalNovo(true)} style={btnVerde}>+ Novo Participante</button>
@@ -292,7 +307,7 @@ function ListaParticipantes({ onVerParticipante }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#fafafa' }}>
-              {['Nome', 'Tipo', 'Origem', 'Status', 'Documentos', 'Taxa Gestão', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}
+              {['Nome', 'Tipo', 'Origem / CNPJ', 'Status', 'Documentos', 'Taxa Gestão', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -305,7 +320,7 @@ function ListaParticipantes({ onVerParticipante }) {
                   <button onClick={() => onVerParticipante(p.id)} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', padding: 0, fontSize: 13 }}>{p.nome}</button>
                 </td>
                 <td style={{ padding: '10px 16px', fontSize: 13 }}>{TIPO_PESSOA_LABEL[p.tipo_pessoa]}</td>
-                <td style={{ padding: '10px 16px', fontSize: 13, color: '#666' }}>{p.aluno_id ? 'Aluno' : 'Avulso'}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13, color: '#666' }}>{p.tipo_pessoa === 'pessoa_juridica' ? (p.cnpj || '—') : p.aluno_id ? 'Aluno' : 'Avulso'}</td>
                 <td style={{ padding: '10px 16px' }}>
                   <span style={{ background: STATUS_PROGRAMA_BG[p.status_programa], color: STATUS_PROGRAMA_COR[p.status_programa], fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
                     {STATUS_PROGRAMA_LABEL[p.status_programa]}
@@ -331,6 +346,77 @@ function ListaParticipantes({ onVerParticipante }) {
       {modalNovo && (
         <ModalNovoParticipante onFechar={() => setModalNovo(false)} onSalvo={() => { setModalNovo(false); carregar(); }} />
       )}
+    </div>
+  );
+}
+
+// ── Campos de Pessoa Jurídica (cadastro e edição) ─────────────────────────
+// PJ reaproveita nome (razão social), endereço (sede) e responsavel_legal_*
+// (presidente/representante legal) do model.
+export function CamposPJ({ form, setForm, permitirPreencherDeEntidade }) {
+  const [artes, setArtes] = useState([]);
+  const [entidades, setEntidades] = useState([]);
+  useEffect(() => {
+    axios.get('/artes-marciais').then(r => setArtes(r.data));
+    if (permitirPreencherDeEntidade) axios.get('/incentivo-esporte/entidades').then(r => setEntidades(r.data));
+  }, [permitirPreencherDeEntidade]);
+  const campo = (k) => ({ value: form[k] || '', onChange: e => setForm(f => ({ ...f, [k]: e.target.value })), style: estiloInput });
+  const rotulo = (t) => <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>{t}</label>;
+  const secao = (t) => <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', marginTop: 4 }}>{t}</div>;
+  const preencherDeEntidade = (id) => {
+    const e = entidades.find(x => x.id === id);
+    if (e) setForm(f => ({ ...f, nome: e.nome, cnpj: e.cnpj || '', cidade: e.cidade || f.cidade }));
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {permitirPreencherDeEntidade && entidades.length > 0 && (
+        <div>
+          {rotulo('Preencher com uma entidade já cadastrada (opcional)')}
+          <select value="" onChange={e => preencherDeEntidade(e.target.value)} style={estiloInput}>
+            <option value="">—</option>
+            {entidades.map(e => <option key={e.id} value={e.id}>{e.nome}{e.cnpj ? ` - ${e.cnpj}` : ''}</option>)}
+          </select>
+        </div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
+        <div>{rotulo('Razão social / nome da entidade *')}<input {...campo('nome')} /></div>
+        <div>{rotulo('CNPJ')}<input value={form.cnpj || ''} placeholder="00.000.000/0000-00" onChange={e => setForm(f => ({ ...f, cnpj: formatarCnpjDigitado(e.target.value) }))} style={estiloInput} /></div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div>{rotulo('Telefone')}<input {...campo('telefone')} /></div>
+        <div>{rotulo('Email')}<input {...campo('email')} /></div>
+      </div>
+      {secao('Sede')}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.8fr 1fr 0.5fr', gap: 8 }}>
+        <div>{rotulo('Endereço (rua, nº, compl.)')}<input {...campo('endereco')} /></div>
+        <div>{rotulo('Bairro')}<input {...campo('bairro')} /></div>
+        <div>{rotulo('CEP')}<input value={form.cep || ''} placeholder="00000-000" onChange={e => setForm(f => ({ ...f, cep: formatarCep(e.target.value) }))} style={estiloInput} /></div>
+        <div>{rotulo('Cidade')}<input {...campo('cidade')} /></div>
+        <div>{rotulo('UF')}<input {...campo('estado')} /></div>
+      </div>
+      {secao('Presidente / representante legal')}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
+        <input placeholder="Nome" {...campo('responsavel_legal_nome')} />
+        <input placeholder="RG" {...campo('responsavel_legal_rg')} />
+        <input placeholder="CPF" {...campo('responsavel_legal_cpf')} />
+      </div>
+      {secao('Responsável financeiro')}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
+        <input placeholder="Nome" {...campo('responsavel_financeiro_nome')} />
+        <input placeholder="RG" {...campo('responsavel_financeiro_rg')} />
+        <input placeholder="CPF" {...campo('responsavel_financeiro_cpf')} />
+      </div>
+      {secao('Projeto')}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
+        <div>{rotulo('Nome do projeto')}<input {...campo('projeto_nome')} /></div>
+        <div>{rotulo('Modalidade')}
+          <select value={form.arte_marcial_id || ''} onChange={e => setForm(f => ({ ...f, arte_marcial_id: e.target.value }))} style={estiloInput}>
+            <option value="">—</option>
+            {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+          </select>
+        </div>
+      </div>
+      <div>{rotulo('Local / endereço de execução do projeto')}<input {...campo('local_execucao')} /></div>
     </div>
   );
 }

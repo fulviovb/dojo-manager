@@ -2,6 +2,10 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 // Participante do Programa Municipal de Incentivo ao Esporte (Resolução CIE).
+// Proponente Pessoa Física (atleta/técnico) ou Pessoa Jurídica (entidade
+// sem fins lucrativos). PJ reaproveita `nome` (razão social), endereço
+// (sede), telefone/email e `responsavel_legal_*` (presidente/representante
+// legal); campos PF (cpf/rg/nascimento/residência/vínculo) ficam vazios.
 // aluno_id nullable: pode ser um aluno matriculado OU um atleta/técnico
 // avulso (sem cadastro de Usuario) — nesse caso os dados pessoais abaixo são
 // a única fonte. Mesmo quando aluno_id existe, os dados pessoais ficam
@@ -11,7 +15,7 @@ const sequelize = require('../config/database');
 const ParticipanteIncentivo = sequelize.define('ParticipanteIncentivo', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   escola_id: { type: DataTypes.UUID, allowNull: false },
-  tipo_pessoa: { type: DataTypes.ENUM('atleta', 'tecnico'), allowNull: false },
+  tipo_pessoa: { type: DataTypes.ENUM('atleta', 'tecnico', 'pessoa_juridica'), allowNull: false },
   aluno_id: { type: DataTypes.UUID },
 
   nome: { type: DataTypes.STRING, allowNull: false },
@@ -26,7 +30,17 @@ const ParticipanteIncentivo = sequelize.define('ParticipanteIncentivo', {
   estado: { type: DataTypes.STRING },
   cep: { type: DataTypes.STRING },
 
-  // Só preenchido quando o participante é menor de 18.
+  // Só Pessoa Jurídica.
+  cnpj: { type: DataTypes.STRING(18) },
+  responsavel_financeiro_nome: { type: DataTypes.STRING },
+  responsavel_financeiro_rg: { type: DataTypes.STRING },
+  responsavel_financeiro_cpf: { type: DataTypes.STRING },
+  // Local/endereço de execução do projeto (Anexo X).
+  local_execucao: { type: DataTypes.STRING },
+  // Nome do projeto — usado nas declarações (Anexos X/XV/XVI/XX/XXI).
+  projeto_nome: { type: DataTypes.STRING },
+
+  // PF menor de 18: responsável legal. PJ: presidente/representante legal.
   responsavel_legal_nome: { type: DataTypes.STRING },
   responsavel_legal_rg: { type: DataTypes.STRING },
   responsavel_legal_cpf: { type: DataTypes.STRING },

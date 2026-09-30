@@ -15,7 +15,7 @@ const MESES_EXTENSO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho
 // os informa explicitamente — todo anexo tem essa dupla de campos.
 function valoresPadrao() {
   const hoje = new Date();
-  return { dia: String(hoje.getDate()), mes_extenso: MESES_EXTENSO[hoje.getMonth()] };
+  return { dia: String(hoje.getDate()), mes_extenso: MESES_EXTENSO[hoje.getMonth()], ano: String(hoje.getFullYear()) };
 }
 
 function preencherDocx(nomeTemplate, dados) {
@@ -63,6 +63,18 @@ async function montarLinhasAnexoXI(escolaId, atletaIds) {
   return atletas.map((a, i) => ({ numero: i + 1, nome: a.nome, documento: a.cpf || a.rg || '' }));
 }
 
+// Linhas do Anexo X (lista nominal de participantes de projeto PJ): alunos
+// ativos da escola escolhidos na geração, em ordem alfabética.
+async function montarLinhasAnexoX(escolaId, alunoIds) {
+  const { Usuario } = require('../models');
+  const alunos = await Usuario.findAll({
+    where: { id: alunoIds, escola_id: escolaId, role: 'aluno', ativo: true },
+    order: [['nome', 'ASC']],
+  });
+  const dataBr = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
+  return alunos.map((a, i) => ({ numero: i + 1, nome: a.nome, nascimento: dataBr(a.data_nascimento), documento: a.cpf || a.rg || '' }));
+}
+
 // Gera o PDF preenchido de um anexo. `tipoAnexo` é a chave em ANEXOS (ex:
 // 'IX'). `campos` são os valores já resolvidos (o controller já aplicou o
 // `fonte` de cada campo antes de chamar isso, exceto pra linhas do XI).
@@ -72,7 +84,7 @@ async function gerarAnexo(tipoAnexo, campos) {
 
   const dados = { ...valoresPadrao(), ...campos };
 
-  if (tipoAnexo === 'XI') {
+  if (tipoAnexo === 'XI' || tipoAnexo === 'X') {
     dados.linhas = campos.linhas || [];
   }
 
@@ -81,4 +93,4 @@ async function gerarAnexo(tipoAnexo, campos) {
   return pdfBuffer;
 }
 
-module.exports = { gerarAnexo, montarLinhasAnexoXI };
+module.exports = { gerarAnexo, montarLinhasAnexoXI, montarLinhasAnexoX };

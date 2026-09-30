@@ -1,6 +1,6 @@
 const { ParticipanteIncentivo, DocumentoIncentivo, Usuario, ArteMarcial, EntidadeFederativa } = require('../models');
-const { textoEntidade } = require('./entidadesFederativasController');
-const { CHECKLIST_ATLETA, CHECKLIST_TECNICO } = require('../constants/incentivoEsporte');
+const { textoEntidade, normalizarCnpj } = require('./entidadesFederativasController');
+const { checklistPorTipo } = require('../constants/incentivoEsporte');
 
 const INCLUDE_PADRAO = [
   { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'foto_url'] },
@@ -12,6 +12,13 @@ const INCLUDE_PADRAO = [
 // Vínculo federativo: "não possui" zera a entidade; com entidade escolhida
 // (precisa ser da mesma escola), os campos de texto viram espelho dela.
 // Devolve mensagem de erro (string) ou null. Muta `dados`.
+// PJ: CNPJ opcional, mas se vier precisa ser válido (grava formatado).
+// Devolve mensagem de erro ou null. Muta `dados`.
+function aplicarCnpj(dados) {
+  if (dados.cnpj === undefined) return null;
+  try { dados.cnpj = normalizarCnpj(dados.cnpj); return null; } catch (e) { return e.message; }
+}
+
 async function aplicarVinculoFederativo(dados, escola_id) {
   if (dados.vinculo_federativo === 'nao_possui') {
     Object.assign(dados, { entidade_federativa_id: null, vinculo_federativo_entidade: null, vinculo_federativo_cidade: null });
@@ -79,7 +86,9 @@ function nomeComprovanteResidencia(caminho) {
 // item que o usuário já preencheu nunca é apagado automaticamente, só pelo
 // botão "remover" manual.
 async function sincronizarChecklistResidencia(participante) {
-  const checklist = participante.tipo_pessoa === 'tecnico' ? CHECKLIST_TECNICO : CHECKLIST_ATLETA;
+  // PJ não comprova residência (sede vai no alvará/cartão CNPJ).
+  if (participante.tipo_pessoa === 'pessoa_juridica') return;
+  const checklist = checklistPorTipo(participante.tipo_pessoa);
   const caminho = resolverCaminhoResidencia(participante);
 
   await DocumentoIncentivo.update(
@@ -108,8 +117,33 @@ async function sincronizarChecklistResidencia(participante) {
   }
 }
 
+// Mesmo padrão da residência, pra `atua_com_menores` (técnico e PJ):
+// adiciona o(s) item(ns) que passaram a valer e remove os que deixaram de
+// valer — só se ainda estiverem vazios (pendente e sem arquivo).
+async function sincronizarChecklistMenores(participante) {
+  const checklist = checklistPorTipo(participante.tipo_pessoa);
+  const atua = !!participante.atua_com_menores;
+  for (const [ordem, item] of checklist.entries()) {
+    if (item.condicao !== 'atua_com_menores' && item.condicao !== 'nao_atua_com_menores') continue;
+    const aplica = item.condicao === 'atua_com_menores' ? atua : !atua;
+    if (aplica) {
+      await DocumentoIncentivo.findOrCreate({
+        where: { participante_id: participante.id, tipo_documento: item.key },
+        defaults: {
+          escola_id: participante.escola_id, participante_id: participante.id,
+          tipo_documento: item.key, nome_exibicao: item.nome, origem: 'upload', status: 'pendente', ordem,
+        },
+      });
+    } else {
+      await DocumentoIncentivo.destroy({
+        where: { participante_id: participante.id, tipo_documento: item.key, status: 'pendente', arquivo_url: null },
+      });
+    }
+  }
+}
+
 async function semearChecklist(participante) {
-  const checklist = participante.tipo_pessoa === 'tecnico' ? CHECKLIST_TECNICO : CHECKLIST_ATLETA;
+  const checklist = checklistPorTipo(participante.tipo_pessoa);
   const caminhoResidencia = resolverCaminhoResidencia(participante);
   const contexto = {
     menorDe18: (calcularIdade(participante.data_nascimento) ?? 99) < 18,
@@ -198,7 +232,7 @@ const criar = async (req, res) => {
     }
 
     const dados = { ...dadosBase, ...req.body, escola_id, aluno_id: aluno_id || null };
-    const erroVinculo = await aplicarVinculoFederativo(dados, escola_id);
+    const erroVinculo = aplicarCnpj(dados) || await aplicarVinculoFederativo(dados, escola_id);
     if (erroVinculo) return res.status(400).json({ erro: erroVinculo });
     const participante = await ParticipanteIncentivo.create(dados);
     await semearChecklist(participante);
@@ -214,10 +248,13 @@ const atualizar = async (req, res) => {
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
     const dados = { ...req.body };
     delete dados.escola_id;
-    const erroVinculo = await aplicarVinculoFederativo(dados, req.usuario.escola_id);
+    delete dados.tipo_pessoa; // trocar PF↔PJ bagunçaria o checklist já semeado
+    const erroVinculo = aplicarCnpj(dados) || await aplicarVinculoFederativo(dados, req.usuario.escola_id);
     if (erroVinculo) return res.status(400).json({ erro: erroVinculo });
+    const menoresAntes = !!participante.atua_com_menores;
     await participante.update(dados);
     await sincronizarChecklistResidencia(participante);
+    if (!!participante.atua_com_menores !== menoresAntes) await sincronizarChecklistMenores(participante);
     const completo = await ParticipanteIncentivo.findByPk(participante.id, { include: INCLUDE_PADRAO });
     res.json(completo);
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }

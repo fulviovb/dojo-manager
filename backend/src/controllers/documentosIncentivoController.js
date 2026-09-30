@@ -2,10 +2,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo, EntidadeFederativa } = require('../models');
+const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo, EntidadeFederativa, ArteMarcial } = require('../models');
 const { textoEntidade } = require('./entidadesFederativasController');
 const { ANEXOS, ITEM_CREDENCIAL, buscarItemChecklist } = require('../constants/incentivoEsporte');
-const { gerarAnexo, montarLinhasAnexoXI } = require('../services/anexoService');
+const { gerarAnexo, montarLinhasAnexoXI, montarLinhasAnexoX } = require('../services/anexoService');
 
 const PASTA_DOCS = path.join(__dirname, '..', '..', 'uploads', 'incentivo-esporte', 'documentos');
 fs.mkdirSync(PASTA_DOCS, { recursive: true });
@@ -164,6 +164,8 @@ function resolverFonte(participante, fonte) {
   }
   // Entidade do cadastro (dados atuais, "NOME - CNPJ ..."); sem entidade
   // vinculada cai no texto legado digitado no participante.
+  if (fonte === 'pj.nome_cnpj') return participante.cnpj ? `${participante.nome} - CNPJ ${participante.cnpj}` : participante.nome;
+  if (fonte === 'arte_marcial.nome') return participante.ArteMarcial?.nome ?? '';
   if (partes[0] === 'entidade') {
     const entidade = participante.EntidadeFederativa;
     if (partes[1] === 'nome_cnpj') return entidade ? textoEntidade(entidade) : (participante.vinculo_federativo_entidade ?? '');
@@ -202,11 +204,14 @@ async function garantirItemNoChecklist(participante, tipoAnexo, def) {
 
 const gerar = async (req, res) => {
   try {
-    const { participante_id, tipo_anexo, campos, atletas_ids } = req.body;
+    const { participante_id, tipo_anexo, campos, atletas_ids, alunos_ids } = req.body;
     const def = ANEXOS[tipo_anexo];
     if (!def) return res.status(400).json({ erro: 'Anexo desconhecido' });
     if (tipo_anexo === 'XI' && (!Array.isArray(atletas_ids) || atletas_ids.length === 0)) {
       return res.status(400).json({ erro: 'Selecione ao menos um atleta para a relação' });
+    }
+    if (tipo_anexo === 'X' && (!Array.isArray(alunos_ids) || alunos_ids.length === 0)) {
+      return res.status(400).json({ erro: 'Selecione ao menos um participante para a lista' });
     }
 
     const participante = await ParticipanteIncentivo.findOne({
@@ -214,9 +219,13 @@ const gerar = async (req, res) => {
       include: [
         { model: ParticipanteIncentivo, as: 'TecnicoResponsavel', attributes: ['id', 'nome', 'rg', 'cpf'] },
         { model: EntidadeFederativa },
+        { model: ArteMarcial, attributes: ['nome'] },
       ],
     });
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
+    if (!def.gerar_para.includes(participante.tipo_pessoa)) {
+      return res.status(400).json({ erro: `Anexo ${tipo_anexo} não se aplica a este tipo de participante` });
+    }
 
     if (tipo_anexo === 'IX') {
       const faltando = [['endereco', 'endereço'], ['bairro', 'bairro'], ['cep', 'CEP'], ['cidade', 'cidade'], ['estado', 'UF']]
@@ -237,6 +246,10 @@ const gerar = async (req, res) => {
     if (tipo_anexo === 'XI') {
       dados.linhas = await montarLinhasAnexoXI(req.usuario.escola_id, atletas_ids);
       if (dados.linhas.length === 0) return res.status(400).json({ erro: 'Nenhum dos atletas selecionados foi encontrado' });
+    }
+    if (tipo_anexo === 'X') {
+      dados.linhas = await montarLinhasAnexoX(req.usuario.escola_id, alunos_ids);
+      if (dados.linhas.length === 0) return res.status(400).json({ erro: 'Nenhum dos alunos selecionados foi encontrado' });
     }
 
     const pdfBuffer = await gerarAnexo(tipo_anexo, dados);

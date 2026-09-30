@@ -610,8 +610,22 @@ ativo), **Contrapartidas** e **Despesas** (visão geral cruzando todos os
 participantes). Clicar num participante abre `ParticipanteIncentivoDetalhe.js`
 com:
 
+- **Pessoa Jurídica** (entidade/CNPJ) é o 3º tipo de participante
+  (`tipo_pessoa: 'pessoa_juridica'`): razão social em `nome`, `cnpj`
+  validado, sede no endereço, presidente em `responsavel_legal_*`,
+  `responsavel_financeiro_*`, `projeto_nome`, `local_execucao`, modalidade
+  (`arte_marcial_id`). Tela própria (`CamposPJ` / `SecaoDadosPJ`), com
+  opção de pré-preencher a partir de uma entidade da aba Entidades.
+  Checklist `CHECKLIST_PESSOA_JURIDICA` (19 itens — Decreto 1985/2025 Art.
+  23 §3º + Quadro de Normas da Resolução); sem comprovação de residência.
+  Anexos gerados só pra PJ: X (lista nominal — usuário escolhe os alunos),
+  XV/XVI (termo de fomento FMEL), XX (não-enquadramento antecedentes) e
+  XXI (responsável técnico, dados do RT digitados). `gerar_para` é lista
+  de tipos e é validado no backend. Trocar "atende menores" (PJ ou
+  técnico) troca sozinho no checklist certidões de antecedentes ↔ Anexo
+  XX/XIX (`sincronizarChecklistMenores`, só remove item vazio).
 - **Documentos**: checklist auto-semeado ao criar o participante (varia por
-  tipo Atleta/Técnico e por condição — menor de 18, atua com menores —, ver
+  tipo Atleta/Técnico/Pessoa Jurídica e por condição — menor de 18, atua com menores —, ver
   `constants/incentivoEsporte.js`), cada item com upload de arquivo e status
   (pendente/recebido/aprovado/rejeitado). `DocumentoIncentivo.ordem` guarda a
   posição no array canônico do checklist — sem isso a exibição ficaria na

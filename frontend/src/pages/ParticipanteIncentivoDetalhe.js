@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Modal, SeletorEntidade, formatarCep, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
+import { Modal, SeletorEntidade, CamposPJ, formatarCep, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
 import { SERVER_ORIGIN } from '../components/Avatar';
 
 const card = (extra = {}) => ({ background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16, ...extra });
@@ -8,7 +8,7 @@ const cardHeader = { display: 'flex', justifyContent: 'space-between', alignItem
 const cardTitle = { fontWeight: 700, fontSize: 15, color: '#1e2a38' };
 const btnPerigo = { background: '#c62828', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 11 };
 
-const TIPO_PESSOA_LABEL = { atleta: 'Atleta', tecnico: 'Técnico' };
+const TIPO_PESSOA_LABEL = { atleta: 'Atleta', tecnico: 'Técnico', pessoa_juridica: 'Pessoa Jurídica' };
 const STATUS_PROGRAMA_LABEL = { inscrito: 'Inscrito', documentacao_pendente: 'Documentação Pendente', habilitado: 'Habilitado', indeferido: 'Indeferido', inabilitado: 'Inabilitado' };
 const STATUS_DOC_LABEL = { pendente: 'Pendente', recebido: 'Recebido', aprovado: 'Aprovado', rejeitado: 'Rejeitado' };
 const STATUS_DOC_COR = { pendente: '#888', recebido: '#1565c0', aprovado: '#2e7d32', rejeitado: '#c62828' };
@@ -31,19 +31,24 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
   const [campos, setCampos] = useState(() => Object.fromEntries(anexo.campos.filter(c => !c.temFonte).map(c => [c.key, ''])));
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
-  // Anexo XI (relação de atletas do técnico): o usuário escolhe quais
-  // atletas do módulo entram no documento — pré-marca os que já têm este
-  // técnico como responsável.
-  const ehRelacaoAtletas = anexo.codigo === 'XI';
+  // Anexos com lista de pessoas escolhida na geração:
+  //  - XI (relação de atletas do técnico): atletas do módulo — pré-marca os
+  //    que já têm este técnico como responsável;
+  //  - X (lista nominal de participantes do projeto PJ): alunos ativos da
+  //    escola — nada pré-marcado.
+  const ehRelacaoAtletas = anexo.codigo === 'XI' || anexo.codigo === 'X';
+  const ehListaAlunos = anexo.codigo === 'X';
   const [atletas, setAtletas] = useState(null);
   const [selecionados, setSelecionados] = useState(new Set());
   useEffect(() => {
     if (!ehRelacaoAtletas) return;
-    axios.get('/incentivo-esporte/participantes?tipo_pessoa=atleta').then(r => {
-      setAtletas(r.data);
-      setSelecionados(new Set(r.data.filter(a => a.tecnico_responsavel_id === participanteId).map(a => a.id)));
-    }).catch(() => setErro('Erro ao carregar atletas'));
-  }, [ehRelacaoAtletas, participanteId]);
+    const url = ehListaAlunos ? '/usuarios?role=aluno' : '/incentivo-esporte/participantes?tipo_pessoa=atleta';
+    axios.get(url).then(r => {
+      const lista = [...r.data].sort((a, b) => a.nome.localeCompare(b.nome));
+      setAtletas(lista);
+      if (!ehListaAlunos) setSelecionados(new Set(lista.filter(a => a.tecnico_responsavel_id === participanteId).map(a => a.id)));
+    }).catch(() => setErro('Erro ao carregar a lista'));
+  }, [ehRelacaoAtletas, ehListaAlunos, participanteId]);
 
   const alternarAtleta = (id) => setSelecionados(prev => {
     const novo = new Set(prev);
@@ -52,7 +57,7 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
   });
 
   const gerar = async () => {
-    if (ehRelacaoAtletas && selecionados.size === 0) return setErro('Selecione ao menos um atleta');
+    if (ehRelacaoAtletas && selecionados.size === 0) return setErro(ehListaAlunos ? 'Selecione ao menos um participante' : 'Selecione ao menos um atleta');
     setSalvando(true); setErro('');
     try {
       // Documento gerado sai sem assinatura: vai direto pra download (não
@@ -60,7 +65,7 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
       // pendente se ele não existir mais no checklist.
       const r = await axios.post('/incentivo-esporte/documentos/gerar', {
         participante_id: participanteId, tipo_anexo: anexo.codigo, campos,
-        ...(ehRelacaoAtletas ? { atletas_ids: [...selecionados] } : {}),
+        ...(ehRelacaoAtletas ? { [ehListaAlunos ? 'alunos_ids' : 'atletas_ids']: [...selecionados] } : {}),
       }, { responseType: 'blob' });
       const nomeArquivo = /filename="([^"]+)"/.exec(r.headers['content-disposition'] || '')?.[1] || `Anexo_${anexo.codigo}.pdf`;
       const url = URL.createObjectURL(r.data);
@@ -99,7 +104,7 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
         {ehRelacaoAtletas && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <label style={{ fontSize: 12 }}>Atletas na relação ({selecionados.size} selecionado{selecionados.size === 1 ? '' : 's'})</label>
+              <label style={{ fontSize: 12 }}>{ehListaAlunos ? 'Alunos participantes do projeto' : 'Atletas na relação'} ({selecionados.size} selecionado{selecionados.size === 1 ? '' : 's'})</label>
               {atletas?.length > 0 && (
                 <span style={{ fontSize: 11 }}>
                   <button type="button" onClick={() => setSelecionados(new Set(atletas.map(a => a.id)))} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', padding: 0 }}>todos</button>
@@ -110,11 +115,12 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
             </div>
             <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: 6, padding: '4px 8px' }}>
               {atletas === null && <p style={{ fontSize: 12, color: '#888', margin: '6px 0' }}>Carregando...</p>}
-              {atletas?.length === 0 && <p style={{ fontSize: 12, color: '#888', margin: '6px 0' }}>Nenhum atleta cadastrado no módulo.</p>}
+              {atletas?.length === 0 && <p style={{ fontSize: 12, color: '#888', margin: '6px 0' }}>{ehListaAlunos ? 'Nenhum aluno ativo.' : 'Nenhum atleta cadastrado no módulo.'}</p>}
               {atletas?.map(a => (
                 <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, padding: '4px 0', cursor: 'pointer' }}>
                   <input type="checkbox" checked={selecionados.has(a.id)} onChange={() => alternarAtleta(a.id)} />
                   <span style={{ flex: 1 }}>{a.nome}</span>
+                  {ehListaAlunos && !a.data_nascimento && <span style={{ fontSize: 11, color: '#ef6c00' }}>sem nascimento</span>}
                   {!a.cpf && !a.rg && <span style={{ fontSize: 11, color: '#ef6c00' }}>sem CPF/RG</span>}
                 </label>
               ))}
@@ -302,12 +308,12 @@ function SecaoDocumentos({ participante, onRefresh }) {
   useEffect(() => { axios.get('/incentivo-esporte/anexos').then(r => setAnexosDisponiveis(r.data)); }, []);
   useEffect(() => {
     axios.get('/incentivo-esporte/catalogos').then(r => {
-      const lista = participante.tipo_pessoa === 'tecnico' ? r.data.checklistTecnico : r.data.checklistAtleta;
+      const lista = { tecnico: r.data.checklistTecnico, pessoa_juridica: r.data.checklistPessoaJuridica }[participante.tipo_pessoa] || r.data.checklistAtleta;
       setChecklistDef(Object.fromEntries(lista.map(i => [i.key, i])));
     });
   }, [participante.tipo_pessoa]);
 
-  const anexosParaEsteTipo = anexosDisponiveis.filter(a => a.gerar_para === 'ambos' || a.gerar_para === participante.tipo_pessoa);
+  const anexosParaEsteTipo = anexosDisponiveis.filter(a => a.gerar_para.includes(participante.tipo_pessoa));
 
   const mudarStatus = async (doc, status) => {
     await axios.put(`/incentivo-esporte/documentos/${doc.id}`, { status });
@@ -668,6 +674,68 @@ function SecaoDespesas({ participante }) {
 
 // ── Sidebar: Dados pessoais + status + taxa de gestão ─────────────────────
 
+function SecaoDadosPJ({ participante, onAtualizado }) {
+  const [editando, setEditando] = useState(false);
+  const [form, setForm] = useState(participante);
+  const [erro, setErro] = useState('');
+  const pessoa = (n, rg, cpf) => [n, rg && `RG ${rg}`, cpf && `CPF ${cpf}`].filter(Boolean).join(' · ');
+
+  const salvar = async () => {
+    setErro('');
+    if (!String(form.nome || '').trim()) return setErro('Informe a razão social');
+    const payload = { ...form };
+    Object.keys(payload).forEach(k => { if (payload[k] === '') payload[k] = null; });
+    try {
+      await axios.put(`/incentivo-esporte/participantes/${participante.id}`, payload);
+      setEditando(false);
+      onAtualizado();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+  };
+
+  return (
+    <div style={card()}>
+      <div style={cardHeader}>
+        <span style={cardTitle}>Dados da Entidade</span>
+        {!editando && <button onClick={() => { setForm(participante); setErro(''); setEditando(true); }} style={btnAzul}>✎ Editar</button>}
+      </div>
+      <div style={{ padding: '12px 18px' }}>
+        {!editando ? (
+          <>
+            <LinhaInfo label="CNPJ" valor={participante.cnpj} />
+            <LinhaInfo label="Telefone" valor={participante.telefone} />
+            <LinhaInfo label="Email" valor={participante.email} />
+            <LinhaInfo label="Sede" valor={[participante.endereco, participante.bairro, participante.cep && `CEP ${participante.cep}`, [participante.cidade, participante.estado].filter(Boolean).join('/')].filter(Boolean).join(' - ')} />
+            <LinhaInfo label="Presidente" valor={pessoa(participante.responsavel_legal_nome, participante.responsavel_legal_rg, participante.responsavel_legal_cpf)} />
+            <LinhaInfo label="Resp. financeiro" valor={pessoa(participante.responsavel_financeiro_nome, participante.responsavel_financeiro_rg, participante.responsavel_financeiro_cpf)} />
+            <LinhaInfo label="Projeto" valor={participante.projeto_nome} />
+            <LinhaInfo label="Modalidade" valor={participante.ArteMarcial?.nome} />
+            <LinhaInfo label="Local execução" valor={participante.local_execucao} />
+            <LinhaInfo label="Atende menores" valor={participante.atua_com_menores ? 'Sim' : 'Não'} />
+          </>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <CamposPJ form={form} setForm={setForm} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <input type="checkbox" checked={!!form.atua_com_menores} onChange={e => setForm(f => ({ ...f, atua_com_menores: e.target.checked }))} />
+              O projeto atende menores de 18
+            </label>
+            {!!form.atua_com_menores !== !!participante.atua_com_menores && (
+              <p style={{ fontSize: 12, color: '#ef6c00', margin: 0 }}>
+                Ao salvar, o checklist troca {form.atua_com_menores ? 'o Anexo XX pelas certidões de antecedentes dos colaboradores' : 'as certidões de antecedentes pelo Anexo XX'} (item antigo só é removido se ainda estiver vazio).
+              </p>
+            )}
+            {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+              <button onClick={() => setEditando(false)} style={btnCinza}>Cancelar</button>
+              <button onClick={salvar} style={btnVerde}>Salvar</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SecaoDadosPessoais({ participante, onAtualizado }) {
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState(participante);
@@ -833,7 +901,7 @@ export default function ParticipanteIncentivoDetalhe({ participanteId, onVoltar 
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ margin: 0, fontSize: 24, color: '#1e2a38' }}>{participante.nome}</h1>
         <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
-          {TIPO_PESSOA_LABEL[participante.tipo_pessoa]} · {participante.aluno_id ? 'Aluno matriculado' : 'Avulso'}
+          {TIPO_PESSOA_LABEL[participante.tipo_pessoa]} · {participante.tipo_pessoa === 'pessoa_juridica' ? (participante.cnpj ? `CNPJ ${participante.cnpj}` : 'sem CNPJ') : participante.aluno_id ? 'Aluno matriculado' : 'Avulso'}
         </div>
       </div>
 
@@ -845,7 +913,9 @@ export default function ParticipanteIncentivoDetalhe({ participanteId, onVoltar 
         </div>
         <div>
           <SecaoPrograma participante={participante} onAtualizado={carregar} />
-          <SecaoDadosPessoais participante={participante} onAtualizado={carregar} />
+          {participante.tipo_pessoa === 'pessoa_juridica'
+            ? <SecaoDadosPJ participante={participante} onAtualizado={carregar} />
+            : <SecaoDadosPessoais participante={participante} onAtualizado={carregar} />}
         </div>
       </div>
     </div>

@@ -7,13 +7,13 @@ const contrapartidas = require('../controllers/contrapartidasIncentivoController
 const despesas = require('../controllers/despesasIncentivoController');
 const credenciais = require('../controllers/credenciaisIncentivoController');
 const entidades = require('../controllers/entidadesFederativasController');
-const { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA } = require('../constants/incentivoEsporte');
+const { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CHECKLIST_PESSOA_JURIDICA, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA } = require('../constants/incentivoEsporte');
 
 // Módulo sensível (dados pessoais + financeiro) — só admin, como Mensalidades.
 router.use(autenticar, autorizarRole(['admin']));
 
 router.get('/catalogos', (req, res) => res.json({
-  checklistAtleta: CHECKLIST_ATLETA, checklistTecnico: CHECKLIST_TECNICO,
+  checklistAtleta: CHECKLIST_ATLETA, checklistTecnico: CHECKLIST_TECNICO, checklistPessoaJuridica: CHECKLIST_PESSOA_JURIDICA,
   categoriasDespesa: CATEGORIAS_DESPESA, tiposContrapartida: TIPOS_CONTRAPARTIDA,
 }));
 

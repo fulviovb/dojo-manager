@@ -1419,6 +1419,26 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     ("..., Cep: 81170-420") — movido pro campo. Ainda sem CEP (precisa
     preencher na tela): Sandra, Fulvio (atleta e técnico), José Marcio,
     Lucas, Giovanna; Thyago sem endereço nenhum.
+[x] Pessoa Jurídica (projeto de CNPJ) no Incentivo ao Esporte, pedido do
+    Fulvio (30/09/2026). tipo_pessoa 'pessoa_juridica' + colunas cnpj,
+    responsavel_financeiro_nome/rg/cpf, local_execucao, projeto_nome
+    (script `2026-09-incentivo-pessoa-juridica.js`). Checklist de 19 itens
+    conforme Decreto Art. 23 §3º + Quadro de Normas: login, cartão CNPJ,
+    alvará, estatuto, ata da diretoria, RG/CPF presidente e resp.
+    financeiro, certidões federal/estadual/municipal/trabalhista/TCE-PR/
+    FGTS, Anexo XXI (RT), Anexo XV/XVI, Anexo X, permissão de uso do local,
+    e antecedentes dos colaboradores (múltiplo) ou Anexo XX. Templates
+    novos anexo-x/xv/xvi/xx.docx gerados a partir dos .docx oficiais
+    (ANEXOS PARA 2027); Anexo X com loop de linhas (alunos escolhidos na
+    geração); XX com ano da assinatura em vez do "2027" fixo do modelo.
+    XXI passou a ser só de PJ (declarante = RT, digitado). `gerar_para`
+    virou lista e é validado no backend. Novo: checklist se ajusta ao
+    trocar "atende menores" (técnico e PJ). Script antigo
+    `2026-09-incentivo-tecnico-anexo-xii.js` restrito a técnicos (se
+    re-rodado apagaria o item responsavel_tecnico da PJ). Testado via API
+    com PJ temporária: CNPJ inválido → 400; checklist 18 itens (sem menores)
+    → com menores troca XX por certidões; tipo_pessoa não muda via PUT;
+    PDFs X/XV/XX conferidos com pdftotext; IX em PJ e XXI em técnico → 400.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

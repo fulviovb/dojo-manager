@@ -59,6 +59,38 @@ const CHECKLIST_TECNICO = [
   // de Normas da Resolução ele só é exigido de Pessoa Jurídica (item 13).
 ];
 
+// Pessoa Jurídica (Decreto 1985/2025 Art. 23 §3º + Quadro de Normas e
+// Art. 14 §9º/§13/§16 da Resolução). Antecedentes: atua com menores →
+// certidões de TODOS os colaboradores (§17 II/§18 — múltiplo, sem limite);
+// senão Anexo XX. Login do sistema é o CPF do representante legal (Art. 13).
+const CHECKLIST_PESSOA_JURIDICA = [
+  ITEM_CREDENCIAL,
+  { key: 'cartao_cnpj', nome: 'Comprovante de inscrição no CNPJ (ativo há pelo menos 12 meses)', condicao: 'sempre' },
+  { key: 'alvara_funcionamento', nome: 'Alvará de funcionamento válido (Prefeitura de Curitiba)', condicao: 'sempre' },
+  { key: 'estatuto_social', nome: 'Estatuto social', condicao: 'sempre' },
+  { key: 'ata_eleicao_diretoria', nome: 'Ata de eleição da atual diretoria (registrada em cartório)', condicao: 'sempre' },
+  { key: 'rg_cpf_representante_legal', nome: 'RG e CPF do presidente/representante legal (frente e verso)', condicao: 'sempre' },
+  { key: 'rg_cpf_responsavel_financeiro', nome: 'RG e CPF do responsável financeiro (frente e verso — função prevista no estatuto ou em ata)', condicao: 'sempre' },
+  { key: 'certidao_federal', nome: 'Certidão negativa de débitos federais', condicao: 'sempre' },
+  { key: 'certidao_estadual', nome: 'Certidão negativa de débitos estaduais (Paraná)', condicao: 'sempre' },
+  { key: 'certidao_municipal', nome: 'Certidão negativa de débitos municipais (Curitiba)', condicao: 'sempre' },
+  { key: 'certidao_trabalhista', nome: 'Certidão negativa de débitos trabalhistas', condicao: 'sempre' },
+  { key: 'certidao_tce_pr', nome: 'Certidão liberatória do Tribunal de Contas do Estado do Paraná', condicao: 'sempre' },
+  { key: 'certificado_fgts', nome: 'Certificado de regularidade do FGTS', condicao: 'sempre' },
+  { key: 'responsavel_tecnico', nome: 'Declaração do responsável técnico pelo planejamento (Anexo XXI) + registro CONFEF/CREF do RT', condicao: 'sempre' },
+  { key: 'termo_fomento', nome: 'Declaração de Termo de Fomento FMEL 2026 (Anexo XV) ou de não-enquadramento (Anexo XVI)', condicao: 'sempre' },
+  { key: 'lista_participantes', nome: 'Lista nominal de participantes do projeto (Anexo X)', condicao: 'sempre' },
+  { key: 'permissao_uso_local', nome: 'Permissão de uso do local de execução (cessão de uso, contrato de aluguel, certidão de propriedade...)', condicao: 'sempre' },
+  { key: 'antecedentes_colaboradores', nome: 'Certidões negativas de antecedentes criminais dos colaboradores (ePol SINIC — uma por pessoa)', condicao: 'atua_com_menores', multiplo: true, rotulo_instancia: 'Certidão' },
+  { key: 'declaracao_nao_enquadramento_antecedentes', nome: 'Declaração de não-enquadramento — antecedentes criminais (Anexo XX)', condicao: 'nao_atua_com_menores' },
+];
+
+function checklistPorTipo(tipoPessoa) {
+  if (tipoPessoa === 'tecnico') return CHECKLIST_TECNICO;
+  if (tipoPessoa === 'pessoa_juridica') return CHECKLIST_PESSOA_JURIDICA;
+  return CHECKLIST_ATLETA;
+}
+
 // Rubricas de despesa permitidas pelo edital (Anexos VI/VII/VIII — o
 // percentual-teto por categoria não é validado automaticamente pelo
 // sistema, só o lançamento).
@@ -90,13 +122,26 @@ const TIPOS_CONTRAPARTIDA = [
 // documento gerado sai SEM assinatura, então nunca conta como entregue —
 // só é baixado; o usuário assina e envia pelo item). Sem chave, ou item
 // ausente no checklist do participante: vira item pendente `anexo_<código>`.
-// `gerar_para` restringe de qual tipo de participante o anexo pode ser
-// gerado ('atleta' | 'tecnico' | 'ambos').
+// `gerar_para`: tipos de participante que podem gerar o anexo (validado no
+// backend). `fonte` com ponto é resolvido em documentosIncentivoController
+// (resolverFonte): 'tecnico.x', 'entidade.x', 'pj.nome_cnpj',
+// 'arte_marcial.nome'.
+// Declarações assinadas pelo responsável legal da PJ (Anexos XV/XVI/XX).
+const CAMPOS_DECLARACAO_PJ = [
+  { key: 'declarante_nome', label: 'Nome do responsável legal', fonte: 'responsavel_legal_nome' },
+  { key: 'declarante_rg', label: 'RG do responsável legal', fonte: 'responsavel_legal_rg' },
+  { key: 'declarante_cpf', label: 'CPF do responsável legal', fonte: 'responsavel_legal_cpf' },
+  { key: 'instituicao', label: 'Instituição', fonte: 'pj.nome_cnpj' },
+  { key: 'projeto_nome', label: 'Nome do projeto', fonte: 'projeto_nome' },
+  { key: 'dia', label: 'Dia (assinatura)' },
+  { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },
+];
+
 const ANEXOS = {
   IX: {
     nome: 'Declaração de Residência',
     item_checklist: 'declaracao_residencia_anexo_ix',
-    gerar_para: 'ambos',
+    gerar_para: ['atleta', 'tecnico'],
     template: 'anexo-ix.docx',
     campos: [
       { key: 'declarante_nome', label: 'Nome do declarante (dono do comprovante)' },
@@ -114,7 +159,7 @@ const ANEXOS = {
   XI: {
     nome: 'Relação de Atletas sob Responsabilidade do Técnico',
     item_checklist: 'relacao_atletas',
-    gerar_para: 'tecnico',
+    gerar_para: ['tecnico'],
     template: 'anexo-xi.docx',
     campos: [
       { key: 'tecnico_nome', label: 'Nome do técnico', fonte: 'nome' },
@@ -132,7 +177,7 @@ const ANEXOS = {
   XII: {
     nome: 'Declaração de Vínculo Atleta / Técnico',
     item_checklist: null,
-    gerar_para: 'atleta',
+    gerar_para: ['atleta'],
     template: 'anexo-xii.docx',
     campos: [
       { key: 'atleta_nome', label: 'Nome do atleta', fonte: 'nome' },
@@ -148,7 +193,7 @@ const ANEXOS = {
   XVII: {
     nome: 'Declaração de Vínculo Federativo (possui vínculo)',
     item_checklist: 'vinculo_federativo',
-    gerar_para: 'ambos',
+    gerar_para: ['atleta', 'tecnico'],
     template: 'anexo-xvii.docx',
     campos: [
       { key: 'declarante_nome', label: 'Nome do declarante', fonte: 'nome' },
@@ -165,7 +210,7 @@ const ANEXOS = {
   XVIII: {
     nome: 'Vínculo Federativo — Declaração de Não-Enquadramento',
     item_checklist: 'vinculo_federativo',
-    gerar_para: 'ambos',
+    gerar_para: ['atleta', 'tecnico'],
     template: 'anexo-xviii.docx',
     campos: [
       { key: 'declarante_nome', label: 'Nome do declarante', fonte: 'nome' },
@@ -178,7 +223,7 @@ const ANEXOS = {
   XIX: {
     nome: 'Antecedentes Criminais — Declaração de Não-Enquadramento (Técnico)',
     item_checklist: 'declaracao_nao_enquadramento_antecedentes',
-    gerar_para: 'tecnico',
+    gerar_para: ['tecnico'],
     template: 'anexo-xix.docx',
     campos: [
       { key: 'declarante_nome', label: 'Nome do declarante', fonte: 'nome' },
@@ -192,15 +237,58 @@ const ANEXOS = {
   },
   XXI: {
     nome: 'Declaração de Responsável Técnico pelo Planejamento',
-    item_checklist: null,
-    gerar_para: 'tecnico',
+    item_checklist: 'responsavel_tecnico',
+    // Só Pessoa Jurídica (Quadro de Normas, item 13). Declarante é o RT
+    // (profissional CONFEF/CREF), não a entidade — dados digitados.
+    gerar_para: ['pessoa_juridica'],
     template: 'anexo-xxi.docx',
     campos: [
-      { key: 'declarante_nome', label: 'Nome do declarante', fonte: 'nome' },
-      { key: 'declarante_rg', label: 'RG do declarante', fonte: 'rg' },
-      { key: 'declarante_cpf', label: 'CPF do declarante', fonte: 'cpf' },
-      { key: 'confef_cref', label: 'CONFEF/CREF', fonte: 'confef_cref' },
-      { key: 'projeto_nome', label: 'Nome do projeto' },
+      { key: 'declarante_nome', label: 'Nome do responsável técnico' },
+      { key: 'declarante_rg', label: 'RG do responsável técnico' },
+      { key: 'declarante_cpf', label: 'CPF do responsável técnico' },
+      { key: 'confef_cref', label: 'Registro CONFEF/CREF do responsável técnico' },
+      { key: 'projeto_nome', label: 'Nome do projeto', fonte: 'projeto_nome' },
+      { key: 'dia', label: 'Dia (assinatura)' },
+      { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },
+    ],
+  },
+  X: {
+    nome: 'Listagem de Participantes (Pessoa Jurídica)',
+    item_checklist: 'lista_participantes',
+    gerar_para: ['pessoa_juridica'],
+    template: 'anexo-x.docx',
+    campos: [
+      { key: 'pj_nome', label: 'PJ proponente', fonte: 'pj.nome_cnpj' },
+      { key: 'modalidade', label: 'Modalidade', fonte: 'arte_marcial.nome' },
+      { key: 'local', label: 'Local/endereço de execução', fonte: 'local_execucao' },
+      { key: 'dia', label: 'Dia (assinatura)' },
+      { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },
+    ],
+    // linhas[] (numero/nome/nascimento/documento) vem dos alunos que o
+    // usuário seleciona na geração (`alunos_ids`).
+  },
+  XV: {
+    nome: 'Declaração de Termo de Fomento Aprovado (FMEL 2026)',
+    item_checklist: 'termo_fomento',
+    gerar_para: ['pessoa_juridica'],
+    template: 'anexo-xv.docx',
+    campos: CAMPOS_DECLARACAO_PJ,
+  },
+  XVI: {
+    nome: 'Termo de Fomento — Declaração de Não-Enquadramento',
+    item_checklist: 'termo_fomento',
+    gerar_para: ['pessoa_juridica'],
+    template: 'anexo-xvi.docx',
+    campos: CAMPOS_DECLARACAO_PJ,
+  },
+  XX: {
+    nome: 'Antecedentes Criminais — Declaração de Não-Enquadramento (Pessoa Jurídica)',
+    item_checklist: 'declaracao_nao_enquadramento_antecedentes',
+    gerar_para: ['pessoa_juridica'],
+    template: 'anexo-xx.docx',
+    campos: [
+      ...CAMPOS_DECLARACAO_PJ.filter(c => !['dia', 'mes_extenso'].includes(c.key)),
+      { key: 'projeto_numero', label: 'Número do projeto (se já tiver — senão deixe em branco)' },
       { key: 'dia', label: 'Dia (assinatura)' },
       { key: 'mes_extenso', label: 'Mês por extenso (assinatura)' },
     ],
@@ -212,10 +300,10 @@ const ANEXOS = {
 // quanto pra validar/enriquecer uploads avulsos que "completam" um item já
 // previsto no checklist (ex: mais um comprovante de resultado).
 function buscarItemChecklist(tipoPessoa, tipoDocumento) {
-  const checklist = tipoPessoa === 'tecnico' ? CHECKLIST_TECNICO : CHECKLIST_ATLETA;
+  const checklist = checklistPorTipo(tipoPessoa);
   const ordemCanonica = checklist.findIndex(item => item.key === tipoDocumento);
   if (ordemCanonica === -1) return null;
   return { ...checklist[ordemCanonica], ordemCanonica };
 }
 
-module.exports = { ITEM_CREDENCIAL, CHECKLIST_ATLETA, CHECKLIST_TECNICO, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA, ANEXOS, buscarItemChecklist };
+module.exports = { ITEM_CREDENCIAL, CHECKLIST_ATLETA, CHECKLIST_TECNICO, CHECKLIST_PESSOA_JURIDICA, checklistPorTipo, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA, ANEXOS, buscarItemChecklist };
