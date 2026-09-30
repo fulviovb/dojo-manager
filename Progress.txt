@@ -1449,6 +1449,19 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     (checkboxes atleta / paratleta / técnico(a)), pré-marcada pelo tipo do
     participante. Genérico: campo de anexo com `opcoes` (+
     `padrao_por_tipo`) no catálogo; backend recusa valor fora da lista.
+[x] Contrato de consultoria em PDF (pedido do Fulvio, 30/09/2026): botão
+    "Gerar contrato de consultoria" no detalhe do participante abre
+    formulário (consultor, contratante vindo do cadastro, projeto,
+    remuneração, prazos, pesos de rescisão) e baixa o PDF. PF / PF menor
+    (bloco do responsável legal + assinatura dele) / PJ (representante,
+    cláusula 3.6 do art. 16 §1º) escolhidos pelo cadastro no backend, não
+    pelo cliente. Validação: campos obrigatórios (devolve `faltando`, a
+    tela marca em vermelho), números inteiros em faixa, pesos somando 100.
+    Percentual por extenso ("15% (quinze por cento)"). Texto = modelo do
+    Claude Docs de 30/09 — mudanças feitas lá NÃO chegam aqui sozinhas
+    (editar contrato-consultoria.py e regerar o .docx). Testado via API:
+    adulto, menor (proporcional 15%) e PJ; PDFs de 4 páginas conferidos
+    com pdftotext, sem tag sobrando.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
