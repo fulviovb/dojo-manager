@@ -93,4 +93,9 @@ async function gerarAnexo(tipoAnexo, campos) {
   return pdfBuffer;
 }
 
-module.exports = { gerarAnexo, montarLinhasAnexoXI, montarLinhasAnexoX };
+// Qualquer template da pasta → PDF (usado pelo contrato de consultoria).
+async function gerarPdfDeTemplate(nomeTemplate, dados) {
+  return converterParaPdf(preencherDocx(nomeTemplate, dados));
+}
+
+module.exports = { gerarAnexo, gerarPdfDeTemplate, montarLinhasAnexoXI, montarLinhasAnexoX };

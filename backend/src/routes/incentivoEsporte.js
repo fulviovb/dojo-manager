@@ -7,6 +7,7 @@ const contrapartidas = require('../controllers/contrapartidasIncentivoController
 const despesas = require('../controllers/despesasIncentivoController');
 const credenciais = require('../controllers/credenciaisIncentivoController');
 const entidades = require('../controllers/entidadesFederativasController');
+const contrato = require('../controllers/contratoConsultoriaController');
 const { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CHECKLIST_PESSOA_JURIDICA, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA } = require('../constants/incentivoEsporte');
 
 // Módulo sensível (dados pessoais + financeiro) — só admin, como Mensalidades.
@@ -30,6 +31,9 @@ router.get('/participantes/:id/credencial', credenciais.buscar);
 router.put('/participantes/:id/credencial', credenciais.salvar);
 router.post('/participantes/:id/credencial/revelar', credenciais.revelar);
 router.delete('/participantes/:id/credencial', credenciais.remover);
+
+// Contrato de consultoria (PDF pra download, fora do checklist).
+router.post('/participantes/:id/contrato-consultoria', contrato.gerar);
 
 router.get('/entidades', entidades.listar);
 router.post('/entidades', entidades.criar);

@@ -676,6 +676,16 @@ com:
   hora da geração (`fonte: 'entidade.nome_cnpj'` / `'entidade.cidade'`),
   com fallback pro texto legado. É editável no "✎ Editar" do participante; ao trocar, a tela avisa pra remover o anexo
   antigo (XVII↔XVIII) e gerar o novo.
+- **Contrato de consultoria** (botão no topo do participante): formulário
+  com os dados do consultor, do contratante (vindos do cadastro, editáveis
+  sem alterar o cadastro; PF, PF menor com responsável legal, ou PJ com
+  representante) e as condições (percentual, forma/prazo de pagamento,
+  prazos, pesos das etapas) → PDF pra download (`POST
+  /incentivo-esporte/participantes/:id/contrato-consultoria`). Não entra no
+  checklist. Dados do consultor e condições ficam no localStorage do
+  navegador. Texto do modelo em
+  `templates/incentivo-esporte/contrato-consultoria.py` (gera o .docx —
+  rodar de novo após mudar o texto).
 - **Gerar anexo padrão**: preenche automaticamente um dos Anexos oficiais da
   prefeitura (IX, XI, XII, XVII, XVIII, XIX, XXI — os 4 exclusivos de Pessoa
   Jurídica não são suportados) e devolve um PDF pronto pra imprimir/assinar

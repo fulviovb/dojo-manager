@@ -685,6 +685,143 @@ function SecaoDespesas({ participante }) {
 
 // ── Sidebar: Dados pessoais + status + taxa de gestão ─────────────────────
 
+// ── Contrato de consultoria ────────────────────────────────────────────────
+// Gera o PDF do contrato (backend: contratoConsultoriaController). Dados do
+// contratante vêm do cadastro (editáveis aqui, sem alterar o cadastro); os
+// do consultor e as condições ficam salvos neste navegador pra próxima vez.
+const CHAVE_PREFS_CONTRATO = 'incentivo.contratoConsultoria.prefs';
+const PREFS_CONTRATO_PADRAO = {
+  contratado_nome: '', contratado_nacionalidade: 'brasileiro', contratado_estado_civil: '', contratado_profissao: '',
+  contratado_rg: '', contratado_cpf: '', contratado_endereco: '', contratado_email: '', contratado_telefone: '',
+  percentual: 10, pagamento_tipo: 'unico', prazo_pagamento_dias: 10, forma_pagamento: 'PIX para a chave ',
+  multa_percentual: 2, indice_correcao: 'IPCA', comprovante_pagamento: 'recibo',
+  prazo_notas_dias: 15, prazo_notificacao_dias: 2, aviso_rescisao_dias: 15,
+  peso_elaboracao: 60, peso_acompanhamento: 15, peso_prestacao: 25,
+};
+
+function lerPrefsContrato() {
+  try { return { ...PREFS_CONTRATO_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_PREFS_CONTRATO) || '{}') }; }
+  catch { return { ...PREFS_CONTRATO_PADRAO }; }
+}
+
+function idadeEm(iso) {
+  if (!iso) return null;
+  const hoje = new Date(); const n = new Date(iso + 'T00:00:00');
+  let i = hoje.getFullYear() - n.getFullYear();
+  if (hoje.getMonth() < n.getMonth() || (hoje.getMonth() === n.getMonth() && hoje.getDate() < n.getDate())) i--;
+  return i;
+}
+
+function ModalContratoConsultoria({ participante, onFechar }) {
+  const pj = participante.tipo_pessoa === 'pessoa_juridica';
+  const menor = !pj && (idadeEm(participante.data_nascimento) ?? 99) < 18;
+  const p = participante;
+  const endereco = [p.endereco, p.bairro, p.cep && `CEP ${p.cep}`, [p.cidade, p.estado].filter(Boolean).join('/')].filter(Boolean).join(', ');
+  const [form, setForm] = useState(() => ({
+    ...lerPrefsContrato(),
+    projeto_nome: p.projeto_nome || '',
+    data: new Date().toISOString().slice(0, 10),
+    contratante_nome: p.nome || '', contratante_rg: p.rg || '', contratante_cpf: p.cpf || '',
+    contratante_nascimento: p.data_nascimento ? formatData(p.data_nascimento) : '', contratante_endereco: endereco,
+    responsavel_nome: p.responsavel_legal_nome || '', responsavel_rg: p.responsavel_legal_rg || '', responsavel_cpf: p.responsavel_legal_cpf || '',
+    pj_razao_social: p.nome || '', pj_cnpj: p.cnpj || '', pj_sede: endereco, pj_cargo_representante: 'presidente',
+    pj_representante_nome: p.responsavel_legal_nome || '', pj_representante_rg: p.responsavel_legal_rg || '', pj_representante_cpf: p.responsavel_legal_cpf || '',
+    pj_documento_representacao: 'estatuto social e ata de eleição da diretoria registrada em cartório',
+  }));
+  const [faltando, setFaltando] = useState([]);
+  const [erro, setErro] = useState('');
+  const [gerando, setGerando] = useState(false);
+
+  const campo = (k, rotulo, extra = {}) => (
+    <div style={{ flex: extra.flex || 1, minWidth: extra.minWidth || 120 }}>
+      <label style={{ fontSize: 11, display: 'block', marginBottom: 3, color: faltando.includes(k) ? '#c62828' : '#555' }}>{rotulo}</label>
+      <input type={extra.type || 'text'} value={form[k] ?? ''} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+        style={{ ...estiloInput, padding: '6px 8px', fontSize: 13, borderColor: faltando.includes(k) ? '#c62828' : '#ddd' }} />
+    </div>
+  );
+  const linha = (...filhos) => <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{filhos}</div>;
+  const secao = (t) => <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', marginTop: 8 }}>{t}</div>;
+
+  const gerar = async () => {
+    setErro(''); setFaltando([]); setGerando(true);
+    try {
+      const prefs = Object.fromEntries(Object.keys(PREFS_CONTRATO_PADRAO).map(k => [k, form[k]]));
+      try { localStorage.setItem(CHAVE_PREFS_CONTRATO, JSON.stringify(prefs)); } catch { /* sem storage: só não lembra */ }
+      const r = await axios.post(`/incentivo-esporte/participantes/${participante.id}/contrato-consultoria`, { campos: form }, { responseType: 'blob' });
+      const nomeArquivo = /filename="([^"]+)"/.exec(r.headers['content-disposition'] || '')?.[1] || 'Contrato_Consultoria.pdf';
+      const url = URL.createObjectURL(r.data);
+      const a = document.createElement('a');
+      a.href = url; a.download = nomeArquivo;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      onFechar();
+    } catch (ex) {
+      let corpo = {};
+      try { corpo = JSON.parse(await ex.response.data.text()); } catch { /* resposta não-JSON */ }
+      setErro(corpo.erro || 'Erro ao gerar o contrato');
+      setFaltando(corpo.faltando || []);
+    } finally { setGerando(false); }
+  };
+
+  return (
+    <Modal titulo="Gerar contrato de consultoria" onFechar={onFechar} largura={720}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <p style={{ fontSize: 12, color: '#888', margin: 0 }}>
+          Confira e complete os campos. Os dados do contratante vêm do cadastro (alterar aqui não muda o cadastro); os seus dados e as condições ficam salvos neste navegador.
+        </p>
+
+        {secao('Contratado (você)')}
+        {linha(campo('contratado_nome', 'Nome completo', { flex: 2 }), campo('contratado_cpf', 'CPF'), campo('contratado_rg', 'RG'))}
+        {linha(campo('contratado_nacionalidade', 'Nacionalidade'), campo('contratado_estado_civil', 'Estado civil'), campo('contratado_profissao', 'Profissão'))}
+        {linha(campo('contratado_endereco', 'Endereço completo (com CEP, cidade/UF)', { flex: 3 }))}
+        {linha(campo('contratado_email', 'E-mail', { flex: 2 }), campo('contratado_telefone', 'Telefone'))}
+
+        {secao(pj ? 'Contratante (entidade)' : 'Contratante')}
+        {pj ? (<>
+          {linha(campo('pj_razao_social', 'Razão social', { flex: 2 }), campo('pj_cnpj', 'CNPJ'))}
+          {linha(campo('pj_sede', 'Sede (endereço completo)', { flex: 3 }))}
+          {linha(campo('pj_cargo_representante', 'Cargo do representante'), campo('pj_representante_nome', 'Nome do representante', { flex: 2 }))}
+          {linha(campo('pj_representante_rg', 'RG do representante'), campo('pj_representante_cpf', 'CPF do representante'))}
+          {linha(campo('pj_documento_representacao', 'Documento que dá poderes ao representante', { flex: 3 }))}
+        </>) : (<>
+          {linha(campo('contratante_nome', 'Nome completo', { flex: 2 }), campo('contratante_cpf', 'CPF'), campo('contratante_rg', 'RG'))}
+          {linha(campo('contratante_nascimento', 'Nascimento (dd/mm/aaaa)'), campo('contratante_endereco', 'Endereço completo', { flex: 3 }))}
+          {menor && (<>
+            {secao('Responsável legal (contratante menor de 18)')}
+            {linha(campo('responsavel_nome', 'Nome', { flex: 2 }), campo('responsavel_cpf', 'CPF'), campo('responsavel_rg', 'RG'))}
+          </>)}
+        </>)}
+
+        {secao('Projeto e remuneração')}
+        {linha(campo('projeto_nome', 'Nome do projeto', { flex: 3 }), campo('data', 'Data do contrato', { type: 'date' }))}
+        {linha(
+          campo('percentual', 'Percentual (%)', { type: 'number', minWidth: 90 }),
+          <div key="pg" style={{ flex: 2, minWidth: 220 }}>
+            <label style={{ fontSize: 11, display: 'block', marginBottom: 3, color: '#555' }}>Forma de pagamento</label>
+            <select value={form.pagamento_tipo} onChange={e => setForm(f => ({ ...f, pagamento_tipo: e.target.value }))} style={{ ...estiloInput, padding: '6px 8px', fontSize: 13 }}>
+              <option value="unico">Parcela única (após 1ª parcela do incentivo)</option>
+              <option value="proporcional">Proporcional a cada parcela do incentivo</option>
+            </select>
+          </div>,
+          campo('prazo_pagamento_dias', 'Prazo (dias)', { type: 'number', minWidth: 90 }),
+        )}
+        {linha(campo('forma_pagamento', 'Meio de pagamento (ex.: PIX para a chave ...)', { flex: 3 }), campo('comprovante_pagamento', 'Comprovante (recibo, RPA, nota fiscal)'))}
+        {linha(campo('multa_percentual', 'Multa por atraso (%)', { type: 'number' }), campo('indice_correcao', 'Índice de correção'))}
+
+        {secao('Prazos e rescisão')}
+        {linha(campo('prazo_notas_dias', 'Entrega de notas fiscais (dias)', { type: 'number' }), campo('prazo_notificacao_dias', 'Aviso de notificação (dias úteis)', { type: 'number' }), campo('aviso_rescisao_dias', 'Aviso de rescisão (dias)', { type: 'number' }))}
+        {linha(campo('peso_elaboracao', 'Peso: elaboração (%)', { type: 'number' }), campo('peso_acompanhamento', 'Peso: acompanhamento (%)', { type: 'number' }), campo('peso_prestacao', 'Peso: prestação de contas (%)', { type: 'number' }))}
+
+        {erro && <p style={{ color: '#c62828', fontSize: 13, margin: 0 }}>{erro}{faltando.length > 0 ? ' — campos em vermelho.' : ''}</p>}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+          <button onClick={onFechar} style={btnCinza}>Cancelar</button>
+          <button onClick={gerar} disabled={gerando} style={btnVerde}>{gerando ? 'Gerando...' : 'Gerar e baixar PDF'}</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function SecaoDadosPJ({ participante, onAtualizado }) {
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState(participante);
@@ -893,6 +1030,7 @@ function SecaoPrograma({ participante, onAtualizado }) {
 
 export default function ParticipanteIncentivoDetalhe({ participanteId, onVoltar }) {
   const [participante, setParticipante] = useState(null);
+  const [modalContrato, setModalContrato] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
   const carregar = useCallback(() => {
@@ -909,12 +1047,16 @@ export default function ParticipanteIncentivoDetalhe({ participanteId, onVoltar 
   return (
     <div>
       <button onClick={onVoltar} style={{ ...btnCinza, marginBottom: 12 }}>← Voltar</button>
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div>
         <h1 style={{ margin: 0, fontSize: 24, color: '#1e2a38' }}>{participante.nome}</h1>
         <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
           {TIPO_PESSOA_LABEL[participante.tipo_pessoa]} · {participante.tipo_pessoa === 'pessoa_juridica' ? (participante.cnpj ? `CNPJ ${participante.cnpj}` : 'sem CNPJ') : participante.aluno_id ? 'Aluno matriculado' : 'Avulso'}
         </div>
+        </div>
+        <button onClick={() => setModalContrato(true)} style={btnAzul}>📄 Gerar contrato de consultoria</button>
       </div>
+      {modalContrato && <ModalContratoConsultoria participante={participante} onFechar={() => setModalContrato(false)} />}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
         <div>
