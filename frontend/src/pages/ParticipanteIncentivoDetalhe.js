@@ -691,7 +691,7 @@ function SecaoDespesas({ participante }) {
 // do consultor e as condições ficam salvos neste navegador pra próxima vez.
 const CHAVE_PREFS_CONTRATO = 'incentivo.contratoConsultoria.prefs';
 const PREFS_CONTRATO_PADRAO = {
-  contratado_nome: '', contratado_nacionalidade: 'brasileiro', contratado_estado_civil: '', contratado_profissao: '',
+  contratado_nome: '', contratado_nacionalidade: 'brasileiro', contratado_estado_civil: 'casado', contratado_profissao: '',
   contratado_rg: '', contratado_cpf: '', contratado_endereco: '', contratado_email: '', contratado_telefone: '',
   percentual: 10, pagamento_tipo: 'unico', prazo_pagamento_dias: 10, forma_pagamento: 'PIX para a chave ',
   multa_percentual: 2, indice_correcao: 'IPCA', comprovante_pagamento: 'recibo',
@@ -714,7 +714,11 @@ function dadosContratadoDeTecnico(t) {
 }
 
 function lerPrefsContrato() {
-  try { return { ...PREFS_CONTRATO_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_PREFS_CONTRATO) || '{}') }; }
+  // Valor vazio salvo (tentativa que falhou) não apaga o padrão.
+  try {
+    const salvas = JSON.parse(localStorage.getItem(CHAVE_PREFS_CONTRATO) || '{}');
+    return { ...PREFS_CONTRATO_PADRAO, ...Object.fromEntries(Object.entries(salvas).filter(([, v]) => v !== '' && v != null)) };
+  }
   catch { return { ...PREFS_CONTRATO_PADRAO }; }
 }
 
