@@ -697,7 +697,21 @@ const PREFS_CONTRATO_PADRAO = {
   multa_percentual: 2, indice_correcao: 'IPCA', comprovante_pagamento: 'recibo',
   prazo_notas_dias: 15, prazo_notificacao_dias: 2, aviso_rescisao_dias: 15,
   peso_elaboracao: 60, peso_acompanhamento: 15, peso_prestacao: 25,
+  // Técnico do módulo cujo cadastro preenche os dados do consultor.
+  contratado_fonte_id: '',
 };
+
+// Dados do consultor a partir de um técnico cadastrado no módulo (o
+// usuário admin do sistema não tem CPF/endereço). Estado civil não existe
+// no cadastro: fica o que já estava no formulário.
+function dadosContratadoDeTecnico(t) {
+  const endereco = [t.endereco, t.bairro, t.cep && `CEP ${t.cep}`, [t.cidade, t.estado].filter(Boolean).join('/')].filter(Boolean).join(', ');
+  return {
+    contratado_nome: t.nome || '', contratado_cpf: t.cpf || '', contratado_rg: t.rg || '',
+    contratado_endereco: endereco, contratado_email: t.email || '', contratado_telefone: t.telefone || '',
+    contratado_profissao: t.confef_cref ? `profissional de educação física (CREF ${t.confef_cref})` : 'profissional de educação física',
+  };
+}
 
 function lerPrefsContrato() {
   try { return { ...PREFS_CONTRATO_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_PREFS_CONTRATO) || '{}') }; }
@@ -731,6 +745,24 @@ function ModalContratoConsultoria({ participante, onFechar }) {
   const [faltando, setFaltando] = useState([]);
   const [erro, setErro] = useState('');
   const [gerando, setGerando] = useState(false);
+  const [tecnicos, setTecnicos] = useState([]);
+
+  // Preenche o consultor com o técnico lembrado da última vez — ou, na
+  // primeira vez, com o único técnico cadastrado, se houver só um.
+  useEffect(() => {
+    axios.get('/incentivo-esporte/participantes?tipo_pessoa=tecnico').then(r => {
+      setTecnicos(r.data);
+      setForm(f => {
+        const fonte = r.data.find(t => t.id === f.contratado_fonte_id) || (!f.contratado_nome && r.data.length === 1 ? r.data[0] : null);
+        return fonte ? { ...f, ...dadosContratadoDeTecnico(fonte), contratado_fonte_id: fonte.id } : f;
+      });
+    }).catch(() => {});
+  }, []);
+
+  const usarTecnico = (id) => {
+    const t = tecnicos.find(x => x.id === id);
+    setForm(f => (t ? { ...f, ...dadosContratadoDeTecnico(t), contratado_fonte_id: t.id } : { ...f, contratado_fonte_id: '' }));
+  };
 
   const campo = (k, rotulo, extra = {}) => (
     <div style={{ flex: extra.flex || 1, minWidth: extra.minWidth || 120 }}>
@@ -771,6 +803,15 @@ function ModalContratoConsultoria({ participante, onFechar }) {
         </p>
 
         {secao('Contratado (você)')}
+        {tecnicos.length > 0 && (
+          <div>
+            <label style={{ fontSize: 11, display: 'block', marginBottom: 3, color: '#555' }}>Preencher com o cadastro de técnico</label>
+            <select value={form.contratado_fonte_id || ''} onChange={e => usarTecnico(e.target.value)} style={{ ...estiloInput, padding: '6px 8px', fontSize: 13 }}>
+              <option value="">— digitar manualmente —</option>
+              {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+            </select>
+          </div>
+        )}
         {linha(campo('contratado_nome', 'Nome completo', { flex: 2 }), campo('contratado_cpf', 'CPF'), campo('contratado_rg', 'RG'))}
         {linha(campo('contratado_nacionalidade', 'Nacionalidade'), campo('contratado_estado_civil', 'Estado civil'), campo('contratado_profissao', 'Profissão'))}
         {linha(campo('contratado_endereco', 'Endereço completo (com CEP, cidade/UF)', { flex: 3 }))}
