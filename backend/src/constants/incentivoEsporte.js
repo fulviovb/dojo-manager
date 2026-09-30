@@ -199,7 +199,8 @@ const ANEXOS = {
       { key: 'declarante_nome', label: 'Nome do declarante', fonte: 'nome' },
       { key: 'declarante_rg', label: 'RG do declarante', fonte: 'rg' },
       { key: 'declarante_cpf', label: 'CPF do declarante', fonte: 'cpf' },
-      { key: 'papel', label: 'Atleta/paratleta/técnico(a)' },
+      // Escolha única; `padrao_por_tipo` pré-marca conforme tipo_pessoa.
+      { key: 'papel', label: 'Declara vínculo como', opcoes: ['atleta', 'paratleta', 'técnico(a)'], padrao_por_tipo: { atleta: 'atleta', tecnico: 'técnico(a)' } },
       // "NOME - CNPJ ..." do cadastro de entidades (fallback: texto legado).
       { key: 'entidade', label: 'Entidade federativa', fonte: 'entidade.nome_cnpj' },
       { key: 'cidade', label: 'Cidade sede da entidade', fonte: 'entidade.cidade' },

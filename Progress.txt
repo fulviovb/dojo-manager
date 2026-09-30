@@ -1445,6 +1445,10 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     'documentacao_pendente' (novo cadastro aparecia como já inscrito).
     Script `2026-09-incentivo-status-documentacao-ok.js` alterou o ENUM;
     status existentes intactos (14 pendentes, 1 inscrito).
+[x] Anexo XVII: campo "Atleta/paratleta/técnico(a)" virou escolha única
+    (checkboxes atleta / paratleta / técnico(a)), pré-marcada pelo tipo do
+    participante. Genérico: campo de anexo com `opcoes` (+
+    `padrao_por_tipo`) no catálogo; backend recusa valor fora da lista.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

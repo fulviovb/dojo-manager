@@ -27,8 +27,8 @@ function LinhaInfo({ label, valor }) {
 
 // ── Seção: Documentos ──────────────────────────────────────────────────────
 
-function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
-  const [campos, setCampos] = useState(() => Object.fromEntries(anexo.campos.filter(c => !c.temFonte).map(c => [c.key, ''])));
+function ModalGerarAnexo({ participanteId, tipoPessoa, anexo, onFechar, onGerado }) {
+  const [campos, setCampos] = useState(() => Object.fromEntries(anexo.campos.filter(c => !c.temFonte).map(c => [c.key, c.padrao_por_tipo?.[tipoPessoa] || ''])));
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   // Anexos com lista de pessoas escolhida na geração:
@@ -97,7 +97,18 @@ function ModalGerarAnexo({ participanteId, anexo, onFechar, onGerado }) {
         {camposManuais.map(c => (
           <div key={c.key}>
             <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>{c.label}</label>
-            <input value={campos[c.key] || ''} onChange={e => setCampos(p => ({ ...p, [c.key]: e.target.value }))} style={estiloInput} />
+            {c.opcoes ? (
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                {c.opcoes.map(op => (
+                  <label key={op} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={campos[c.key] === op} onChange={() => setCampos(p => ({ ...p, [c.key]: op }))} />
+                    {op.charAt(0).toUpperCase() + op.slice(1)}
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <input value={campos[c.key] || ''} onChange={e => setCampos(p => ({ ...p, [c.key]: e.target.value }))} style={estiloInput} />
+            )}
           </div>
         ))}
         {camposManuais.length === 0 && <p style={{ fontSize: 13, color: '#888' }}>Nenhum campo adicional — tudo vem do cadastro.</p>}
@@ -439,7 +450,7 @@ function SecaoDocumentos({ participante, onRefresh }) {
       </div>
 
       {anexoEscolhido && (
-        <ModalGerarAnexo participanteId={participante.id} anexo={anexoEscolhido}
+        <ModalGerarAnexo participanteId={participante.id} tipoPessoa={participante.tipo_pessoa} anexo={anexoEscolhido}
           onFechar={() => setAnexoEscolhido(null)}
           onGerado={({ item, adicionado }) => {
             setAnexoEscolhido(null);

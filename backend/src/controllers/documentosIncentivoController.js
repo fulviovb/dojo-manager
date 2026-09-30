@@ -177,7 +177,7 @@ function resolverFonte(participante, fonte) {
 const listarAnexosDisponiveis = (req, res) => {
   const lista = Object.entries(ANEXOS).map(([codigo, def]) => ({
     codigo, nome: def.nome, gerar_para: def.gerar_para,
-    campos: def.campos.map(c => ({ key: c.key, label: c.label, temFonte: !!c.fonte })),
+    campos: def.campos.map(c => ({ key: c.key, label: c.label, temFonte: !!c.fonte, opcoes: c.opcoes, padrao_por_tipo: c.padrao_por_tipo })),
   }));
   res.json(lista);
 };
@@ -231,6 +231,12 @@ const gerar = async (req, res) => {
       const faltando = [['endereco', 'endereço'], ['bairro', 'bairro'], ['cep', 'CEP'], ['cidade', 'cidade'], ['estado', 'UF']]
         .filter(([k]) => !String(participante[k] || '').trim()).map(([, l]) => l);
       if (faltando.length) return res.status(400).json({ erro: `Endereço incompleto no cadastro do participante — falta: ${faltando.join(', ')}. Complete em "✎ Editar" antes de gerar a declaração.` });
+    }
+
+    for (const c of def.campos) {
+      if (c.opcoes && !c.opcoes.includes(campos?.[c.key])) {
+        return res.status(400).json({ erro: `Escolha uma opção em "${c.label}": ${c.opcoes.join(', ')}` });
+      }
     }
 
     const dados = {};
