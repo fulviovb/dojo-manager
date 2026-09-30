@@ -36,9 +36,9 @@ export function Modal({ titulo, onFechar, children, largura = 440 }) {
 }
 
 const TIPO_PESSOA_LABEL = { atleta: 'Atleta', tecnico: 'Técnico', pessoa_juridica: 'Pessoa Jurídica' };
-const STATUS_PROGRAMA_LABEL = { inscrito: 'Inscrito', documentacao_pendente: 'Documentação Pendente', habilitado: 'Habilitado', indeferido: 'Indeferido', inabilitado: 'Inabilitado' };
-const STATUS_PROGRAMA_COR = { inscrito: '#607d8b', documentacao_pendente: '#ef6c00', habilitado: '#2e7d32', indeferido: '#c62828', inabilitado: '#c62828' };
-const STATUS_PROGRAMA_BG = { inscrito: '#eceff1', documentacao_pendente: '#fff3e0', habilitado: '#e8f5e9', indeferido: '#ffebee', inabilitado: '#ffebee' };
+const STATUS_PROGRAMA_LABEL = { documentacao_pendente: 'Documentação Pendente', documentacao_ok: 'Documentação OK — aguardando inscrição', inscrito: 'Inscrito', habilitado: 'Habilitado', indeferido: 'Indeferido', inabilitado: 'Inabilitado' };
+const STATUS_PROGRAMA_COR = { documentacao_ok: '#1565c0', inscrito: '#607d8b', documentacao_pendente: '#ef6c00', habilitado: '#2e7d32', indeferido: '#c62828', inabilitado: '#c62828' };
+const STATUS_PROGRAMA_BG = { documentacao_ok: '#e3f2fd', inscrito: '#eceff1', documentacao_pendente: '#fff3e0', habilitado: '#e8f5e9', indeferido: '#ffebee', inabilitado: '#ffebee' };
 
 // ── Modal: Novo Participante ───────────────────────────────────────────────
 

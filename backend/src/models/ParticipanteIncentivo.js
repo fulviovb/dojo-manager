@@ -77,9 +77,12 @@ const ParticipanteIncentivo = sequelize.define('ParticipanteIncentivo', {
   // declaração de não-enquadramento (Anexo XIX/XX) no lugar dela.
   atua_com_menores: { type: DataTypes.BOOLEAN, defaultValue: false },
 
+  // Ciclo: documentacao_pendente → documentacao_ok (tudo pronto, ainda não
+  // protocolado no sistema da prefeitura) → inscrito → habilitado |
+  // indeferido | inabilitado. Participante novo começa pendente.
   status_programa: {
-    type: DataTypes.ENUM('inscrito', 'documentacao_pendente', 'habilitado', 'indeferido', 'inabilitado'),
-    defaultValue: 'inscrito',
+    type: DataTypes.ENUM('documentacao_pendente', 'documentacao_ok', 'inscrito', 'habilitado', 'indeferido', 'inabilitado'),
+    defaultValue: 'documentacao_pendente',
   },
 
   // Acordo privado entre o gestor do projeto e o participante — sem relação

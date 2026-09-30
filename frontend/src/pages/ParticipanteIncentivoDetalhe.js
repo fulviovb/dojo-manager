@@ -9,7 +9,7 @@ const cardTitle = { fontWeight: 700, fontSize: 15, color: '#1e2a38' };
 const btnPerigo = { background: '#c62828', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 11 };
 
 const TIPO_PESSOA_LABEL = { atleta: 'Atleta', tecnico: 'Técnico', pessoa_juridica: 'Pessoa Jurídica' };
-const STATUS_PROGRAMA_LABEL = { inscrito: 'Inscrito', documentacao_pendente: 'Documentação Pendente', habilitado: 'Habilitado', indeferido: 'Indeferido', inabilitado: 'Inabilitado' };
+const STATUS_PROGRAMA_LABEL = { documentacao_pendente: 'Documentação Pendente', documentacao_ok: 'Documentação OK — aguardando inscrição', inscrito: 'Inscrito', habilitado: 'Habilitado', indeferido: 'Indeferido', inabilitado: 'Inabilitado' };
 const STATUS_DOC_LABEL = { pendente: 'Pendente', recebido: 'Recebido', aprovado: 'Aprovado', rejeitado: 'Rejeitado' };
 const STATUS_DOC_COR = { pendente: '#888', recebido: '#1565c0', aprovado: '#2e7d32', rejeitado: '#c62828' };
 const STATUS_DOC_BG = { pendente: '#f0f0f0', recebido: '#e3f2fd', aprovado: '#e8f5e9', rejeitado: '#ffebee' };

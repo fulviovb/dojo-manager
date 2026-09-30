@@ -1439,6 +1439,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     com PJ temporária: CNPJ inválido → 400; checklist 18 itens (sem menores)
     → com menores troca XX por certidões; tipo_pessoa não muda via PUT;
     PDFs X/XV/XX conferidos com pdftotext; IX em PJ e XXI em técnico → 400.
+[x] Status do programa "Documentação OK — aguardando inscrição"
+    (`documentacao_ok`, azul), entre "Documentação Pendente" e "Inscrito".
+    Default de participante novo passou de 'inscrito' pra
+    'documentacao_pendente' (novo cadastro aparecia como já inscrito).
+    Script `2026-09-incentivo-status-documentacao-ok.js` alterou o ENUM;
+    status existentes intactos (14 pendentes, 1 inscrito).
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
