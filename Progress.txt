@@ -1475,6 +1475,19 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     marcial; arte_marcial_id ficou como legado sem uso. Testado via API:
     nome repetido (maiúsc./minúsc.) → 400; esporte de outra escola → 400;
     Anexo XI saiu com a modalidade; desativar mantém o participante.
+[x] Conquistas do Campeonato Paranaense de Equipe 2026 (Federação
+    Tradicional Paranaense de Karatê, Curitiba/PR, 26/09/2026) inseridas no
+    banco a pedido do Fulvio: 35 conquistas de 11 alunos (23 ouros, 10
+    pratas, 1 bronze, 1 quarto), via script
+    `2026-09-conquistas-paranaense-equipe.js` (simula por padrão,
+    `--commit` grava, transação única, aborta se a competição já tiver
+    conquistas). Nomes abreviados casados com o cadastro (Arthur Baptista
+    Santos, Davi Miguel Baptista Santos, Melina Higuchi e Lima, Melissa
+    Wantuk Seronato, Ayumi Tanji Grande); "limite em equipe" = Kumite
+    Equipe e "funkogo" = Fukugo (confirmado). Faixa = graduação atual de
+    Karatê; Fulvio (sem graduação atual) ficou com Preta, a faixa da
+    conquista mais recente dele. Data 26/09 não guardada (competição só
+    tem ano). Conquistas: 259 → 294; competições: 26 → 27.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
