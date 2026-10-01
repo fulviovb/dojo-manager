@@ -281,12 +281,25 @@ const COLUNAS_PARTICIPANTES = [
 function ListaParticipantes({ onVerParticipante }) {
   const [participantes, setParticipantes] = useState([]);
   const [ordem, setOrdem] = useState({ coluna: 'Nome', desc: false });
+  // Excluir = desativar (ativo=false): sai da lista, documentos e dados
+  // ficam guardados e dá pra restaurar em "Mostrar excluídos".
+  const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
   const [busca, setBusca] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [modalNovo, setModalNovo] = useState(false);
 
-  const carregar = () => axios.get('/incentivo-esporte/participantes').then(r => setParticipantes(r.data));
-  useEffect(() => { carregar(); }, []);
+  const carregar = () => axios.get(`/incentivo-esporte/participantes${mostrarExcluidos ? '?ativo=false' : ''}`).then(r => setParticipantes(r.data));
+  useEffect(() => { carregar(); }, [mostrarExcluidos]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const excluir = async (p) => {
+    if (!window.confirm(`Excluir o projeto de "${p.nome}"?\n\nEle sai da lista. Os documentos e dados ficam guardados e dá para restaurar em "Mostrar excluídos".`)) return;
+    await axios.delete(`/incentivo-esporte/participantes/${p.id}`);
+    carregar();
+  };
+  const restaurar = async (p) => {
+    await axios.put(`/incentivo-esporte/participantes/${p.id}`, { ativo: true });
+    carregar();
+  };
 
   const colunaOrdem = COLUNAS_PARTICIPANTES.find(c => c.rotulo === ordem.coluna);
   const filtrados = participantes.filter(p => {
@@ -312,7 +325,13 @@ function ListaParticipantes({ onVerParticipante }) {
             <option value="pessoa_juridica">Pessoas Jurídicas</option>
           </select>
         </div>
-        <button onClick={() => setModalNovo(true)} style={btnVerde}>+ Novo Participante</button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
+            <input type="checkbox" checked={mostrarExcluidos} onChange={e => setMostrarExcluidos(e.target.checked)} />
+            Mostrar excluídos
+          </label>
+          {!mostrarExcluidos && <button onClick={() => setModalNovo(true)} style={btnVerde}>+ Novo Participante</button>}
+        </div>
       </div>
 
       <div style={cardEstilo}>
@@ -330,7 +349,7 @@ function ListaParticipantes({ onVerParticipante }) {
           </thead>
           <tbody>
             {filtrados.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum participante encontrado.</td></tr>
+              <tr><td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>{mostrarExcluidos ? 'Nenhum projeto excluído.' : 'Nenhum participante encontrado.'}</td></tr>
             )}
             {filtrados.map(p => (
               <tr key={p.id} style={{ borderTop: '1px solid #f0f0f0' }}>
@@ -352,8 +371,13 @@ function ListaParticipantes({ onVerParticipante }) {
                     ? <span style={{ color: '#2e7d32', fontWeight: 600 }}>✓ Paga</span>
                     : <span style={{ color: '#c62828' }}>Pendente</span>}
                 </td>
-                <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                  <button onClick={() => onVerParticipante(p.id)} style={btnAzul}>Ver</button>
+                <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  {mostrarExcluidos ? (
+                    <button onClick={() => restaurar(p)} style={btnVerde}>Restaurar</button>
+                  ) : (<>
+                    <button onClick={() => onVerParticipante(p.id)} style={btnAzul}>Ver</button>{' '}
+                    <button onClick={() => excluir(p)} title="Excluir projeto" style={{ ...btnCinza, color: '#c62828', borderColor: '#f5c6c6' }}>Excluir</button>
+                  </>)}
                 </td>
               </tr>
             ))}
