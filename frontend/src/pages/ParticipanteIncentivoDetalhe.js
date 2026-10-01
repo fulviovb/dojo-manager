@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Modal, SeletorEntidade, SeletorEsporte, CamposPJ, formatarCep, estiloInput, btnVerde, btnAzul, btnCinza, formatData, formatarMoeda } from './IncentivoEsporte';
 import { SERVER_ORIGIN } from '../components/Avatar';
+import SecaoProjetoIncentivo from './ParticipanteIncentivoProjeto';
 
 const card = (extra = {}) => ({ background: '#fff', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16, ...extra });
 const cardHeader = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', borderBottom: '1px solid #f0f0f0' };
@@ -1135,6 +1136,7 @@ export default function ParticipanteIncentivoDetalhe({ participanteId, onVoltar 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
         <div>
           <SecaoDocumentos participante={participante} onRefresh={carregar} />
+          <SecaoProjetoIncentivo participante={participante} />
           <SecaoContrapartidas participante={participante} />
           <SecaoDespesas participante={participante} />
         </div>

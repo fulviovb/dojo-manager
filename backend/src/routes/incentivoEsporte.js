@@ -10,6 +10,7 @@ const entidades = require('../controllers/entidadesFederativasController');
 const contrato = require('../controllers/contratoConsultoriaController');
 const esportes = require('../controllers/esportesIncentivoController');
 const pacote = require('../controllers/pacoteProjetoController');
+const projeto = require('../controllers/projetoIncentivoController');
 const { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CHECKLIST_PESSOA_JURIDICA, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA } = require('../constants/incentivoEsporte');
 
 // Módulo sensível (dados pessoais + financeiro) — só admin, como Mensalidades.
@@ -39,6 +40,25 @@ router.post('/participantes/:id/contrato-consultoria', contrato.gerar);
 
 // Todos os arquivos do checklist num .zip, pra protocolar na prefeitura.
 router.get('/participantes/:id/pacote-projeto', pacote.baixar);
+
+// Formulário do projeto (tela "Projeto" do Sistema Incentivo online).
+router.get('/participantes/:id/projeto', projeto.buscar);
+router.get('/participantes/:id/projeto/curriculo-sugerido', projeto.sugerirCurriculo);
+router.put('/participantes/:id/projeto/curriculo', projeto.salvarCurriculo);
+router.post('/participantes/:id/projeto/objetivos', projeto.criarObjetivo);
+router.put('/participantes/:id/projeto/objetivos/:objetivoId', projeto.atualizarObjetivo);
+router.delete('/participantes/:id/projeto/objetivos/:objetivoId', projeto.removerObjetivo);
+router.post('/participantes/:id/projeto/competicoes', projeto.adicionarPrevista);
+router.delete('/participantes/:id/projeto/competicoes/:previstaId', projeto.removerPrevista);
+router.post('/participantes/:id/projeto/locais', projeto.criarLocal);
+router.post('/participantes/:id/projeto/locais/importar-turmas', projeto.importarLocaisDasTurmas);
+router.delete('/participantes/:id/projeto/locais/:localId', projeto.removerLocal);
+
+// Calendário de competições futuras (mesma tabela das Conquistas).
+router.get('/calendario', projeto.listarCalendario);
+router.post('/calendario', projeto.criarCompeticao);
+router.put('/calendario/:competicaoId', projeto.atualizarCompeticao);
+router.delete('/calendario/:competicaoId', projeto.removerCompeticao);
 
 router.get('/esportes', esportes.listar);
 router.post('/esportes', esportes.criar);

@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const PizZip = require('pizzip');
-const { ParticipanteIncentivo, DocumentoIncentivo } = require('../models');
+const { ParticipanteIncentivo, DocumentoIncentivo, EsporteIncentivo } = require('../models');
+const { montarFormulario } = require('../utils/textoProjeto');
 
 // "Baixar projeto": um .zip com todos os arquivos do checklist do
 // participante, numerados na ordem do checklist, + "00 - LEIA-ME.txt" com o
@@ -24,7 +25,10 @@ function caminhoDoArquivo(url) {
 
 const baixar = async (req, res) => {
   try {
-    const participante = await ParticipanteIncentivo.findOne({ where: { id: req.params.id, escola_id: req.usuario.escola_id } });
+    const participante = await ParticipanteIncentivo.findOne({
+      where: { id: req.params.id, escola_id: req.usuario.escola_id },
+      include: [{ model: EsporteIncentivo, as: 'Esporte', attributes: ['nome'] }],
+    });
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
 
     const documentos = await DocumentoIncentivo.findAll({
@@ -65,6 +69,29 @@ const baixar = async (req, res) => {
       if (marcas.length) atencao.push(`${rotulo}: ${marcas.join(', ').toLowerCase()}`);
     }
 
+    // Campos da tela "Projeto" do Sistema Incentivo online, prontos pra colar.
+    const f = await montarFormulario(participante);
+    const SEP = '────────────────────────────────────────────────────────';
+    const formulario = [
+      SEP, 'FORMULÁRIO DO PROJETO — copie e cole cada campo no Sistema Incentivo online', SEP, '',
+      'MODALIDADE ESPORTIVA / PARADESPORTIVA:', `  ${f.modalidade || '(não cadastrada — defina o esporte no participante)'}`, '',
+      `CURRÍCULO ESPORTIVO / PARADESPORTIVO:${f.curriculo_e_sugestao ? '  [texto gerado automaticamente — revise antes de colar]' : ''}`,
+      `  ${f.curriculo || '(não preenchido)'}`, '',
+      `OBJETIVOS — um "Adicionar" para cada linha (${f.objetivos.length}):`,
+      ...(f.objetivos.length ? f.objetivos.map((o, i) => `  ${i + 1}. ${o}`) : ['  (nenhum cadastrado)']), '',
+      `COMPETIÇÕES PREVISTAS — EVENTO | PERÍODO/DATA | LOCAL (${f.competicoes.length}):`,
+      ...(f.competicoes.length ? f.competicoes.map((c, i) => `  ${i + 1}. ${c.evento} | ${c.periodo} | ${c.local}`) : ['  (nenhuma cadastrada)']), '',
+      `LOCAIS DE TREINAMENTO — ENDEREÇO | DIA DA SEMANA | HORA INICIAL | HORA FINAL (${f.locais.length}):`,
+      ...(f.locais.length ? f.locais.map((l, i) => `  ${i + 1}. ${l.endereco} | ${l.dia} | ${l.inicio} | ${l.fim}`) : ['  (nenhum cadastrado)']), '',
+      SEP, '',
+    ];
+    if (!f.modalidade) pendentes.push('Formulário: modalidade (esporte do participante)');
+    if (!f.curriculo) pendentes.push('Formulário: currículo esportivo');
+    if (!f.objetivos.length) pendentes.push('Formulário: objetivos');
+    if (!f.competicoes.length) pendentes.push('Formulário: competições previstas');
+    if (!f.locais.length) pendentes.push('Formulário: locais de treinamento');
+    if (f.curriculo_e_sugestao) atencao.push('Formulário: currículo gerado automaticamente — revise (e salve) na tela do participante');
+
     const documento = participante.tipo_pessoa === 'pessoa_juridica'
       ? (participante.cnpj ? `CNPJ ${participante.cnpj}` : 'CNPJ não cadastrado')
       : (participante.cpf ? `CPF ${participante.cpf}` : 'CPF não cadastrado');
@@ -73,6 +100,7 @@ const baixar = async (req, res) => {
       `${TIPO_LABEL[participante.tipo_pessoa] || participante.tipo_pessoa} · ${documento}`,
       `Gerado em ${hoje.split('-').reverse().join('/')} pelo sistema da escola.`,
       '',
+      ...formulario,
       `ARQUIVOS INCLUÍDOS (${incluidos.length})`,
       ...(incluidos.length ? incluidos.map(n => `  ✓ ${n}`) : ['  (nenhum)']),
       '',

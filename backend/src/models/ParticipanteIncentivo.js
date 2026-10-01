@@ -97,6 +97,9 @@ const ParticipanteIncentivo = sequelize.define('ParticipanteIncentivo', {
 
   ativo: { type: DataTypes.BOOLEAN, defaultValue: true },
   observacoes: { type: DataTypes.TEXT },
+  // Campo "CURRÍCULO ESPORTIVO" do formulário da prefeitura. Aluno da
+  // escola pode gerar a partir das conquistas (utils/textoProjeto.js).
+  curriculo_esportivo: { type: DataTypes.TEXT },
 }, { tableName: 'participantes_incentivo' });
 
 module.exports = ParticipanteIncentivo;

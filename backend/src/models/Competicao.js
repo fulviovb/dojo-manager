@@ -15,6 +15,11 @@ const Competicao = sequelize.define('Competicao', {
   cidade: { type: DataTypes.STRING },
   estado: { type: DataTypes.STRING(2) },
   pais: { type: DataTypes.STRING, defaultValue: 'Brasil' },
+  // Competição futura (calendário do Incentivo ao Esporte): datas quando já
+  // conhecidas; senão `periodo_texto` livre ("Maio/2027", "2º semestre").
+  data_inicio: { type: DataTypes.DATEONLY },
+  data_fim: { type: DataTypes.DATEONLY },
+  periodo_texto: { type: DataTypes.STRING },
 }, { tableName: 'competicoes' });
 
 module.exports = Competicao;

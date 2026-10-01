@@ -115,6 +115,12 @@ const removerCompeticao = async (req, res) => {
     if (totalConquistas > 0) {
       return res.status(400).json({ erro: 'Remova as conquistas vinculadas a esta competição antes de excluí-la' });
     }
+    const { ObjetivoIncentivo, CompeticaoPrevistaIncentivo } = require('../models');
+    const usosIncentivo = await ObjetivoIncentivo.count({ where: { competicao_id: competicao.id } })
+      + await CompeticaoPrevistaIncentivo.count({ where: { competicao_id: competicao.id } });
+    if (usosIncentivo > 0) {
+      return res.status(400).json({ erro: 'Competição está em objetivos/competições previstas do Incentivo ao Esporte — remova de lá antes' });
+    }
     await competicao.destroy();
     res.json({ mensagem: 'Competição removida' });
   } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }

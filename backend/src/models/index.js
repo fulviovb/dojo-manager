@@ -32,6 +32,9 @@ const DespesaIncentivo = require('./DespesaIncentivo');
 const CredencialIncentivo = require('./CredencialIncentivo');
 const EntidadeFederativa = require('./EntidadeFederativa');
 const EsporteIncentivo = require('./EsporteIncentivo');
+const ObjetivoIncentivo = require('./ObjetivoIncentivo');
+const CompeticaoPrevistaIncentivo = require('./CompeticaoPrevistaIncentivo');
+const LocalTreinoIncentivo = require('./LocalTreinoIncentivo');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -246,6 +249,18 @@ ParticipanteIncentivo.belongsTo(EntidadeFederativa, { foreignKey: 'entidade_fede
 EsporteIncentivo.hasMany(ParticipanteIncentivo, { foreignKey: 'esporte_id' });
 ParticipanteIncentivo.belongsTo(EsporteIncentivo, { foreignKey: 'esporte_id', as: 'Esporte' });
 
+// Formulário do projeto (prefeitura): objetivos, competições previstas,
+// locais de treino.
+ParticipanteIncentivo.hasMany(ObjetivoIncentivo, { foreignKey: 'participante_id' });
+ObjetivoIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
+// RESTRICT: apagar competição nunca leva objetivo/previsão junto.
+ObjetivoIncentivo.belongsTo(Competicao, { foreignKey: 'competicao_id', onDelete: 'RESTRICT' });
+ParticipanteIncentivo.hasMany(CompeticaoPrevistaIncentivo, { foreignKey: 'participante_id' });
+CompeticaoPrevistaIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
+CompeticaoPrevistaIncentivo.belongsTo(Competicao, { foreignKey: 'competicao_id', onDelete: 'RESTRICT' });
+ParticipanteIncentivo.hasMany(LocalTreinoIncentivo, { foreignKey: 'participante_id' });
+LocalTreinoIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -256,4 +271,5 @@ module.exports = {
   Competicao, Conquista,
   ParticipanteIncentivo, DocumentoIncentivo, ContrapartidaIncentivo, DespesaIncentivo,
   CredencialIncentivo, EntidadeFederativa, EsporteIncentivo,
+  ObjetivoIncentivo, CompeticaoPrevistaIncentivo, LocalTreinoIncentivo,
 };

@@ -544,6 +544,98 @@ function ListaEsportes() {
   );
 }
 
+// ── Aba: Calendário (competições futuras) ─────────────────────────────────
+// Mesma tabela das Conquistas: o resultado depois cai na mesma competição.
+// Alimenta objetivos e "competições previstas" do formulário do projeto.
+const NIVEL_LABEL = { municipal: 'Municipal', estadual: 'Estadual', nacional: 'Nacional', panamericano: 'Pan-americano', mundial: 'Mundial' };
+const COMP_VAZIA = { nome: '', ano: new Date().getFullYear() + 1, etapa: '', nivel: 'estadual', entidade: '', cidade: '', estado: '', pais: 'Brasil', data_inicio: '', data_fim: '', periodo_texto: '' };
+
+function ListaCalendario() {
+  const [lista, setLista] = useState([]);
+  const [form, setForm] = useState(null);
+  const [erro, setErro] = useState('');
+  const carregar = () => axios.get('/incentivo-esporte/calendario').then(r => setLista(r.data));
+  useEffect(() => { carregar(); }, []);
+  const dataBr = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
+  const periodo = (c) => (c.data_inicio ? `${dataBr(c.data_inicio)}${c.data_fim && c.data_fim !== c.data_inicio ? ` a ${dataBr(c.data_fim)}` : ''}` : (c.periodo_texto || '—'));
+
+  const salvar = async () => {
+    setErro('');
+    try {
+      if (form.id) await axios.put(`/incentivo-esporte/calendario/${form.id}`, form);
+      else await axios.post('/incentivo-esporte/calendario', form);
+      setForm(null); carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+  };
+  const remover = async (c) => {
+    if (!window.confirm(`Remover "${c.nome}"?`)) return;
+    try { await axios.delete(`/incentivo-esporte/calendario/${c.id}`); carregar(); }
+    catch (ex) { window.alert(ex.response?.data?.erro || 'Erro ao remover'); }
+  };
+  const campo = (k, rotulo, extra = {}) => (
+    <div style={{ flex: extra.flex || 1, minWidth: extra.minWidth || 110 }}>
+      <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>{rotulo}</label>
+      <input type={extra.type || 'text'} value={form[k] ?? ''} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))} style={estiloInput} />
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, color: '#666' }}>Competições a partir de {new Date().getFullYear()} — usadas nos objetivos e competições previstas dos projetos.</span>
+        <button onClick={() => { setErro(''); setForm({ ...COMP_VAZIA }); }} style={btnPrimario}>+ Nova Competição</button>
+      </div>
+      <div style={cardEstilo}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr style={{ background: '#fafafa' }}>{['Competição', 'Nível', 'Período/data', 'Local', 'Entidade', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}</tr></thead>
+          <tbody>
+            {lista.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhuma competição futura cadastrada.</td></tr>}
+            {lista.map(c => (
+              <tr key={c.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600 }}>{c.nome}{c.etapa ? ` (${c.etapa})` : ''} <span style={{ fontWeight: 400, color: '#888' }}>{c.ano}</span></td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{NIVEL_LABEL[c.nivel] || c.nivel}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{periodo(c)}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{[c.cidade, c.estado].filter(Boolean).join('/') || '—'}{c.pais && c.pais !== 'Brasil' ? ` - ${c.pais}` : ''}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13, color: '#666' }}>{c.entidade || '—'}</td>
+                <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => { setErro(''); setForm({ ...COMP_VAZIA, ...Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v ?? ''])) }); }} style={btnAzul}>Editar</button>{' '}
+                  <button onClick={() => remover(c)} style={btnCinza}>Remover</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {form && (
+        <Modal titulo={form.id ? 'Editar Competição' : 'Nova Competição'} onFechar={() => setForm(null)} largura={560}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>{campo('nome', 'Nome', { flex: 3 })}{campo('ano', 'Ano', { type: 'number' })}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Nível</label>
+                <select value={form.nivel} onChange={e => setForm(f => ({ ...f, nivel: e.target.value }))} style={estiloInput}>
+                  {Object.entries(NIVEL_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              {campo('etapa', 'Etapa (opcional)')}
+            </div>
+            {campo('entidade', 'Entidade organizadora (opcional)')}
+            <div style={{ display: 'flex', gap: 8 }}>{campo('cidade', 'Cidade', { flex: 2 })}{campo('estado', 'UF', { minWidth: 60 })}{campo('pais', 'País')}</div>
+            <div style={{ display: 'flex', gap: 8 }}>{campo('data_inicio', 'Data início', { type: 'date' })}{campo('data_fim', 'Data fim', { type: 'date' })}</div>
+            {campo('periodo_texto', 'Ou período aproximado, se não tiver data (ex.: "Maio/2027")')}
+            {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setForm(null)} style={btnCinza}>Cancelar</button>
+              <button onClick={salvar} style={btnVerde}>Salvar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 // ── Seletor de entidade (vínculo federativo) ───────────────────────────────
 // Combo alimentado pelo cadastro da aba Entidades. Mostra também a entidade
 // atual mesmo se tiver sido desativada, e o texto antigo digitado à mão
@@ -814,6 +906,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
     ['despesas', 'Despesas'],
     ['entidades', 'Entidades'],
     ['esportes', 'Esportes'],
+    ['calendario', 'Calendário'],
   ];
 
   return (
@@ -833,6 +926,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
       {aba === 'despesas' && <ListaDespesasGeral />}
       {aba === 'entidades' && <ListaEntidades />}
       {aba === 'esportes' && <ListaEsportes />}
+      {aba === 'calendario' && <ListaCalendario />}
     </div>
   );
 }

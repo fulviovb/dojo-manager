@@ -1496,6 +1496,22 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     vencida / arquivo ausente). Credencial da prefeitura nunca entra.
     Testado com participante real (Otávio, 10 arquivos): zip íntegro
     (unzip -t), LEIA-ME correto; outra escola → 404, professor → 403.
+[x] Formulário do projeto (tela "Projeto" do Sistema Incentivo online,
+    print em modulo-incentivo-esporte/projeto.png), pedido do Fulvio
+    01/10/2026: seção "Projeto (formulário da prefeitura)" no participante
+    com modalidade, currículo (gerado das Conquistas pra aluno, digitado
+    pra avulso), objetivos (competição do calendário + prova + categoria +
+    meta, ou livre), competições previstas e locais de treino (importa das
+    turmas do aluno). Aba "Calendário" pra competições futuras (reaproveita
+    `competicoes`, + data_inicio/data_fim/periodo_texto). Tudo sai no topo
+    do LEIA-ME do "Baixar projeto", campo a campo, com botão "Copiar" na
+    tela. Script `2026-10-incentivo-formulario-projeto.js` (3 colunas em
+    competicoes, curriculo_esportivo, 3 tabelas novas com FK RESTRICT pra
+    competicoes). Bug pego no teste e corrigido: faixa/turmas/conquistas
+    vinham de qualquer arte (Otávio saía "faixa amarela" do jiu-jitsu e com
+    horários de jiu-jitsu num projeto de karatê) — agora filtradas pela
+    arte de mesmo nome do esporte; plurais "mundials/nacionals" corrigidos.
+    Testado via API com participante + competições temporárias (removidos).
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

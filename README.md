@@ -684,6 +684,22 @@ com:
   turmas/graduação. Flag `olimpico` (programa de LA 2028 → Anexo I x II),
   só informativa. O combo de esporte tem "+ Novo esporte..." pra cadastrar
   na hora. Alimenta a modalidade dos Anexos X e XI.
+- **Projeto (formulário da prefeitura)** (seção no participante): os 5
+  campos da tela "Projeto" do Sistema Incentivo online — modalidade (do
+  esporte), currículo (`curriculo_esportivo`; "Gerar a partir do
+  histórico" monta texto com faixa, tempo de escola e principais pódios
+  das Conquistas), objetivos (`ObjetivoIncentivo`: competição do
+  calendário + prova + categoria + meta campeão/pódio/top 5/participar,
+  ou texto livre), competições previstas (`CompeticaoPrevistaIncentivo` +
+  as citadas nos objetivos) e locais de treino (`LocalTreinoIncentivo`;
+  "Importar das turmas do aluno" copia os horários das turmas ativas da
+  arte do esporte, endereço = 2ª linha do nome da sala). Faixa, conquistas
+  e turmas filtradas pela arte marcial de mesmo nome do esporte.
+  Textos em `utils/textoProjeto.js`; saem no topo do LEIA-ME do "Baixar
+  projeto", campo a campo, e faltas viram pendências. Aba **Calendário**:
+  competições futuras (mesma tabela `competicoes` das Conquistas, com
+  `data_inicio`/`data_fim`/`periodo_texto`); FKs de objetivos/previstas
+  pra competição são RESTRICT e a remoção é bloqueada se estiver em uso.
 - **Baixar projeto** (botão no topo do participante): .zip com todos os
   arquivos do checklist numerados na ordem do checklist (itens múltiplos
   dividem o número com (1), (2)...) + `00 - LEIA-ME.txt` listando
