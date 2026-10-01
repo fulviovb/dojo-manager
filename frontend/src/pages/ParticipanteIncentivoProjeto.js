@@ -125,7 +125,7 @@ export default function SecaoProjetoIncentivo({ participante }) {
             if (await executar(() => axios.post(`${base}/objetivos`, novoObjetivo))) setNovoObjetivo(o => ({ ...o, modalidade: '', categoria: '', texto_livre: '' }));
           }}>+ Adicionar</button>
         </div>
-        {calendario.length === 0 && <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>Nenhuma competição futura — cadastre na aba "Calendário" do Incentivo ao Esporte.</p>}
+        {calendario.length === 0 && <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>Nenhuma competição de {new Date().getFullYear() + 1} em diante — cadastre na aba "Calendário" do Incentivo ao Esporte.</p>}
 
         {/* COMPETIÇÕES PREVISTAS */}
         <div style={subtitulo}>Competições previstas ({f.competicoes.length})</div>

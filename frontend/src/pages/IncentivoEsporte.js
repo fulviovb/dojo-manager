@@ -582,14 +582,14 @@ function ListaCalendario() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, color: '#666' }}>Competições a partir de {new Date().getFullYear()} — usadas nos objetivos e competições previstas dos projetos.</span>
+        <span style={{ fontSize: 13, color: '#666' }}>Competições de {new Date().getFullYear() + 1} em diante (ano de execução dos projetos) — usadas nos objetivos e competições previstas.</span>
         <button onClick={() => { setErro(''); setForm({ ...COMP_VAZIA }); }} style={btnPrimario}>+ Nova Competição</button>
       </div>
       <div style={cardEstilo}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr style={{ background: '#fafafa' }}>{['Competição', 'Nível', 'Período/data', 'Local', 'Entidade', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}</tr></thead>
           <tbody>
-            {lista.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhuma competição futura cadastrada.</td></tr>}
+            {lista.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhuma competição de {new Date().getFullYear() + 1} em diante cadastrada.</td></tr>}
             {lista.map(c => (
               <tr key={c.id} style={{ borderTop: '1px solid #f0f0f0' }}>
                 <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600 }}>{c.nome}{c.etapa ? ` (${c.etapa})` : ''} <span style={{ fontWeight: 400, color: '#888' }}>{c.ano}</span></td>

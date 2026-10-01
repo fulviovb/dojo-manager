@@ -12,6 +12,9 @@ const { arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, enderec
 const NIVEIS = ['municipal', 'estadual', 'nacional', 'panamericano', 'mundial'];
 const METAS = ['campeao', 'podio', 'top5', 'participar', 'livre'];
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+// Projeto protocolado num ano é executado no ano seguinte (Resolução: protocolo
+// out/2026, execução 2027) — objetivos e competições previstas só de lá pra frente.
+const anoExecucao = () => new Date().getFullYear() + 1;
 
 const buscarParticipante = (id, escola_id) => ParticipanteIncentivo.findOne({
   where: { id, escola_id }, include: [{ model: EsporteIncentivo, as: 'Esporte', attributes: ['nome'] }],
@@ -65,6 +68,7 @@ async function validarObjetivo(body, escola_id) {
   }
   const competicao = await competicaoDaEscola(body.competicao_id, escola_id);
   if (!competicao) throw new Error('Escolha a competição (cadastre no Calendário se não estiver na lista)');
+  if (competicao.ano < anoExecucao()) throw new Error(`Objetivo precisa ser em competição de ${anoExecucao()} em diante (ano de execução do projeto)`);
   const modalidade = String(body.modalidade || '').trim();
   if (meta !== 'participar' && !modalidade) throw new Error('Informe a modalidade/prova');
   return { meta, competicao_id: competicao.id, modalidade: modalidade || null, categoria: String(body.categoria || '').trim() || null, texto_livre: null };
@@ -107,6 +111,7 @@ const adicionarPrevista = async (req, res) => {
     if (!p) return res.status(404).json({ erro: 'Participante não encontrado' });
     const c = await competicaoDaEscola(req.body.competicao_id, req.usuario.escola_id);
     if (!c) return res.status(400).json({ erro: 'Competição não encontrada' });
+    if (c.ano < anoExecucao()) return res.status(400).json({ erro: `Competição prevista precisa ser de ${anoExecucao()} em diante (ano de execução do projeto)` });
     const [linha] = await CompeticaoPrevistaIncentivo.findOrCreate({
       where: { participante_id: p.id, competicao_id: c.id },
       defaults: { escola_id: p.escola_id, participante_id: p.id, competicao_id: c.id },
@@ -210,7 +215,7 @@ function validarCompeticao(body) {
 
 const listarCalendario = async (req, res) => {
   try {
-    const anoMin = Number(req.query.desde) || new Date().getFullYear();
+    const anoMin = Number(req.query.desde) || anoExecucao();
     const lista = await Competicao.findAll({
       where: { escola_id: req.usuario.escola_id, ano: { [Op.gte]: anoMin } },
       order: [['ano', 'ASC'], ['data_inicio', 'ASC'], ['nome', 'ASC']],
