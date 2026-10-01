@@ -313,7 +313,26 @@ function DadosResultado({ doc, eventos, anos, sugestoes, onSalvo }) {
   const [form, setForm] = useState(doDoc);
   const [erro, setErro] = useState('');
   const [salvo, setSalvo] = useState(false);
-  useEffect(() => { setForm(doDoc()); }, [doc]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [leitura, setLeitura] = useState(null); // resultado da leitura do arquivo
+  const [lendo, setLendo] = useState(false);
+
+  // Lê o arquivo (no servidor, sem IA) e preenche o formulário SEM salvar.
+  const lerArquivo = async () => {
+    setLendo(true); setErro('');
+    try {
+      const r = await axios.post(`/incentivo-esporte/documentos/${doc.id}/ler-resultado`);
+      setLeitura(r.data);
+      setForm({ evento: r.data.evento || '', colocacao: r.data.colocacao ?? '', ano: r.data.ano || '', competicao: r.data.competicao || '', entidade: r.data.entidade || '' });
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Não foi possível ler o arquivo'); }
+    finally { setLendo(false); }
+  };
+
+  useEffect(() => {
+    setForm(doDoc());
+    setLeitura(null);
+    // Arquivo enviado e dados vazios → lê sozinho.
+    if (doc.arquivo_url && !doc.resultado_evento) lerArquivo();
+  }, [doc]); // eslint-disable-line react-hooks/exhaustive-deps
   const alterado = JSON.stringify(form) !== JSON.stringify(doDoc());
   const inp = { ...estiloInput, padding: '5px 7px', fontSize: 12 };
   const preenchido = !!doc.resultado_evento;
@@ -335,6 +354,21 @@ function DadosResultado({ doc, eventos, anos, sugestoes, onSalvo }) {
           {sugestoes.map(s => <option key={s.id} value={s.id}>{s.rotulo}</option>)}
         </select>
       )}
+      {lendo && <span style={{ fontSize: 11, color: '#888' }}>Lendo o comprovante...</span>}
+      {leitura && (
+        <div style={{ fontSize: 11, color: '#1565c0' }}>
+          Lido do arquivo{leitura.metodo === 'ocr' ? ' (OCR — confira com atenção)' : ''} — confira e clique em "Salvar dados".
+          {leitura.ano && !anos.includes(Number(leitura.ano)) && (
+            <div style={{ color: '#c62828', fontWeight: 700 }}>Resultado de {leitura.ano}: fora da validade ({anos.join(' ou ')}). Troque este comprovante.</div>
+          )}
+        </div>
+      )}
+      {leitura?.colocacoes?.length > 1 && (
+        <select value="" onChange={e => { const c = leitura.colocacoes[Number(e.target.value)]; if (c) setForm(f => ({ ...f, colocacao: c.colocacao, evento: c.evento || f.evento })); }} style={{ ...inp, color: '#1565c0' }}>
+          <option value="">Este documento tem {leitura.colocacoes.length} colocações — escolha qual usar...</option>
+          {leitura.colocacoes.map((c, i) => <option key={i} value={i}>{c.colocacao}º {c.prova}</option>)}
+        </select>
+      )}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <select value={form.evento} onChange={e => setForm(f => ({ ...f, evento: e.target.value }))} style={{ ...inp, width: 230 }}>
           <option value="">Evento...</option>
@@ -349,9 +383,10 @@ function DadosResultado({ doc, eventos, anos, sugestoes, onSalvo }) {
       <input placeholder="Competição (título)" value={form.competicao} onChange={e => setForm(f => ({ ...f, competicao: e.target.value }))} style={inp} />
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <input placeholder="Entidade promotora (nome completo)" value={form.entidade} onChange={e => setForm(f => ({ ...f, entidade: e.target.value }))} style={{ ...inp, flex: 1 }} />
+        {doc.arquivo_url && <button type="button" onClick={lerArquivo} disabled={lendo} style={{ ...btnCinza, padding: '5px 10px' }}>Ler do arquivo</button>}
         <button type="button" onClick={salvar} disabled={!alterado} style={{ ...btnVerde, padding: '5px 10px' }}>{salvo ? 'Salvo ✓' : 'Salvar dados'}</button>
       </div>
-      {!preenchido && !alterado && <span style={{ fontSize: 11, color: '#ef6c00' }}>Dados do resultado não preenchidos.</span>}
+      {!preenchido && !alterado && !lendo && <span style={{ fontSize: 11, color: '#ef6c00' }}>Dados do resultado não preenchidos.</span>}
       {erro && <span style={{ fontSize: 11, color: '#c62828' }}>{erro}</span>}
     </div>
   );

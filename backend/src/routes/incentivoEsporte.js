@@ -85,6 +85,7 @@ router.post('/documentos', documentos.criar);
 router.post('/documentos/gerar', documentos.gerar);
 router.put('/documentos/:id', documentos.atualizar);
 router.put('/documentos/:id/arquivo', documentos.enviarArquivo);
+router.post('/documentos/:id/ler-resultado', documentos.lerResultado);
 router.delete('/documentos/:id', documentos.remover);
 
 router.get('/contrapartidas', contrapartidas.listar);

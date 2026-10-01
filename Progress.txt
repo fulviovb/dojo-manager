@@ -1552,6 +1552,16 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     comprovantes já enviados ficaram sem dados (pendentes até preencher).
     Testado via API: validações (ano fora, sem evento/colocação/entidade,
     documento que não é comprovante) e LEIA-ME.
+[x] Leitura automática LOCAL dos comprovantes de resultado (Fulvio
+    escolheu sem IA): pdftotext + OCR tesseract (poppler-utils e
+    tesseract-ocr-por no Dockerfile; imagem do backend reconstruída) +
+    regras. Medido nos 26 comprovantes reais: ano/competição/entidade/evento
+    em 26, colocação em 23 (os 3 sem são 2 cartas de convocação e 1
+    certificado de participação — não têm colocação). Convocação e
+    "outros" passaram a aceitar colocação vazia. OCR testado convertendo um
+    comprovante em PNG (~1 s). Achado: 6 comprovantes enviados são de 2024
+    (fora da validade 2025/2026) — Emanuela (2), Isabele (1), Otávio (1),
+    Sandra (2); a tela alerta pra trocar.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

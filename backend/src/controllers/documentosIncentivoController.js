@@ -6,6 +6,7 @@ const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo, Entidade
 const { textoEntidade } = require('./entidadesFederativasController');
 const { ANEXOS, ITEM_CREDENCIAL, RESULTADO_EVENTOS, buscarItemChecklist } = require('../constants/incentivoEsporte');
 const { gerarAnexo, montarLinhasAnexoXI, montarLinhasAnexoX } = require('../services/anexoService');
+const { lerComprovante } = require('../services/leituraComprovante');
 
 const PASTA_DOCS = path.join(__dirname, '..', '..', 'uploads', 'incentivo-esporte', 'documentos');
 fs.mkdirSync(PASTA_DOCS, { recursive: true });
@@ -125,13 +126,31 @@ function validarResultado(r) {
   const ano = Number(r.ano);
   if (!anos.includes(ano)) throw new Error(`Ano precisa ser ${anos.join(' ou ')} (resultado vale por no máximo 2 anos)`);
   const colocacao = r.colocacao === '' || r.colocacao == null ? null : Number(r.colocacao);
-  if (evento !== 'outros' && (!Number.isInteger(colocacao) || colocacao < 1 || colocacao > 999)) throw new Error('Informe a colocação (1, 2, 3...)');
+  // Convocação e "outros" podem não ter colocação (carta de convocação, certificado).
+  if (!['outros', 'convocacao_selecao'].includes(evento) && (!Number.isInteger(colocacao) || colocacao < 1 || colocacao > 999)) throw new Error('Informe a colocação (1, 2, 3...)');
+  if (colocacao !== null && (!Number.isInteger(colocacao) || colocacao < 1 || colocacao > 999)) throw new Error('Colocação inválida');
   const competicao = String(r.competicao || '').trim();
   const entidade = String(r.entidade || '').trim();
   if (!competicao) throw new Error('Informe o título da competição');
   if (!entidade) throw new Error('Informe a entidade promotora (nome completo)');
   return { resultado_evento: evento, resultado_colocacao: colocacao, resultado_ano: ano, resultado_competicao: competicao, resultado_entidade: entidade };
 }
+
+// Lê o arquivo do comprovante (local: pdftotext/OCR) e devolve os campos
+// achados — só sugestão, nada é gravado.
+const lerResultado = async (req, res) => {
+  try {
+    const documento = await buscarDaEscola(req.params.id, req.usuario.escola_id);
+    if (!documento) return res.status(404).json({ erro: 'Documento não encontrado' });
+    const participante = await ParticipanteIncentivo.findByPk(documento.participante_id, { attributes: ['tipo_pessoa'] });
+    if (!buscarItemChecklist(participante.tipo_pessoa, documento.tipo_documento)?.dados_resultado) {
+      return res.status(400).json({ erro: 'Este documento não é um comprovante de resultado' });
+    }
+    if (!documento.arquivo_url?.startsWith('/uploads/incentivo-esporte/')) return res.status(400).json({ erro: 'Comprovante sem arquivo' });
+    const lido = await lerComprovante(path.join(__dirname, '..', '..', documento.arquivo_url));
+    res.json({ ...lido, anos_validos: anosValidosResultado() });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Não foi possível ler o arquivo — preencha manualmente' }); }
+};
 
 const atualizar = async (req, res) => {
   try {
@@ -309,4 +328,4 @@ const gerar = async (req, res) => {
   }
 };
 
-module.exports = { anosValidosResultado, listar, criar, enviarArquivo, atualizar, remover, listarAnexosDisponiveis, gerar };
+module.exports = { anosValidosResultado, lerResultado, listar, criar, enviarArquivo, atualizar, remover, listarAnexosDisponiveis, gerar };

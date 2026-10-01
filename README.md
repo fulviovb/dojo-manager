@@ -651,6 +651,15 @@ com:
   competição e entidade promotora (colunas `resultado_*` em
   DocumentoIncentivo; "Preencher com uma conquista do histórico" copia de
   Conquistas). Saem no LEIA-ME por arquivo; faltando = pendência.
+  **Leitura automática local** (`services/leituraComprovante.js`, sem IA,
+  nada sai do servidor): `pdftotext` (OCR com `tesseract -l por` pra foto
+  ou PDF escaneado — ambos instalados no Dockerfile do backend) + regras
+  pra achar competição, entidade (cabeçalho ou sigla — tabela `SIGLAS`),
+  ano, colocações e tipo de evento (pelo nome da competição primeiro: logo
+  com "World ... Federation" enganava o OCR). `POST
+  /documentos/:id/ler-resultado` só sugere; a tela lê sozinha quando o
+  comprovante tem arquivo e dados vazios, preenche sem salvar, deixa
+  escolher entre várias colocações e alerta ano fora da validade.
   Comprovação de residência (Art. 17 da Resolução) tem 3 caminhos, não é um
   item genérico: proprietário do imóvel → só a própria conta; menor nascido
   a partir de 2009 que mora com o responsável (§4) → só a conta no nome
