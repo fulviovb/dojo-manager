@@ -49,6 +49,8 @@ function localDaSala(nomeSala) {
 
 // Texto do local pro formulário: "Nome - Endereço" (ou o endereço legado).
 const textoLocal = (l) => (l.Local ? `${l.Local.nome} - ${l.Local.endereco}` : (l.endereco || ''));
+// CEP extraído de um endereço em texto ("…, 82320-040 Curitiba") ou null.
+const cepDoTexto = (t) => { const m = /\b(\d{5})-?(\d{3})\b/.exec(String(t || '')); return m ? `${m[1]}-${m[2]}` : null; };
 
 // Arte marcial da escola com o mesmo nome do esporte do participante (ex.:
 // esporte "Karatê Shotokan" ↔ arte "Karatê Shotokan") — restringe faixa,
@@ -164,8 +166,8 @@ async function montarFormulario(participante) {
     curriculo_e_sugestao: !curriculoSalvo && !!curriculoSugerido,
     objetivos: objetivos.map(textoObjetivo).filter(Boolean),
     competicoes,
-    locais: locais.map(l => ({ endereco: textoLocal(l), dia: DIAS[l.dia_semana], inicio: hora(l.hora_inicio), fim: hora(l.hora_fim) })),
+    locais: locais.map(l => ({ nome: l.Local?.nome || '', cep: l.Local?.cep || cepDoTexto(l.endereco) || '', endereco: textoLocal(l), dia: DIAS[l.dia_semana], inicio: hora(l.hora_inicio), fim: hora(l.hora_fim) })),
   };
 }
 
-module.exports = { LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, nomeCompeticao, periodoCompeticao, localCompeticao, DIAS };
+module.exports = { LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, cepDoTexto, nomeCompeticao, periodoCompeticao, localCompeticao, DIAS };

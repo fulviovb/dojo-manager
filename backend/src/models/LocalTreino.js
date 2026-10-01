@@ -9,6 +9,9 @@ const LocalTreino = sequelize.define('LocalTreino', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   escola_id: { type: DataTypes.UUID, allowNull: false },
   nome: { type: DataTypes.STRING, allowNull: false },
+  // Primeiro campo (obrigatório) do "Adicionar local" no formulário da
+  // prefeitura. Formato 00000-000. Nulo só em local antigo ainda não completado.
+  cep: { type: DataTypes.STRING(9) },
   endereco: { type: DataTypes.STRING(500), allowNull: false },
   sala_id: { type: DataTypes.UUID },
   ativo: { type: DataTypes.BOOLEAN, defaultValue: true },

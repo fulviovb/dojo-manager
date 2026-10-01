@@ -641,6 +641,7 @@ function ListaCalendario() {
 // local e informa dia/horário.
 function ListaLocaisTreino() {
   const [lista, setLista] = useState([]);
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const [form, setForm] = useState(null);
   const [erro, setErro] = useState('');
@@ -656,6 +657,22 @@ function ListaLocaisTreino() {
       setForm(null); carregar();
     } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
   };
+  // CEP completo + endereço vazio → sugere rua/bairro/cidade pelo ViaCEP
+  // (consulta pública direto do navegador); número fica pro usuário.
+  const mudarCep = async (valor) => {
+    const cep = formatarCep(valor);
+    setForm(f => ({ ...f, cep }));
+    const digitos = cep.replace(/\D/g, '');
+    if (digitos.length !== 8 || (form.endereco || '').trim()) return;
+    setBuscandoCep(true);
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${digitos}/json/`);
+      const d = await r.json();
+      if (!d.erro) setForm(f => (f.endereco?.trim() ? f : { ...f, endereco: `${d.logradouro}, nº , ${d.bairro}, ${d.localidade}-${d.uf}, CEP ${cep}` }));
+    } catch { /* sem internet/ViaCEP fora: segue manual */ }
+    finally { setBuscandoCep(false); }
+  };
+
   const alternar = async (l) => {
     if (l.ativo && !window.confirm(`Desativar "${l.nome}"? Some das opções (${l.usos} horário(s) de participantes continuam com ele).`)) return;
     if (l.ativo) await axios.delete(`/incentivo-esporte/locais-treino/${l.id}`);
@@ -670,20 +687,21 @@ function ListaLocaisTreino() {
           <input type="checkbox" checked={mostrarInativos} onChange={e => setMostrarInativos(e.target.checked)} />
           Mostrar inativos
         </label>
-        <button onClick={() => { setErro(''); setForm({ nome: '', endereco: '' }); }} style={btnPrimario}>+ Novo Local</button>
+        <button onClick={() => { setErro(''); setForm({ cep: '', nome: '', endereco: '' }); }} style={btnPrimario}>+ Novo Local</button>
       </div>
       <div style={cardEstilo}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr style={{ background: '#fafafa' }}>{['Local', 'Endereço', 'Horários em uso', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}</tr></thead>
+          <thead><tr style={{ background: '#fafafa' }}>{['CEP', 'Local', 'Endereço', 'Horários em uso', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}</tr></thead>
           <tbody>
-            {visiveis.length === 0 && <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum local cadastrado.</td></tr>}
+            {visiveis.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum local cadastrado.</td></tr>}
             {visiveis.map(l => (
               <tr key={l.id} style={{ borderTop: '1px solid #f0f0f0', opacity: l.ativo ? 1 : 0.55 }}>
+                <td style={{ padding: '10px 16px', fontSize: 13, whiteSpace: 'nowrap' }}>{l.cep || <span style={{ color: '#c62828', fontWeight: 700 }}>falta CEP</span>}</td>
                 <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600 }}>{l.nome}{!l.ativo && <span style={{ fontWeight: 400, color: '#888' }}> (inativo)</span>}</td>
                 <td style={{ padding: '10px 16px', fontSize: 13, color: '#555' }}>{l.endereco}</td>
                 <td style={{ padding: '10px 16px', fontSize: 13 }}>{l.usos}</td>
                 <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button onClick={() => { setErro(''); setForm({ ...l }); }} style={btnAzul}>Editar</button>{' '}
+                  <button onClick={() => { setErro(''); setForm({ ...l, cep: l.cep || '' }); }} style={btnAzul}>Editar</button>{' '}
                   <button onClick={() => alternar(l)} style={btnCinza}>{l.ativo ? 'Desativar' : 'Reativar'}</button>
                 </td>
               </tr>
@@ -695,8 +713,13 @@ function ListaLocaisTreino() {
         <Modal titulo={form.id ? 'Editar Local' : 'Novo Local'} onFechar={() => setForm(null)} largura={480}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>CEP *</label>
+              <input autoFocus value={form.cep || ''} placeholder="00000-000" onChange={e => mudarCep(e.target.value)} style={{ ...estiloInput, maxWidth: 160 }} />
+              {buscandoCep && <span style={{ fontSize: 11, color: '#888', marginLeft: 8 }}>buscando endereço...</span>}
+            </div>
+            <div>
               <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Nome do local</label>
-              <input autoFocus value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} style={estiloInput} />
+              <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} style={estiloInput} />
             </div>
             <div>
               <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Endereço completo (rua, nº, bairro, CEP, cidade/UF)</label>

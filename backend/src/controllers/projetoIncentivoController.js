@@ -3,7 +3,7 @@ const {
   ParticipanteIncentivo, EsporteIncentivo, Competicao, Conquista, ObjetivoIncentivo, CompeticaoPrevistaIncentivo,
   LocalTreinoIncentivo, LocalTreino, MatriculaAluno, Turma, HorarioTurma, Sala,
 } = require('../models');
-const { LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal } = require('../utils/textoProjeto');
+const { LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, cepDoTexto } = require('../utils/textoProjeto');
 
 // Formulário do projeto (tela "Projeto" do Sistema Incentivo online) +
 // calendário de competições futuras (tabela `competicoes`, a mesma das
@@ -15,6 +15,8 @@ const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Projeto protocolado num ano é executado no ano seguinte (Resolução: protocolo
 // out/2026, execução 2027) — objetivos e competições previstas só de lá pra frente.
 const anoExecucao = () => new Date().getFullYear() + 1;
+// Formulário da prefeitura aceita no máximo 5 objetivos.
+const LIMITE_OBJETIVOS = 5;
 
 const buscarParticipante = (id, escola_id) => ParticipanteIncentivo.findOne({
   where: { id, escola_id }, include: [{ model: EsporteIncentivo, as: 'Esporte', attributes: ['nome'] }],
@@ -80,6 +82,9 @@ const criarObjetivo = async (req, res) => {
   try {
     const p = await buscarParticipante(req.params.id, req.usuario.escola_id);
     if (!p) return res.status(404).json({ erro: 'Participante não encontrado' });
+    if (await ObjetivoIncentivo.count({ where: { participante_id: p.id } }) >= LIMITE_OBJETIVOS) {
+      return res.status(400).json({ erro: `Limite de ${LIMITE_OBJETIVOS} objetivos atingido (máximo do formulário da prefeitura)` });
+    }
     let dados;
     try { dados = await validarObjetivo(req.body, req.usuario.escola_id); } catch (ex) { return res.status(400).json({ erro: ex.message }); }
     const ordem = (await ObjetivoIncentivo.max('ordem', { where: { participante_id: p.id } }) ?? -1) + 1;
@@ -188,7 +193,7 @@ const importarLocaisDasTurmas = async (req, res) => {
         if (!local) {
           const { nome, endereco } = localDaSala(h.Sala?.nome);
           if (!endereco) { semEndereco.add(nome || m.Turma.nome); continue; }
-          local = await LocalTreino.create({ escola_id: p.escola_id, nome, endereco, sala_id: h.sala_id });
+          local = await LocalTreino.create({ escola_id: p.escola_id, nome, endereco, cep: cepDoTexto(endereco), sala_id: h.sala_id });
         }
         if (ja.has(chave(local.id, h.dia_semana, h.hora_inicio))) continue;
         await LocalTreinoIncentivo.create({
@@ -220,9 +225,11 @@ const listarLocais = async (req, res) => {
 function validarCadastroLocal(body) {
   const nome = String(body.nome || '').trim();
   const endereco = String(body.endereco || '').trim();
+  const cepDigitos = String(body.cep || '').replace(/\D/g, '');
+  if (cepDigitos.length !== 8) throw new Error('Informe o CEP (8 dígitos) — é obrigatório no formulário da prefeitura');
   if (!nome) throw new Error('Informe o nome do local');
   if (!endereco) throw new Error('Informe o endereço completo');
-  return { nome, endereco };
+  return { cep: `${cepDigitos.slice(0, 5)}-${cepDigitos.slice(5)}`, nome, endereco };
 }
 
 const criarCadastroLocal = async (req, res) => {

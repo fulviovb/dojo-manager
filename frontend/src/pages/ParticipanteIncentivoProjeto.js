@@ -14,6 +14,7 @@ const subtitulo = { fontSize: 11, fontWeight: 700, color: '#888', textTransform:
 const btnX = { background: 'none', border: 'none', color: '#c62828', cursor: 'pointer', fontSize: 14, padding: '0 4px' };
 const inputPeq = { ...estiloInput, padding: '6px 8px', fontSize: 13 };
 const LIMITE_CURRICULO = 500; // limite do campo no formulário da prefeitura
+const LIMITE_OBJETIVOS = 5; // idem, máximo de objetivos
 const DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 const META_LABEL = { campeao: 'Ser campeão (1º lugar)', podio: 'Pódio (até 3º)', top5: 'Entre os 5 primeiros', participar: 'Participar', livre: 'Objetivo livre (texto)' };
 
@@ -104,7 +105,7 @@ export default function SecaoProjetoIncentivo({ participante }) {
         </div>
 
         {/* OBJETIVOS */}
-        <div style={subtitulo}>Objetivos ({dados.objetivos.length})</div>
+        <div style={subtitulo}>Objetivos ({dados.objetivos.length}/{LIMITE_OBJETIVOS})</div>
         {dados.objetivos.map(o => (
           <div key={o.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 13, padding: '4px 0', borderBottom: '1px solid #f5f5f5' }}>
             <span style={{ flex: 1 }}>{o.texto}</span>
@@ -112,6 +113,9 @@ export default function SecaoProjetoIncentivo({ participante }) {
             <button type="button" onClick={() => window.confirm('Remover este objetivo?') && executar(() => axios.delete(`${base}/objetivos/${o.id}`))} style={btnX}>✕</button>
           </div>
         ))}
+        {dados.objetivos.length >= LIMITE_OBJETIVOS ? (
+          <p style={{ fontSize: 11, color: '#888', margin: '6px 0 0' }}>Limite de {LIMITE_OBJETIVOS} objetivos atingido (máximo do formulário da prefeitura) — remova um para adicionar outro.</p>
+        ) : (<>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
           <select value={novoObjetivo.meta} onChange={e => setNovoObjetivo(o => ({ ...o, meta: e.target.value }))} style={{ ...inputPeq, width: 190 }}>
             {Object.entries(META_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -130,6 +134,7 @@ export default function SecaoProjetoIncentivo({ participante }) {
             if (await executar(() => axios.post(`${base}/objetivos`, novoObjetivo))) setNovoObjetivo(o => ({ ...o, modalidade: '', categoria: '', texto_livre: '' }));
           }}>+ Adicionar</button>
         </div>
+        </>)}
         {calendario.length === 0 && <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>Nenhuma competição de {new Date().getFullYear() + 1} em diante — cadastre na aba "Calendário" do Incentivo ao Esporte.</p>}
 
         {/* COMPETIÇÕES PREVISTAS */}
@@ -168,10 +173,11 @@ export default function SecaoProjetoIncentivo({ participante }) {
         <div style={subtitulo}>Locais de treinamento ({dados.locais.length})</div>
         {dados.locais.length > 0 && (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead><tr style={{ color: '#888', textAlign: 'left' }}><th>Endereço</th><th>Dia</th><th>Início</th><th>Fim</th><th /></tr></thead>
+            <thead><tr style={{ color: '#888', textAlign: 'left' }}><th>CEP</th><th>Endereço</th><th>Dia</th><th>Início</th><th>Fim</th><th /></tr></thead>
             <tbody>
               {dados.locais.map(l => (
                 <tr key={l.id} style={{ borderTop: '1px solid #f5f5f5' }}>
+                  <td style={{ padding: '4px 6px 4px 0', whiteSpace: 'nowrap' }}>{l.Local?.cep || <span style={{ color: '#c62828' }}>falta</span>}</td>
                   <td style={{ padding: '4px 0' }}>{l.texto_local}</td><td>{DIAS[l.dia_semana]}</td>
                   <td>{String(l.hora_inicio).slice(0, 5)}</td><td>{String(l.hora_fim).slice(0, 5)}</td>
                   <td style={{ textAlign: 'right' }}><button type="button" onClick={() => executar(() => axios.delete(`${base}/locais/${l.id}`))} style={btnX}>✕</button></td>

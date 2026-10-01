@@ -1529,6 +1529,17 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     avisa currículo salvo acima do limite. Currículo de atleta do Fulvio
     já salvo com 540 caracteres: mantido como está, aviso no LEIA-ME pra
     ele encurtar.
+[x] CEP obrigatório no cadastro de locais de treino (1º campo do
+    "Adicionar local" no formulário da prefeitura): coluna locais_treino.cep
+    (script `2026-10-incentivo-locais-cep.js`, preencheu 4 locais com o CEP
+    que estava no endereço; CIC, ABMT Hugo Langue e Associação Copel
+    Curitiba ficaram sem — completar na aba Locais). Tela: CEP primeiro,
+    com máscara; CEP válido + endereço vazio → sugere rua/bairro/cidade
+    pelo ViaCEP (consulta do navegador). LEIA-ME: locais saem
+    "CEP | endereço | dia | início | fim"; local sem CEP vira pendência.
+[x] Objetivos limitados a 5 (máximo do formulário da prefeitura): backend
+    recusa o 6º, tela mostra x/5 e esconde o "Adicionar" no limite, LEIA-ME
+    avisa se passar. Testados via API (CEP e limite).
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

@@ -81,15 +81,17 @@ const baixar = async (req, res) => {
       ...(f.objetivos.length ? f.objetivos.map((o, i) => `  ${i + 1}. ${o}`) : ['  (nenhum cadastrado)']), '',
       `COMPETIÇÕES PREVISTAS — EVENTO | PERÍODO/DATA | LOCAL (${f.competicoes.length}):`,
       ...(f.competicoes.length ? f.competicoes.map((c, i) => `  ${i + 1}. ${c.evento} | ${c.periodo} | ${c.local}`) : ['  (nenhuma cadastrada)']), '',
-      `LOCAIS DE TREINAMENTO — ENDEREÇO | DIA DA SEMANA | HORA INICIAL | HORA FINAL (${f.locais.length}):`,
-      ...(f.locais.length ? f.locais.map((l, i) => `  ${i + 1}. ${l.endereco} | ${l.dia} | ${l.inicio} | ${l.fim}`) : ['  (nenhum cadastrado)']), '',
+      `LOCAIS DE TREINAMENTO — CEP | ENDEREÇO | DIA DA SEMANA | HORA INICIAL | HORA FINAL (${f.locais.length}):`,
+      ...(f.locais.length ? f.locais.map((l, i) => `  ${i + 1}. ${l.cep || 'CEP NÃO CADASTRADO'} | ${l.endereco} | ${l.dia} | ${l.inicio} | ${l.fim}`) : ['  (nenhum cadastrado)']), '',
       SEP, '',
     ];
     if (!f.modalidade) pendentes.push('Formulário: modalidade (esporte do participante)');
     if (!f.curriculo) pendentes.push('Formulário: currículo esportivo');
     if (!f.objetivos.length) pendentes.push('Formulário: objetivos');
+    if (f.objetivos.length > 5) atencao.push(`Formulário: ${f.objetivos.length} objetivos — o formulário aceita no máximo 5; remova na tela do participante`);
     if (!f.competicoes.length) pendentes.push('Formulário: competições previstas');
     if (!f.locais.length) pendentes.push('Formulário: locais de treinamento');
+    for (const nome of [...new Set(f.locais.filter(l => !l.cep).map(l => l.nome || l.endereco))]) pendentes.push(`Formulário: CEP do local "${nome}" (complete na aba Locais)`);
     if (f.curriculo_e_sugestao) atencao.push('Formulário: currículo gerado automaticamente — revise (e salve) na tela do participante');
     if (f.curriculo.length > LIMITE_CURRICULO) atencao.push(`Formulário: currículo com ${f.curriculo.length} caracteres — o formulário aceita no máximo ${LIMITE_CURRICULO}; encurte na tela do participante`);
 
