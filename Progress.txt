@@ -1521,6 +1521,14 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     das salas (pulou "Dojo Vilas Boas de Artes Marciais", cujo endereço é
     "Criando novo Local de Treino"). "Importar das turmas" acha o local
     pela sala sem duplicar o cadastro. Testado via API.
+[x] Currículo esportivo limitado a 500 caracteres (limite do campo no
+    formulário da prefeitura): textarea com contador x/500 (laranja perto,
+    vermelho acima) e botão salvar bloqueado acima; backend recusa >500;
+    gerador acrescenta resultados (formato mais curto "1º" sem "lugar" nem
+    nível) só enquanto o texto couber — maior gerado hoje: 486. LEIA-ME
+    avisa currículo salvo acima do limite. Currículo de atleta do Fulvio
+    já salvo com 540 caracteres: mantido como está, aviso no LEIA-ME pra
+    ele encurtar.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

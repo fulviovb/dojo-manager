@@ -13,6 +13,7 @@ const titulo = { fontWeight: 700, fontSize: 15, color: '#1e2a38' };
 const subtitulo = { fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', margin: '14px 0 6px' };
 const btnX = { background: 'none', border: 'none', color: '#c62828', cursor: 'pointer', fontSize: 14, padding: '0 4px' };
 const inputPeq = { ...estiloInput, padding: '6px 8px', fontSize: 13 };
+const LIMITE_CURRICULO = 500; // limite do campo no formulário da prefeitura
 const DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 const META_LABEL = { campeao: 'Ser campeão (1º lugar)', podio: 'Pódio (até 3º)', top5: 'Entre os 5 primeiros', participar: 'Participar', livre: 'Objetivo livre (texto)' };
 
@@ -88,16 +89,18 @@ export default function SecaoProjetoIncentivo({ participante }) {
 
         {/* CURRÍCULO */}
         <div style={subtitulo}>Currículo esportivo / paradesportivo</div>
-        <textarea value={curriculo} onChange={e => setCurriculo(e.target.value)} rows={4}
+        <textarea value={curriculo} onChange={e => setCurriculo(e.target.value)} rows={4} maxLength={Math.max(LIMITE_CURRICULO, curriculoSalvo.length)}
           placeholder="Descreva de forma clara e sucinta a carreira esportiva (ex.: tempo de prática, graduação, principais resultados)."
           style={{ ...estiloInput, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
         <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           <button type="button" onClick={sugerirCurriculo} style={btnAzul}>Gerar a partir do histórico</button>
-          <button type="button" disabled={curriculo === curriculoSalvo}
+          <button type="button" disabled={curriculo === curriculoSalvo || curriculo.trim().length > LIMITE_CURRICULO}
             onClick={() => executar(() => axios.put(`${base}/curriculo`, { texto: curriculo }), 'Currículo salvo.')} style={btnVerde}>Salvar currículo</button>
           <BotaoCopiar texto={curriculo} />
           {curriculo !== curriculoSalvo && <span style={{ fontSize: 11, color: '#ef6c00' }}>não salvo</span>}
-          <span style={{ fontSize: 11, color: '#888' }}>{curriculo.length} caracteres</span>
+          <span style={{ fontSize: 11, fontWeight: curriculo.length > LIMITE_CURRICULO ? 700 : 400, color: curriculo.length > LIMITE_CURRICULO ? '#c62828' : curriculo.length > LIMITE_CURRICULO - 50 ? '#ef6c00' : '#888' }}>
+            {curriculo.length}/{LIMITE_CURRICULO}{curriculo.length > LIMITE_CURRICULO ? ` — passou ${curriculo.length - LIMITE_CURRICULO}, encurte para salvar` : ''}
+          </span>
         </div>
 
         {/* OBJETIVOS */}

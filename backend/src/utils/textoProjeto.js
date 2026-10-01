@@ -7,6 +7,8 @@ const { Op } = require('sequelize');
 const NIVEL_LABEL = { municipal: 'municipal', estadual: 'estadual', nacional: 'nacional', panamericano: 'pan-americano', mundial: 'mundial' };
 const NIVEL_PLURAL = { municipal: 'municipais', estadual: 'estaduais', nacional: 'nacionais', panamericano: 'pan-americanos', mundial: 'mundiais' };
 const NIVEL_PESO = { mundial: 5, panamericano: 4, nacional: 3, estadual: 2, municipal: 1 };
+// Campo do formulário da prefeitura aceita no máximo 500 caracteres.
+const LIMITE_CURRICULO = 500;
 const DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 const META_LABEL = { campeao: '1º lugar', podio: 'pódio (até 3º lugar)', top5: 'classificação entre os 5 primeiros' };
 
@@ -115,13 +117,22 @@ async function montarCurriculo(participante) {
       .sort((a, b) => NIVEL_PESO[b[0]] - NIVEL_PESO[a[0]])
       .map(([n, q]) => `${q} ${q > 1 ? (NIVEL_PLURAL[n] || n) : (NIVEL_LABEL[n] || n)}`);
     partes.push(`Soma ${podios.length} pódio${podios.length > 1 ? 's' : ''} em competições oficiais${Number.isFinite(anoMaisAntigo) ? ` desde ${anoMaisAntigo}` : ''} (${porNivel.join(', ')}).`);
-    const principais = [...podios]
+    // Resultados entram, do mais importante pro menos, enquanto o texto
+    // inteiro couber no limite do formulário (LIMITE_CURRICULO).
+    const ordenados = [...podios]
       .sort((a, b) => (NIVEL_PESO[b.Competicao.nivel] - NIVEL_PESO[a.Competicao.nivel]) || (a.colocacao - b.colocacao) || (b.Competicao.ano - a.Competicao.ano))
-      .slice(0, 4)
-      .map(c => `${c.Competicao.ano}: ${c.colocacao}º lugar ${c.modalidade}${c.categoria ? ` ${c.categoria}` : ''} – ${c.Competicao.nome} (${NIVEL_LABEL[c.Competicao.nivel] || c.Competicao.nivel})`);
-    partes.push(`Principais resultados: ${principais.join('; ')}.`);
+      .map(c => `${c.Competicao.ano}: ${c.colocacao}º ${c.modalidade}${c.categoria ? ` ${c.categoria}` : ''} – ${c.Competicao.nome}`);
+    const escolhidos = [];
+    for (const r of ordenados) {
+      const tentativa = [...partes, `Principais resultados: ${[...escolhidos, r].join('; ')}.`].join(' ');
+      if (tentativa.length > LIMITE_CURRICULO) break;
+      escolhidos.push(r);
+    }
+    if (escolhidos.length) partes.push(`Principais resultados: ${escolhidos.join('; ')}.`);
   }
-  return partes.length > 1 || participante.tipo_pessoa === 'tecnico' || alunoId ? partes.join(' ') : null;
+  const texto = partes.join(' ');
+  if (!(partes.length > 1 || participante.tipo_pessoa === 'tecnico' || alunoId)) return null;
+  return texto.length > LIMITE_CURRICULO ? `${texto.slice(0, LIMITE_CURRICULO - 1).trimEnd()}…` : texto;
 }
 
 // Tudo pronto pra copiar e colar, campo a campo.
@@ -157,4 +168,4 @@ async function montarFormulario(participante) {
   };
 }
 
-module.exports = { arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, nomeCompeticao, periodoCompeticao, localCompeticao, DIAS };
+module.exports = { LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, nomeCompeticao, periodoCompeticao, localCompeticao, DIAS };

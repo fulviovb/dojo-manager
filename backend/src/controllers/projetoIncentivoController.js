@@ -3,7 +3,7 @@ const {
   ParticipanteIncentivo, EsporteIncentivo, Competicao, Conquista, ObjetivoIncentivo, CompeticaoPrevistaIncentivo,
   LocalTreinoIncentivo, LocalTreino, MatriculaAluno, Turma, HorarioTurma, Sala,
 } = require('../models');
-const { arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal } = require('../utils/textoProjeto');
+const { LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal } = require('../utils/textoProjeto');
 
 // Formulário do projeto (tela "Projeto" do Sistema Incentivo online) +
 // calendário de competições futuras (tabela `competicoes`, a mesma das
@@ -53,7 +53,9 @@ const salvarCurriculo = async (req, res) => {
   try {
     const p = await buscarParticipante(req.params.id, req.usuario.escola_id);
     if (!p) return res.status(404).json({ erro: 'Participante não encontrado' });
-    await p.update({ curriculo_esportivo: String(req.body.texto || '').trim() || null });
+    const texto = String(req.body.texto || '').trim();
+    if (texto.length > LIMITE_CURRICULO) return res.status(400).json({ erro: `Currículo com ${texto.length} caracteres — o formulário da prefeitura aceita no máximo ${LIMITE_CURRICULO}` });
+    await p.update({ curriculo_esportivo: texto || null });
     res.json({ curriculo_esportivo: p.curriculo_esportivo || '' });
   } catch (e) { erro500(res, e); }
 };

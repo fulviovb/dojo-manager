@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const PizZip = require('pizzip');
 const { ParticipanteIncentivo, DocumentoIncentivo, EsporteIncentivo } = require('../models');
-const { montarFormulario } = require('../utils/textoProjeto');
+const { montarFormulario, LIMITE_CURRICULO } = require('../utils/textoProjeto');
 
 // "Baixar projeto": um .zip com todos os arquivos do checklist do
 // participante, numerados na ordem do checklist, + "00 - LEIA-ME.txt" com o
@@ -91,6 +91,7 @@ const baixar = async (req, res) => {
     if (!f.competicoes.length) pendentes.push('Formulário: competições previstas');
     if (!f.locais.length) pendentes.push('Formulário: locais de treinamento');
     if (f.curriculo_e_sugestao) atencao.push('Formulário: currículo gerado automaticamente — revise (e salve) na tela do participante');
+    if (f.curriculo.length > LIMITE_CURRICULO) atencao.push(`Formulário: currículo com ${f.curriculo.length} caracteres — o formulário aceita no máximo ${LIMITE_CURRICULO}; encurte na tela do participante`);
 
     const documento = participante.tipo_pessoa === 'pessoa_juridica'
       ? (participante.cnpj ? `CNPJ ${participante.cnpj}` : 'CNPJ não cadastrado')
