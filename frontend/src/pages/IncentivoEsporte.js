@@ -266,8 +266,21 @@ function BarraProgressoDocumentos({ progresso }) {
 
 // ── Aba: Participantes ─────────────────────────────────────────────────────
 
+// Ordem das colunas clicáveis da lista de participantes. Status segue o
+// ciclo do programa (não o alfabeto); documentos pelo % entregue.
+const ORDEM_STATUS = ['documentacao_pendente', 'documentacao_ok', 'inscrito', 'habilitado', 'indeferido', 'inabilitado'];
+const COLUNAS_PARTICIPANTES = [
+  { rotulo: 'Nome', valor: p => p.nome.toLocaleLowerCase('pt-BR') },
+  { rotulo: 'Tipo', valor: p => TIPO_PESSOA_LABEL[p.tipo_pessoa] || '' },
+  { rotulo: 'Origem / CNPJ', valor: p => (p.tipo_pessoa === 'pessoa_juridica' ? `3${p.cnpj || ''}` : p.aluno_id ? '1Aluno' : '2Avulso') },
+  { rotulo: 'Status', valor: p => ORDEM_STATUS.indexOf(p.status_programa) },
+  { rotulo: 'Documentos', valor: p => p.documentos_progresso?.percentual ?? 0 },
+  { rotulo: 'Taxa Gestão', valor: p => (p.taxa_gestao_paga ? 1 : 0) },
+];
+
 function ListaParticipantes({ onVerParticipante }) {
   const [participantes, setParticipantes] = useState([]);
+  const [ordem, setOrdem] = useState({ coluna: 'Nome', desc: false });
   const [busca, setBusca] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [modalNovo, setModalNovo] = useState(false);
@@ -275,10 +288,17 @@ function ListaParticipantes({ onVerParticipante }) {
   const carregar = () => axios.get('/incentivo-esporte/participantes').then(r => setParticipantes(r.data));
   useEffect(() => { carregar(); }, []);
 
+  const colunaOrdem = COLUNAS_PARTICIPANTES.find(c => c.rotulo === ordem.coluna);
   const filtrados = participantes.filter(p => {
     if (filtroTipo !== 'todos' && p.tipo_pessoa !== filtroTipo) return false;
     return p.nome.toLowerCase().includes(busca.toLowerCase());
+  }).sort((a, b) => {
+    const va = colunaOrdem.valor(a); const vb = colunaOrdem.valor(b);
+    const cmp = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'pt-BR');
+    // Empate: nome, sempre crescente.
+    return (ordem.desc ? -cmp : cmp) || a.nome.localeCompare(b.nome, 'pt-BR');
   });
+  const ordenarPor = (rotulo) => setOrdem(o => ({ coluna: rotulo, desc: o.coluna === rotulo ? !o.desc : false }));
 
   return (
     <div>
@@ -299,7 +319,13 @@ function ListaParticipantes({ onVerParticipante }) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#fafafa' }}>
-              {['Nome', 'Tipo', 'Origem / CNPJ', 'Status', 'Documentos', 'Taxa Gestão', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}
+              {COLUNAS_PARTICIPANTES.map(c => (
+                <th key={c.rotulo} onClick={() => ordenarPor(c.rotulo)} title="Clique para ordenar"
+                  style={{ ...thEstilo, cursor: 'pointer', userSelect: 'none', color: ordem.coluna === c.rotulo ? '#1e2a38' : thEstilo.color }}>
+                  {c.rotulo} <span style={{ fontSize: 10, opacity: ordem.coluna === c.rotulo ? 1 : 0.3 }}>{ordem.coluna === c.rotulo ? (ordem.desc ? '▼' : '▲') : '↕'}</span>
+                </th>
+              ))}
+              <th style={thEstilo} />
             </tr>
           </thead>
           <tbody>
