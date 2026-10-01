@@ -170,4 +170,4 @@ async function montarFormulario(participante) {
   };
 }
 
-module.exports = { LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, cepDoTexto, nomeCompeticao, periodoCompeticao, localCompeticao, DIAS };
+module.exports = { conquistasDo, LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, cepDoTexto, nomeCompeticao, periodoCompeticao, localCompeticao, DIAS };

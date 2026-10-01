@@ -32,6 +32,14 @@ const DocumentoIncentivo = sequelize.define('DocumentoIncentivo', {
   // arbitrária. Documentos extras/gerados (fora do checklist padrão) ficam
   // com o default alto, sempre depois dos itens do checklist.
   ordem: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1000 },
+  // Só itens com `dados_resultado` no checklist (comprovantes de resultado):
+  // campos que a prefeitura pede junto de cada comprovante. Evento = chave
+  // de RESULTADO_EVENTOS (constants/incentivoEsporte.js).
+  resultado_evento: { type: DataTypes.STRING(30) },
+  resultado_colocacao: { type: DataTypes.INTEGER },
+  resultado_ano: { type: DataTypes.INTEGER },
+  resultado_competicao: { type: DataTypes.STRING },
+  resultado_entidade: { type: DataTypes.STRING },
 }, { tableName: 'documentos_incentivo' });
 
 module.exports = DocumentoIncentivo;

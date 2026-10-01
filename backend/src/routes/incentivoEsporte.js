@@ -11,12 +11,14 @@ const contrato = require('../controllers/contratoConsultoriaController');
 const esportes = require('../controllers/esportesIncentivoController');
 const pacote = require('../controllers/pacoteProjetoController');
 const projeto = require('../controllers/projetoIncentivoController');
-const { CHECKLIST_ATLETA, CHECKLIST_TECNICO, CHECKLIST_PESSOA_JURIDICA, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA } = require('../constants/incentivoEsporte');
+const { RESULTADO_EVENTOS, CHECKLIST_ATLETA, CHECKLIST_TECNICO, CHECKLIST_PESSOA_JURIDICA, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA } = require('../constants/incentivoEsporte');
+const { anosValidosResultado } = require('../controllers/documentosIncentivoController');
 
 // Módulo sensível (dados pessoais + financeiro) — só admin, como Mensalidades.
 router.use(autenticar, autorizarRole(['admin']));
 
 router.get('/catalogos', (req, res) => res.json({
+  resultadoEventos: RESULTADO_EVENTOS, anosResultado: anosValidosResultado(),
   checklistAtleta: CHECKLIST_ATLETA, checklistTecnico: CHECKLIST_TECNICO, checklistPessoaJuridica: CHECKLIST_PESSOA_JURIDICA,
   categoriasDespesa: CATEGORIAS_DESPESA, tiposContrapartida: TIPOS_CONTRAPARTIDA,
 }));
@@ -44,6 +46,7 @@ router.get('/participantes/:id/pacote-projeto', pacote.baixar);
 // Formulário do projeto (tela "Projeto" do Sistema Incentivo online).
 router.get('/participantes/:id/projeto', projeto.buscar);
 router.get('/participantes/:id/projeto/curriculo-sugerido', projeto.sugerirCurriculo);
+router.get('/participantes/:id/projeto/sugestoes-resultado', projeto.sugestoesResultado);
 router.put('/participantes/:id/projeto/curriculo', projeto.salvarCurriculo);
 router.post('/participantes/:id/projeto/objetivos', projeto.criarObjetivo);
 router.put('/participantes/:id/projeto/objetivos/:objetivoId', projeto.atualizarObjetivo);

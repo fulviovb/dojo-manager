@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const PizZip = require('pizzip');
 const { ParticipanteIncentivo, DocumentoIncentivo, EsporteIncentivo } = require('../models');
+const { RESULTADO_EVENTOS, buscarItemChecklist } = require('../constants/incentivoEsporte');
 const { montarFormulario, LIMITE_CURRICULO } = require('../utils/textoProjeto');
 
 // "Baixar projeto": um .zip com todos os arquivos do checklist do
@@ -40,6 +41,7 @@ const baixar = async (req, res) => {
     const zip = new PizZip();
     const pasta = nomeSeguro(participante.nome, 60);
     const incluidos = []; const pendentes = []; const atencao = [];
+    const resultados = []; // dados dos comprovantes de resultado, pro LEIA-ME
 
     // Numeração por item do checklist; instâncias de item múltiplo dividem
     // o número e ganham (1), (2)...
@@ -66,6 +68,11 @@ const baixar = async (req, res) => {
 
       zip.file(`${pasta}/${nomeArquivo}`, fs.readFileSync(caminho));
       incluidos.push(nomeArquivo);
+      if (buscarItemChecklist(participante.tipo_pessoa, doc.tipo_documento)?.dados_resultado) {
+        const ev = RESULTADO_EVENTOS.find(e => e.valor === doc.resultado_evento);
+        resultados.push({ arquivo: nomeArquivo, doc, evento: ev?.label });
+        if (!doc.resultado_evento) pendentes.push(`${rotulo}: dados do resultado (evento, colocação, ano, competição, entidade)`);
+      }
       if (marcas.length) atencao.push(`${rotulo}: ${marcas.join(', ').toLowerCase()}`);
     }
 
@@ -84,6 +91,16 @@ const baixar = async (req, res) => {
       `LOCAIS DE TREINAMENTO — CEP | ENDEREÇO | DIA DA SEMANA | HORA INICIAL | HORA FINAL (${f.locais.length}):`,
       ...(f.locais.length ? f.locais.map((l, i) => `  ${i + 1}. ${l.cep || 'CEP NÃO CADASTRADO'} | ${l.endereco} | ${l.dia} | ${l.inicio} | ${l.fim}`) : ['  (nenhum cadastrado)']), '',
       SEP, '',
+      `COMPROVANTES DE RESULTADO — dados de cada arquivo (${resultados.length}):`,
+      ...(resultados.length ? resultados.flatMap(({ arquivo, doc, evento }, i) => (evento ? [
+        `  ${i + 1}. Arquivo: ${arquivo}`,
+        `     EVENTO: ${evento}`,
+        `     COLOCAÇÃO: ${doc.resultado_colocacao ? `${doc.resultado_colocacao}º lugar` : '—'}`,
+        `     ANO: ${doc.resultado_ano}`,
+        `     COMPETIÇÃO: ${doc.resultado_competicao}`,
+        `     ENTIDADE PROMOTORA: ${doc.resultado_entidade}`,
+      ] : [`  ${i + 1}. Arquivo: ${arquivo}`, '     (dados do resultado não preenchidos)'])) : ['  (nenhum comprovante enviado)']),
+      '', SEP, '',
     ];
     if (!f.modalidade) pendentes.push('Formulário: modalidade (esporte do participante)');
     if (!f.curriculo) pendentes.push('Formulário: currículo esportivo');

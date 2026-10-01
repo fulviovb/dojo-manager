@@ -644,6 +644,13 @@ com:
   arquivo" — o botão "+ Adicionar mais um comprovante" só aparece quando
   todo slot existente já tem arquivo (senão ficava ambíguo com o "Enviar
   arquivo" do slot ainda vazio) e some ao atingir o limite.
+  Item com `dados_resultado` (comprovantes de resultado) pede, em cada
+  arquivo, evento (`RESULTADO_EVENTOS`: estadual / nacional / internacional
+  / convocação seleção / ranking nacional / ranking internacional / outros),
+  colocação, ano (só ano atual e anterior — validade de 2 anos), título da
+  competição e entidade promotora (colunas `resultado_*` em
+  DocumentoIncentivo; "Preencher com uma conquista do histórico" copia de
+  Conquistas). Saem no LEIA-ME por arquivo; faltando = pendência.
   Comprovação de residência (Art. 17 da Resolução) tem 3 caminhos, não é um
   item genérico: proprietário do imóvel → só a própria conta; menor nascido
   a partir de 2009 que mora com o responsável (§4) → só a conta no nome

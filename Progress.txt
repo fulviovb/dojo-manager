@@ -1540,6 +1540,18 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 [x] Objetivos limitados a 5 (máximo do formulário da prefeitura): backend
     recusa o 6º, tela mostra x/5 e esconde o "Adicionar" no limite, LEIA-ME
     avisa se passar. Testados via API (CEP e limite).
+[x] Dados de cada comprovante de resultado (pedido do Fulvio): evento
+    (estadual/nacional/internacional/convocação seleção/ranking
+    nacional/ranking internacional/outros), colocação, ano (2025 ou 2026 —
+    ano atual e anterior), competição e entidade promotora. Colunas
+    resultado_* em documentos_incentivo (script
+    `2026-10-incentivo-dados-resultado.js`). Na tela, abaixo de cada
+    comprovante, com "Preencher com uma conquista do histórico" (conquistas
+    do participante dos anos válidos, nível → evento). LEIA-ME ganhou seção
+    "COMPROVANTES DE RESULTADO" por arquivo; sem dados = pendência. Os 26
+    comprovantes já enviados ficaram sem dados (pendentes até preencher).
+    Testado via API: validações (ano fora, sem evento/colocação/entidade,
+    documento que não é comprovante) e LEIA-ME.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

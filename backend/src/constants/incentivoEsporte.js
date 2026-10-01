@@ -36,7 +36,9 @@ const CHECKLIST_ATLETA = [
   // CIE 004/2026, §17 e §20, obriga só Técnico (Pessoa Física) e Pessoa
   // Jurídica que atuam com menores de 18. Item existe só em
   // CHECKLIST_TECNICO.
-  { key: 'comprovantes_resultado', nome: 'Comprovantes de resultado (até 3, 2025/2026)', condicao: 'sempre', multiplo: true, max: 3, rotulo_instancia: 'Comprovante' },
+  // `dados_resultado`: cada arquivo leva evento/colocação/ano/competição/
+  // entidade (campos do protocolo de resultados na prefeitura).
+  { key: 'comprovantes_resultado', nome: 'Comprovantes de resultado (até 3, 2025/2026)', condicao: 'sempre', multiplo: true, max: 3, rotulo_instancia: 'Comprovante', dados_resultado: true },
 ];
 
 const CHECKLIST_TECNICO = [
@@ -90,6 +92,17 @@ function checklistPorTipo(tipoPessoa) {
   if (tipoPessoa === 'pessoa_juridica') return CHECKLIST_PESSOA_JURIDICA;
   return CHECKLIST_ATLETA;
 }
+
+// Campo "EVENTO" de cada comprovante de resultado (protocolo da prefeitura).
+const RESULTADO_EVENTOS = [
+  { valor: 'estadual', label: 'Competição estadual' },
+  { valor: 'nacional', label: 'Competição nacional' },
+  { valor: 'internacional', label: 'Competição internacional' },
+  { valor: 'convocacao_selecao', label: 'Convocação para seleção brasileira' },
+  { valor: 'ranking_nacional', label: 'Ranking nacional' },
+  { valor: 'ranking_internacional', label: 'Ranking internacional' },
+  { valor: 'outros', label: 'Outros comprovantes' },
+];
 
 // Rubricas de despesa permitidas pelo edital (Anexos VI/VII/VIII — o
 // percentual-teto por categoria não é validado automaticamente pelo
@@ -307,4 +320,4 @@ function buscarItemChecklist(tipoPessoa, tipoDocumento) {
   return { ...checklist[ordemCanonica], ordemCanonica };
 }
 
-module.exports = { ITEM_CREDENCIAL, CHECKLIST_ATLETA, CHECKLIST_TECNICO, CHECKLIST_PESSOA_JURIDICA, checklistPorTipo, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA, ANEXOS, buscarItemChecklist };
+module.exports = { RESULTADO_EVENTOS, ITEM_CREDENCIAL, CHECKLIST_ATLETA, CHECKLIST_TECNICO, CHECKLIST_PESSOA_JURIDICA, checklistPorTipo, CATEGORIAS_DESPESA, TIPOS_CONTRAPARTIDA, ANEXOS, buscarItemChecklist };

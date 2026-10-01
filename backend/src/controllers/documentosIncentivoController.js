@@ -4,7 +4,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { DocumentoIncentivo, ParticipanteIncentivo, CredencialIncentivo, EntidadeFederativa, EsporteIncentivo } = require('../models');
 const { textoEntidade } = require('./entidadesFederativasController');
-const { ANEXOS, ITEM_CREDENCIAL, buscarItemChecklist } = require('../constants/incentivoEsporte');
+const { ANEXOS, ITEM_CREDENCIAL, RESULTADO_EVENTOS, buscarItemChecklist } = require('../constants/incentivoEsporte');
 const { gerarAnexo, montarLinhasAnexoXI, montarLinhasAnexoX } = require('../services/anexoService');
 
 const PASTA_DOCS = path.join(__dirname, '..', '..', 'uploads', 'incentivo-esporte', 'documentos');
@@ -111,12 +111,44 @@ const enviarArquivo = async (req, res) => {
   });
 };
 
+// Resultados valem por no máximo 2 anos: ano do protocolo e o anterior
+// (Resolução Art. 23 §2º — protocolo 2026 aceita 2025 e 2026).
+function anosValidosResultado() {
+  const ano = new Date().getFullYear();
+  return [ano - 1, ano];
+}
+
+function validarResultado(r) {
+  const evento = r?.evento;
+  if (!RESULTADO_EVENTOS.some(e => e.valor === evento)) throw new Error('Escolha o tipo de evento');
+  const anos = anosValidosResultado();
+  const ano = Number(r.ano);
+  if (!anos.includes(ano)) throw new Error(`Ano precisa ser ${anos.join(' ou ')} (resultado vale por no máximo 2 anos)`);
+  const colocacao = r.colocacao === '' || r.colocacao == null ? null : Number(r.colocacao);
+  if (evento !== 'outros' && (!Number.isInteger(colocacao) || colocacao < 1 || colocacao > 999)) throw new Error('Informe a colocação (1, 2, 3...)');
+  const competicao = String(r.competicao || '').trim();
+  const entidade = String(r.entidade || '').trim();
+  if (!competicao) throw new Error('Informe o título da competição');
+  if (!entidade) throw new Error('Informe a entidade promotora (nome completo)');
+  return { resultado_evento: evento, resultado_colocacao: colocacao, resultado_ano: ano, resultado_competicao: competicao, resultado_entidade: entidade };
+}
+
 const atualizar = async (req, res) => {
   try {
     const documento = await buscarDaEscola(req.params.id, req.usuario.escola_id);
     if (!documento) return res.status(404).json({ erro: 'Documento não encontrado' });
     const { status, observacao, data_validade } = req.body;
+    // Dados do comprovante de resultado (só em item com `dados_resultado`).
+    let resultado = {};
+    if (req.body.resultado !== undefined) {
+      const participante = await ParticipanteIncentivo.findByPk(documento.participante_id, { attributes: ['tipo_pessoa'] });
+      if (!buscarItemChecklist(participante.tipo_pessoa, documento.tipo_documento)?.dados_resultado) {
+        return res.status(400).json({ erro: 'Este documento não é um comprovante de resultado' });
+      }
+      try { resultado = validarResultado(req.body.resultado); } catch (ex) { return res.status(400).json({ erro: ex.message }); }
+    }
     await documento.update({
+      ...resultado,
       ...(status !== undefined ? { status } : {}),
       ...(observacao !== undefined ? { observacao } : {}),
       ...(data_validade !== undefined ? { data_validade } : {}),
@@ -277,4 +309,4 @@ const gerar = async (req, res) => {
   }
 };
 
-module.exports = { listar, criar, enviarArquivo, atualizar, remover, listarAnexosDisponiveis, gerar };
+module.exports = { anosValidosResultado, listar, criar, enviarArquivo, atualizar, remover, listarAnexosDisponiveis, gerar };

@@ -302,9 +302,67 @@ function LinhaCredencial({ doc, participanteId, mudarStatus, onAlterado }) {
   );
 }
 
+// Dados que a prefeitura pede junto de cada comprovante de resultado
+// (evento, colocação, ano, competição, entidade). "Preencher com conquista"
+// copia de um resultado do histórico (Conquistas) do participante.
+function DadosResultado({ doc, eventos, anos, sugestoes, onSalvo }) {
+  const doDoc = () => ({
+    evento: doc.resultado_evento || '', colocacao: doc.resultado_colocacao ?? '', ano: doc.resultado_ano || '',
+    competicao: doc.resultado_competicao || '', entidade: doc.resultado_entidade || '',
+  });
+  const [form, setForm] = useState(doDoc);
+  const [erro, setErro] = useState('');
+  const [salvo, setSalvo] = useState(false);
+  useEffect(() => { setForm(doDoc()); }, [doc]); // eslint-disable-line react-hooks/exhaustive-deps
+  const alterado = JSON.stringify(form) !== JSON.stringify(doDoc());
+  const inp = { ...estiloInput, padding: '5px 7px', fontSize: 12 };
+  const preenchido = !!doc.resultado_evento;
+
+  const salvar = async () => {
+    setErro('');
+    try {
+      await axios.put(`/incentivo-esporte/documentos/${doc.id}`, { resultado: form });
+      setSalvo(true); setTimeout(() => setSalvo(false), 1500);
+      onSalvo();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+  };
+
+  return (
+    <div style={{ marginLeft: 12, padding: '6px 10px', borderLeft: `3px solid ${preenchido ? '#2e7d32' : '#ef6c00'}`, background: '#fafafa', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {sugestoes.length > 0 && (
+        <select value="" onChange={e => { const s = sugestoes.find(x => x.id === e.target.value); if (s) setForm({ evento: s.evento, colocacao: s.colocacao, ano: s.ano, competicao: s.competicao, entidade: s.entidade }); }} style={{ ...inp, color: '#1565c0' }}>
+          <option value="">Preencher com uma conquista do histórico...</option>
+          {sugestoes.map(s => <option key={s.id} value={s.id}>{s.rotulo}</option>)}
+        </select>
+      )}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <select value={form.evento} onChange={e => setForm(f => ({ ...f, evento: e.target.value }))} style={{ ...inp, width: 230 }}>
+          <option value="">Evento...</option>
+          {eventos.map(ev => <option key={ev.valor} value={ev.valor}>{ev.label}</option>)}
+        </select>
+        <input type="number" min="1" placeholder="Colocação" value={form.colocacao} onChange={e => setForm(f => ({ ...f, colocacao: e.target.value }))} style={{ ...inp, width: 95 }} />
+        <select value={form.ano} onChange={e => setForm(f => ({ ...f, ano: e.target.value }))} style={{ ...inp, width: 90 }}>
+          <option value="">Ano...</option>
+          {anos.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
+      <input placeholder="Competição (título)" value={form.competicao} onChange={e => setForm(f => ({ ...f, competicao: e.target.value }))} style={inp} />
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <input placeholder="Entidade promotora (nome completo)" value={form.entidade} onChange={e => setForm(f => ({ ...f, entidade: e.target.value }))} style={{ ...inp, flex: 1 }} />
+        <button type="button" onClick={salvar} disabled={!alterado} style={{ ...btnVerde, padding: '5px 10px' }}>{salvo ? 'Salvo ✓' : 'Salvar dados'}</button>
+      </div>
+      {!preenchido && !alterado && <span style={{ fontSize: 11, color: '#ef6c00' }}>Dados do resultado não preenchidos.</span>}
+      {erro && <span style={{ fontSize: 11, color: '#c62828' }}>{erro}</span>}
+    </div>
+  );
+}
+
 function SecaoDocumentos({ participante, onRefresh }) {
   const [documentos, setDocumentos] = useState([]);
   const [checklistDef, setChecklistDef] = useState({});
+  const [eventosResultado, setEventosResultado] = useState([]);
+  const [anosResultado, setAnosResultado] = useState([]);
+  const [sugestoesResultado, setSugestoesResultado] = useState([]);
   const [anexosDisponiveis, setAnexosDisponiveis] = useState([]);
   const [anexoEscolhido, setAnexoEscolhido] = useState(null);
   const [modalExtra, setModalExtra] = useState(false);
@@ -322,8 +380,14 @@ function SecaoDocumentos({ participante, onRefresh }) {
     axios.get('/incentivo-esporte/catalogos').then(r => {
       const lista = { tecnico: r.data.checklistTecnico, pessoa_juridica: r.data.checklistPessoaJuridica }[participante.tipo_pessoa] || r.data.checklistAtleta;
       setChecklistDef(Object.fromEntries(lista.map(i => [i.key, i])));
+      setEventosResultado(r.data.resultadoEventos || []);
+      setAnosResultado(r.data.anosResultado || []);
     });
   }, [participante.tipo_pessoa]);
+
+  useEffect(() => {
+    axios.get(`/incentivo-esporte/participantes/${participante.id}/projeto/sugestoes-resultado`).then(r => setSugestoesResultado(r.data)).catch(() => {});
+  }, [participante.id]);
 
   const anexosParaEsteTipo = anexosDisponiveis.filter(a => a.gerar_para.includes(participante.tipo_pessoa));
 
@@ -428,8 +492,13 @@ function SecaoDocumentos({ participante, onRefresh }) {
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{def.nome}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {instancias.map((inst, i) => (
-                      <LinhaDocumento key={inst.id} doc={inst} rotulo={`${def.rotulo_instancia || 'Arquivo'} ${i + 1}`}
-                        mudarStatus={mudarStatus} enviarArquivo={enviarArquivo} remover={remover} />
+                      <React.Fragment key={inst.id}>
+                        <LinhaDocumento doc={inst} rotulo={`${def.rotulo_instancia || 'Arquivo'} ${i + 1}`}
+                          mudarStatus={mudarStatus} enviarArquivo={enviarArquivo} remover={remover} />
+                        {def.dados_resultado && (
+                          <DadosResultado doc={inst} eventos={eventosResultado} anos={anosResultado} sugestoes={sugestoesResultado} onSalvo={carregar} />
+                        )}
+                      </React.Fragment>
                     ))}
                   </div>
                   {podeAdicionar && (

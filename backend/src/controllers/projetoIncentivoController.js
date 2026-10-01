@@ -3,7 +3,7 @@ const {
   ParticipanteIncentivo, EsporteIncentivo, Competicao, Conquista, ObjetivoIncentivo, CompeticaoPrevistaIncentivo,
   LocalTreinoIncentivo, LocalTreino, MatriculaAluno, Turma, HorarioTurma, Sala,
 } = require('../models');
-const { LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, cepDoTexto } = require('../utils/textoProjeto');
+const { conquistasDo, LIMITE_CURRICULO, arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, cepDoTexto } = require('../utils/textoProjeto');
 
 // Formulário do projeto (tela "Projeto" do Sistema Incentivo online) +
 // calendário de competições futuras (tabela `competicoes`, a mesma das
@@ -209,6 +209,29 @@ const importarLocaisDasTurmas = async (req, res) => {
   } catch (e) { erro500(res, e); }
 };
 
+// Conquistas do participante nos anos válidos pra comprovante de resultado,
+// já no formato dos campos do comprovante (sugestão de preenchimento).
+const NIVEL_PARA_EVENTO = { municipal: 'outros', estadual: 'estadual', nacional: 'nacional', panamericano: 'internacional', mundial: 'internacional' };
+const sugestoesResultado = async (req, res) => {
+  try {
+    const p = await buscarParticipante(req.params.id, req.usuario.escola_id);
+    if (!p) return res.status(404).json({ erro: 'Participante não encontrado' });
+    const anoAtual = new Date().getFullYear();
+    const lista = (await conquistasDo(p))
+      .filter(c => c.Competicao && c.Competicao.ano >= anoAtual - 1)
+      .sort((a, b) => (b.Competicao.ano - a.Competicao.ano) || (a.colocacao - b.colocacao))
+      .map(c => ({
+        id: c.id,
+        rotulo: `${c.Competicao.ano} · ${c.colocacao}º ${c.modalidade}${c.categoria ? ` ${c.categoria}` : ''} · ${c.Competicao.nome}`,
+        evento: NIVEL_PARA_EVENTO[c.Competicao.nivel] || 'outros',
+        colocacao: c.colocacao, ano: c.Competicao.ano,
+        competicao: [c.Competicao.nome, c.Competicao.etapa].filter(Boolean).join(' - '),
+        entidade: c.Competicao.entidade || '',
+      }));
+    res.json(lista);
+  } catch (e) { erro500(res, e); }
+};
+
 // ── Cadastro de locais de treino ───────────────────────────────────────────
 
 const listarLocais = async (req, res) => {
@@ -326,5 +349,5 @@ module.exports = {
   buscar, sugerirCurriculo, salvarCurriculo, criarObjetivo, atualizarObjetivo, removerObjetivo,
   adicionarPrevista, removerPrevista, criarLocal, removerLocal, importarLocaisDasTurmas,
   listarCalendario, criarCompeticao, atualizarCompeticao, removerCompeticao,
-  listarLocais, criarCadastroLocal, atualizarCadastroLocal, desativarCadastroLocal,
+  sugestoesResultado, listarLocais, criarCadastroLocal, atualizarCadastroLocal, desativarCadastroLocal,
 };
