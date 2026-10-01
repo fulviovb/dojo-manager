@@ -1488,6 +1488,14 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Karatê; Fulvio (sem graduação atual) ficou com Preta, a faixa da
     conquista mais recente dele. Data 26/09 não guardada (competição só
     tem ano). Conquistas: 259 → 294; competições: 26 → 27.
+[x] "⬇ Baixar projeto" no detalhe do participante do Incentivo ao Esporte
+    (pedido do Fulvio, 01/10/2026, pra agilizar o protocolo): baixa .zip
+    com todos os arquivos do checklist em pasta com o nome do participante,
+    numerados na ordem do checklist, + "00 - LEIA-ME.txt" (incluídos,
+    pendentes, atenção: gerado sem assinatura / rejeitado / certidão
+    vencida / arquivo ausente). Credencial da prefeitura nunca entra.
+    Testado com participante real (Otávio, 10 arquivos): zip íntegro
+    (unzip -t), LEIA-ME correto; outra escola → 404, professor → 403.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

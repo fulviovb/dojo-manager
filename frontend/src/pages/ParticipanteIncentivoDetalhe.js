@@ -1077,6 +1077,26 @@ function SecaoPrograma({ participante, onAtualizado }) {
 export default function ParticipanteIncentivoDetalhe({ participanteId, onVoltar }) {
   const [participante, setParticipante] = useState(null);
   const [modalContrato, setModalContrato] = useState(false);
+  const [baixandoPacote, setBaixandoPacote] = useState(false);
+  const [erroPacote, setErroPacote] = useState('');
+
+  // .zip com todos os arquivos do checklist + LEIA-ME com pendências.
+  const baixarProjeto = async () => {
+    setBaixandoPacote(true); setErroPacote('');
+    try {
+      const r = await axios.get(`/incentivo-esporte/participantes/${participanteId}/pacote-projeto`, { responseType: 'blob' });
+      const nome = /filename="([^"]+)"/.exec(r.headers['content-disposition'] || '')?.[1] || 'Projeto.zip';
+      const url = URL.createObjectURL(r.data);
+      const a = document.createElement('a');
+      a.href = url; a.download = nome;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (ex) {
+      let msg = 'Erro ao baixar o projeto';
+      try { msg = JSON.parse(await ex.response.data.text()).erro || msg; } catch { /* mantém genérica */ }
+      setErroPacote(msg);
+    } finally { setBaixandoPacote(false); }
+  };
   const [carregando, setCarregando] = useState(true);
 
   const carregar = useCallback(() => {
@@ -1100,7 +1120,15 @@ export default function ParticipanteIncentivoDetalhe({ participanteId, onVoltar 
           {TIPO_PESSOA_LABEL[participante.tipo_pessoa]} · {participante.tipo_pessoa === 'pessoa_juridica' ? (participante.cnpj ? `CNPJ ${participante.cnpj}` : 'sem CNPJ') : participante.aluno_id ? 'Aluno matriculado' : 'Avulso'}
         </div>
         </div>
-        <button onClick={() => setModalContrato(true)} style={btnAzul}>📄 Gerar contrato de consultoria</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div style={{ textAlign: 'right' }}>
+            <button onClick={baixarProjeto} disabled={baixandoPacote} style={{ ...btnVerde, padding: '8px 16px', fontSize: 13 }}>
+              {baixandoPacote ? 'Montando arquivo...' : '⬇ Baixar projeto'}
+            </button>
+            {erroPacote && <div style={{ fontSize: 11, color: '#c62828', marginTop: 3 }}>{erroPacote}</div>}
+          </div>
+          <button onClick={() => setModalContrato(true)} style={btnAzul}>📄 Gerar contrato de consultoria</button>
+        </div>
       </div>
       {modalContrato && <ModalContratoConsultoria participante={participante} onFechar={() => setModalContrato(false)} />}
 

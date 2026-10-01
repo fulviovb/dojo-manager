@@ -684,6 +684,13 @@ com:
   turmas/graduação. Flag `olimpico` (programa de LA 2028 → Anexo I x II),
   só informativa. O combo de esporte tem "+ Novo esporte..." pra cadastrar
   na hora. Alimenta a modalidade dos Anexos X e XI.
+- **Baixar projeto** (botão no topo do participante): .zip com todos os
+  arquivos do checklist numerados na ordem do checklist (itens múltiplos
+  dividem o número com (1), (2)...) + `00 - LEIA-ME.txt` listando
+  incluídos, pendentes (sem arquivo) e atenção (gerado sem assinatura,
+  rejeitado, vencido, arquivo sumido do disco). Login/senha da prefeitura
+  nunca entram. `GET /incentivo-esporte/participantes/:id/pacote-projeto`
+  (pizzip, sem dependência nova).
 - **Contrato de consultoria** (botão no topo do participante): formulário
   com os dados do consultor, do contratante (vindos do cadastro, editáveis
   sem alterar o cadastro; PF, PF menor com responsável legal, ou PJ com
