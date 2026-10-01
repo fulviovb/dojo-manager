@@ -34,7 +34,8 @@ export default function SecaoProjetoIncentivo({ participante }) {
   const [aviso, setAviso] = useState('');
   const [novoObjetivo, setNovoObjetivo] = useState({ meta: 'podio', competicao_id: '', modalidade: '', categoria: '', texto_livre: '' });
   const [novaPrevista, setNovaPrevista] = useState('');
-  const [novoLocal, setNovoLocal] = useState({ endereco: '', dia_semana: '1', hora_inicio: '', hora_fim: '' });
+  const [novoLocal, setNovoLocal] = useState({ local_id: '', dia_semana: '1', hora_inicio: '', hora_fim: '' });
+  const [cadastroLocais, setCadastroLocais] = useState([]);
 
   const carregar = useCallback(() => {
     axios.get(base).then(r => {
@@ -45,6 +46,7 @@ export default function SecaoProjetoIncentivo({ participante }) {
   }, [base]);
   useEffect(() => { carregar(); }, [carregar]);
   useEffect(() => { axios.get('/incentivo-esporte/calendario').then(r => setCalendario(r.data)).catch(() => {}); }, []);
+  useEffect(() => { axios.get('/incentivo-esporte/locais-treino').then(r => setCadastroLocais(r.data)).catch(() => {}); }, []);
 
   const executar = async (fn, msgOk) => {
     setErro(''); setAviso('');
@@ -167,7 +169,7 @@ export default function SecaoProjetoIncentivo({ participante }) {
             <tbody>
               {dados.locais.map(l => (
                 <tr key={l.id} style={{ borderTop: '1px solid #f5f5f5' }}>
-                  <td style={{ padding: '4px 0' }}>{l.endereco}</td><td>{DIAS[l.dia_semana]}</td>
+                  <td style={{ padding: '4px 0' }}>{l.texto_local}</td><td>{DIAS[l.dia_semana]}</td>
                   <td>{String(l.hora_inicio).slice(0, 5)}</td><td>{String(l.hora_fim).slice(0, 5)}</td>
                   <td style={{ textAlign: 'right' }}><button type="button" onClick={() => executar(() => axios.delete(`${base}/locais/${l.id}`))} style={btnX}>✕</button></td>
                 </tr>
@@ -176,7 +178,10 @@ export default function SecaoProjetoIncentivo({ participante }) {
           </table>
         )}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-          <input placeholder="Endereço completo" value={novoLocal.endereco} onChange={e => setNovoLocal(l => ({ ...l, endereco: e.target.value }))} style={{ ...inputPeq, flex: 2, minWidth: 220 }} />
+          <select value={novoLocal.local_id} onChange={e => setNovoLocal(l => ({ ...l, local_id: e.target.value }))} style={{ ...inputPeq, flex: 2, minWidth: 220 }}>
+            <option value="">Local (aba Locais)...</option>
+            {cadastroLocais.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+          </select>
           <select value={novoLocal.dia_semana} onChange={e => setNovoLocal(l => ({ ...l, dia_semana: e.target.value }))} style={{ ...inputPeq, width: 140 }}>
             {DIAS.map((d, i) => <option key={i} value={i}>{d}</option>)}
           </select>
@@ -189,6 +194,7 @@ export default function SecaoProjetoIncentivo({ participante }) {
             <button type="button" style={btnAzul} onClick={() => executar(() => axios.post(`${base}/locais/importar-turmas`), r => r.data.mensagem)}>Importar das turmas do aluno</button>
           )}
         </div>
+        {cadastroLocais.length === 0 && <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>Nenhum local cadastrado — cadastre na aba "Locais" do Incentivo ao Esporte.</p>}
       </div>
     </div>
   );

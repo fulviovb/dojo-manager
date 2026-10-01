@@ -691,9 +691,11 @@ com:
   das Conquistas), objetivos (`ObjetivoIncentivo`: competição do
   calendário + prova + categoria + meta campeão/pódio/top 5/participar,
   ou texto livre), competições previstas (`CompeticaoPrevistaIncentivo` +
-  as citadas nos objetivos) e locais de treino (`LocalTreinoIncentivo`;
-  "Importar das turmas do aluno" copia os horários das turmas ativas da
-  arte do esporte, endereço = 2ª linha do nome da sala). Faixa, conquistas
+  as citadas nos objetivos) e locais de treino (`LocalTreinoIncentivo` =
+  local do cadastro `LocalTreino` da aba **Locais** + dia + horário — o
+  participante só escolhe o local; "Importar das turmas do aluno" copia os
+  horários das turmas ativas da arte do esporte, achando o local pela sala
+  ou criando-o a partir do nome "Nome\nEndereço" da sala). Faixa, conquistas
   e turmas filtradas pela arte marcial de mesmo nome do esporte.
   Textos em `utils/textoProjeto.js`; saem no topo do LEIA-ME do "Baixar
   projeto", campo a campo, e faltas viram pendências. Aba **Calendário**:

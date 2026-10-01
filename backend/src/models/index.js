@@ -35,6 +35,7 @@ const EsporteIncentivo = require('./EsporteIncentivo');
 const ObjetivoIncentivo = require('./ObjetivoIncentivo');
 const CompeticaoPrevistaIncentivo = require('./CompeticaoPrevistaIncentivo');
 const LocalTreinoIncentivo = require('./LocalTreinoIncentivo');
+const LocalTreino = require('./LocalTreino');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -260,6 +261,8 @@ CompeticaoPrevistaIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'part
 CompeticaoPrevistaIncentivo.belongsTo(Competicao, { foreignKey: 'competicao_id', onDelete: 'RESTRICT' });
 ParticipanteIncentivo.hasMany(LocalTreinoIncentivo, { foreignKey: 'participante_id' });
 LocalTreinoIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participante_id' });
+LocalTreinoIncentivo.belongsTo(LocalTreino, { foreignKey: 'local_id', as: 'Local', onDelete: 'RESTRICT' });
+LocalTreino.hasMany(LocalTreinoIncentivo, { foreignKey: 'local_id' });
 
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
@@ -271,5 +274,5 @@ module.exports = {
   Competicao, Conquista,
   ParticipanteIncentivo, DocumentoIncentivo, ContrapartidaIncentivo, DespesaIncentivo,
   CredencialIncentivo, EntidadeFederativa, EsporteIncentivo,
-  ObjetivoIncentivo, CompeticaoPrevistaIncentivo, LocalTreinoIncentivo,
+  ObjetivoIncentivo, CompeticaoPrevistaIncentivo, LocalTreinoIncentivo, LocalTreino,
 };

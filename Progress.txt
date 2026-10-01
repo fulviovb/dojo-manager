@@ -1512,6 +1512,15 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     horários de jiu-jitsu num projeto de karatê) — agora filtradas pela
     arte de mesmo nome do esporte; plurais "mundials/nacionals" corrigidos.
     Testado via API com participante + competições temporárias (removidos).
+[x] Objetivos/competições previstas só de competições a partir do ano de
+    execução (ano atual + 1): listava as de 2026 que vêm das Conquistas.
+[x] Locais de treino viraram cadastro (aba "Locais", model LocalTreino):
+    no projeto do participante só se escolhe o local + dia + horário.
+    Script `2026-10-incentivo-locais-treino.js` criou a tabela, local_id
+    (FK RESTRICT) em locais_treino_incentivo e semeou 7 locais a partir
+    das salas (pulou "Dojo Vilas Boas de Artes Marciais", cujo endereço é
+    "Criando novo Local de Treino"). "Importar das turmas" acha o local
+    pela sala sem duplicar o cadastro. Testado via API.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

@@ -54,6 +54,12 @@ router.post('/participantes/:id/projeto/locais', projeto.criarLocal);
 router.post('/participantes/:id/projeto/locais/importar-turmas', projeto.importarLocaisDasTurmas);
 router.delete('/participantes/:id/projeto/locais/:localId', projeto.removerLocal);
 
+// Cadastro de locais de treino (o participante só escolhe).
+router.get('/locais-treino', projeto.listarLocais);
+router.post('/locais-treino', projeto.criarCadastroLocal);
+router.put('/locais-treino/:localTreinoId', projeto.atualizarCadastroLocal);
+router.delete('/locais-treino/:localTreinoId', projeto.desativarCadastroLocal);
+
 // Calendário de competições futuras (mesma tabela das Conquistas).
 router.get('/calendario', projeto.listarCalendario);
 router.post('/calendario', projeto.criarCompeticao);

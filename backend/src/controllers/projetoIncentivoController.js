@@ -1,9 +1,9 @@
 const { Op } = require('sequelize');
 const {
   ParticipanteIncentivo, EsporteIncentivo, Competicao, Conquista, ObjetivoIncentivo, CompeticaoPrevistaIncentivo,
-  LocalTreinoIncentivo, MatriculaAluno, Turma, HorarioTurma, Sala,
+  LocalTreinoIncentivo, LocalTreino, MatriculaAluno, Turma, HorarioTurma, Sala,
 } = require('../models');
-const { arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, enderecoDaSala } = require('../utils/textoProjeto');
+const { arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal } = require('../utils/textoProjeto');
 
 // Formulário do projeto (tela "Projeto" do Sistema Incentivo online) +
 // calendário de competições futuras (tabela `competicoes`, a mesma das
@@ -30,12 +30,12 @@ const buscar = async (req, res) => {
     if (!p) return res.status(404).json({ erro: 'Participante não encontrado' });
     const objetivos = await ObjetivoIncentivo.findAll({ where: { participante_id: p.id }, include: [{ model: Competicao }], order: [['ordem', 'ASC'], ['created_at', 'ASC']] });
     const previstas = await CompeticaoPrevistaIncentivo.findAll({ where: { participante_id: p.id }, include: [{ model: Competicao }] });
-    const locais = await LocalTreinoIncentivo.findAll({ where: { participante_id: p.id }, order: [['dia_semana', 'ASC'], ['hora_inicio', 'ASC']] });
+    const locais = await LocalTreinoIncentivo.findAll({ where: { participante_id: p.id }, include: [{ model: LocalTreino, as: 'Local' }], order: [['dia_semana', 'ASC'], ['hora_inicio', 'ASC']] });
     res.json({
       curriculo_esportivo: p.curriculo_esportivo || '',
       objetivos: objetivos.map(o => ({ ...o.toJSON(), texto: textoObjetivo(o) })),
       competicoes_previstas: previstas,
-      locais,
+      locais: locais.map(l => ({ ...l.toJSON(), texto_local: textoLocal(l) })),
       formulario: await montarFormulario(p),
     });
   } catch (e) { erro500(res, e); }
@@ -128,16 +128,16 @@ const removerPrevista = async (req, res) => {
   } catch (e) { erro500(res, e); }
 };
 
-function validarLocal(body) {
-  const endereco = String(body.endereco || '').trim();
+async function validarLocal(body, escola_id) {
+  const local = body.local_id ? await LocalTreino.findOne({ where: { id: body.local_id, escola_id } }) : null;
   const dia = Number(body.dia_semana);
   const ini = String(body.hora_inicio || '').slice(0, 5);
   const fim = String(body.hora_fim || '').slice(0, 5);
-  if (!endereco) throw new Error('Informe o endereço');
+  if (!local) throw new Error('Escolha o local (cadastre na aba "Locais" se não estiver na lista)');
   if (!Number.isInteger(dia) || dia < 0 || dia > 6) throw new Error('Escolha o dia da semana');
   if (!HORA.test(ini) || !HORA.test(fim)) throw new Error('Horários no formato HH:MM');
   if (fim <= ini) throw new Error('Hora final precisa ser depois da inicial');
-  return { endereco, dia_semana: dia, hora_inicio: ini, hora_fim: fim };
+  return { local_id: local.id, endereco: null, dia_semana: dia, hora_inicio: ini, hora_fim: fim };
 }
 
 const criarLocal = async (req, res) => {
@@ -145,7 +145,7 @@ const criarLocal = async (req, res) => {
     const p = await buscarParticipante(req.params.id, req.usuario.escola_id);
     if (!p) return res.status(404).json({ erro: 'Participante não encontrado' });
     let dados;
-    try { dados = validarLocal(req.body); } catch (ex) { return res.status(400).json({ erro: ex.message }); }
+    try { dados = await validarLocal(req.body, req.usuario.escola_id); } catch (ex) { return res.status(400).json({ erro: ex.message }); }
     res.status(201).json(await LocalTreinoIncentivo.create({ ...dados, escola_id: p.escola_id, participante_id: p.id }));
   } catch (e) { erro500(res, e); }
 };
@@ -175,22 +175,79 @@ const importarLocaisDasTurmas = async (req, res) => {
       }],
     });
     const existentes = await LocalTreinoIncentivo.findAll({ where: { participante_id: p.id } });
-    const chave = (e, d, h) => `${e}|${d}|${String(h).slice(0, 5)}`;
-    const ja = new Set(existentes.map(l => chave(l.endereco, l.dia_semana, l.hora_inicio)));
-    let criados = 0;
+    const chave = (l, d, h) => `${l}|${d}|${String(h).slice(0, 5)}`;
+    const ja = new Set(existentes.map(l => chave(l.local_id, l.dia_semana, l.hora_inicio)));
+    let criados = 0; const semEndereco = new Set();
     for (const m of matriculas) {
       for (const h of m.Turma.HorarioTurmas || []) {
-        const endereco = enderecoDaSala(h.Sala?.nome) || m.Turma.nome;
-        if (ja.has(chave(endereco, h.dia_semana, h.hora_inicio))) continue;
+        // Local do cadastro ligado à sala; se ainda não existe, cria a partir
+        // do nome da sala ("Nome\nEndereço") — sem endereço real, pula.
+        let local = h.sala_id ? await LocalTreino.findOne({ where: { escola_id: p.escola_id, sala_id: h.sala_id } }) : null;
+        if (!local) {
+          const { nome, endereco } = localDaSala(h.Sala?.nome);
+          if (!endereco) { semEndereco.add(nome || m.Turma.nome); continue; }
+          local = await LocalTreino.create({ escola_id: p.escola_id, nome, endereco, sala_id: h.sala_id });
+        }
+        if (ja.has(chave(local.id, h.dia_semana, h.hora_inicio))) continue;
         await LocalTreinoIncentivo.create({
-          escola_id: p.escola_id, participante_id: p.id, endereco, dia_semana: h.dia_semana,
+          escola_id: p.escola_id, participante_id: p.id, local_id: local.id, dia_semana: h.dia_semana,
           hora_inicio: String(h.hora_inicio).slice(0, 5), hora_fim: String(h.hora_fim).slice(0, 5),
         });
-        ja.add(chave(endereco, h.dia_semana, h.hora_inicio));
+        ja.add(chave(local.id, h.dia_semana, h.hora_inicio));
         criados++;
       }
     }
-    res.json({ criados, mensagem: criados ? `${criados} horário(s) importado(s)` : 'Nenhum horário novo nas turmas do aluno' });
+    const aviso = semEndereco.size ? ` — sem endereço cadastrado (cadastre na aba "Locais"): ${[...semEndereco].join(', ')}` : '';
+    res.json({ criados, mensagem: (criados ? `${criados} horário(s) importado(s)` : 'Nenhum horário novo nas turmas do aluno') + aviso });
+  } catch (e) { erro500(res, e); }
+};
+
+// ── Cadastro de locais de treino ───────────────────────────────────────────
+
+const listarLocais = async (req, res) => {
+  try {
+    const where = { escola_id: req.usuario.escola_id };
+    if (req.query.ativo !== 'todos') where.ativo = req.query.ativo === 'false' ? false : true;
+    const locais = await LocalTreino.findAll({ where, order: [['nome', 'ASC']] });
+    const usos = await LocalTreinoIncentivo.count({ where: { local_id: locais.map(l => l.id) }, group: ['local_id'] });
+    const porId = Object.fromEntries(usos.map(u => [u.local_id, u.count]));
+    res.json(locais.map(l => ({ ...l.toJSON(), usos: porId[l.id] || 0 })));
+  } catch (e) { erro500(res, e); }
+};
+
+function validarCadastroLocal(body) {
+  const nome = String(body.nome || '').trim();
+  const endereco = String(body.endereco || '').trim();
+  if (!nome) throw new Error('Informe o nome do local');
+  if (!endereco) throw new Error('Informe o endereço completo');
+  return { nome, endereco };
+}
+
+const criarCadastroLocal = async (req, res) => {
+  try {
+    let dados;
+    try { dados = validarCadastroLocal(req.body); } catch (ex) { return res.status(400).json({ erro: ex.message }); }
+    res.status(201).json(await LocalTreino.create({ ...dados, escola_id: req.usuario.escola_id }));
+  } catch (e) { erro500(res, e); }
+};
+
+const atualizarCadastroLocal = async (req, res) => {
+  try {
+    const l = await LocalTreino.findOne({ where: { id: req.params.localTreinoId, escola_id: req.usuario.escola_id } });
+    if (!l) return res.status(404).json({ erro: 'Local não encontrado' });
+    let dados;
+    try { dados = validarCadastroLocal(req.body); } catch (ex) { return res.status(400).json({ erro: ex.message }); }
+    await l.update({ ...dados, ...(req.body.ativo !== undefined ? { ativo: !!req.body.ativo } : {}) });
+    res.json(l);
+  } catch (e) { erro500(res, e); }
+};
+
+const desativarCadastroLocal = async (req, res) => {
+  try {
+    const l = await LocalTreino.findOne({ where: { id: req.params.localTreinoId, escola_id: req.usuario.escola_id } });
+    if (!l) return res.status(404).json({ erro: 'Local não encontrado' });
+    await l.update({ ativo: false });
+    res.json({ mensagem: 'Local desativado' });
   } catch (e) { erro500(res, e); }
 };
 
@@ -260,4 +317,5 @@ module.exports = {
   buscar, sugerirCurriculo, salvarCurriculo, criarObjetivo, atualizarObjetivo, removerObjetivo,
   adicionarPrevista, removerPrevista, criarLocal, removerLocal, importarLocaisDasTurmas,
   listarCalendario, criarCompeticao, atualizarCompeticao, removerCompeticao,
+  listarLocais, criarCadastroLocal, atualizarCadastroLocal, desativarCadastroLocal,
 };

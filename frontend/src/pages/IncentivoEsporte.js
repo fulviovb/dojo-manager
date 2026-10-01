@@ -636,6 +636,86 @@ function ListaCalendario() {
   );
 }
 
+// ── Aba: Locais de treino ─────────────────────────────────────────────────
+// Cadastro único dos locais; no projeto do participante só se escolhe o
+// local e informa dia/horário.
+function ListaLocaisTreino() {
+  const [lista, setLista] = useState([]);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
+  const [form, setForm] = useState(null);
+  const [erro, setErro] = useState('');
+  const carregar = () => axios.get('/incentivo-esporte/locais-treino?ativo=todos').then(r => setLista(r.data));
+  useEffect(() => { carregar(); }, []);
+  const visiveis = lista.filter(l => mostrarInativos || l.ativo);
+
+  const salvar = async () => {
+    setErro('');
+    try {
+      if (form.id) await axios.put(`/incentivo-esporte/locais-treino/${form.id}`, form);
+      else await axios.post('/incentivo-esporte/locais-treino', form);
+      setForm(null); carregar();
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+  };
+  const alternar = async (l) => {
+    if (l.ativo && !window.confirm(`Desativar "${l.nome}"? Some das opções (${l.usos} horário(s) de participantes continuam com ele).`)) return;
+    if (l.ativo) await axios.delete(`/incentivo-esporte/locais-treino/${l.id}`);
+    else await axios.put(`/incentivo-esporte/locais-treino/${l.id}`, { ...l, ativo: true });
+    carregar();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+          <input type="checkbox" checked={mostrarInativos} onChange={e => setMostrarInativos(e.target.checked)} />
+          Mostrar inativos
+        </label>
+        <button onClick={() => { setErro(''); setForm({ nome: '', endereco: '' }); }} style={btnPrimario}>+ Novo Local</button>
+      </div>
+      <div style={cardEstilo}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr style={{ background: '#fafafa' }}>{['Local', 'Endereço', 'Horários em uso', ''].map(h => <th key={h} style={thEstilo}>{h}</th>)}</tr></thead>
+          <tbody>
+            {visiveis.length === 0 && <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum local cadastrado.</td></tr>}
+            {visiveis.map(l => (
+              <tr key={l.id} style={{ borderTop: '1px solid #f0f0f0', opacity: l.ativo ? 1 : 0.55 }}>
+                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600 }}>{l.nome}{!l.ativo && <span style={{ fontWeight: 400, color: '#888' }}> (inativo)</span>}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13, color: '#555' }}>{l.endereco}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13 }}>{l.usos}</td>
+                <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => { setErro(''); setForm({ ...l }); }} style={btnAzul}>Editar</button>{' '}
+                  <button onClick={() => alternar(l)} style={btnCinza}>{l.ativo ? 'Desativar' : 'Reativar'}</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {form && (
+        <Modal titulo={form.id ? 'Editar Local' : 'Novo Local'} onFechar={() => setForm(null)} largura={480}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Nome do local</label>
+              <input autoFocus value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} style={estiloInput} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Endereço completo (rua, nº, bairro, CEP, cidade/UF)</label>
+              <input value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))} style={estiloInput} />
+            </div>
+            <p style={{ fontSize: 11, color: '#888', margin: 0 }}>No formulário sai como: <b>{form.nome || 'Nome'} - {form.endereco || 'Endereço'}</b></p>
+            {form.id && form.usos > 0 && <p style={{ fontSize: 11, color: '#ef6c00', margin: 0 }}>A alteração vale para os {form.usos} horário(s) que usam este local.</p>}
+            {erro && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{erro}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setForm(null)} style={btnCinza}>Cancelar</button>
+              <button onClick={salvar} style={btnVerde}>Salvar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 // ── Seletor de entidade (vínculo federativo) ───────────────────────────────
 // Combo alimentado pelo cadastro da aba Entidades. Mostra também a entidade
 // atual mesmo se tiver sido desativada, e o texto antigo digitado à mão
@@ -907,6 +987,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
     ['entidades', 'Entidades'],
     ['esportes', 'Esportes'],
     ['calendario', 'Calendário'],
+    ['locais', 'Locais'],
   ];
 
   return (
@@ -927,6 +1008,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
       {aba === 'entidades' && <ListaEntidades />}
       {aba === 'esportes' && <ListaEsportes />}
       {aba === 'calendario' && <ListaCalendario />}
+      {aba === 'locais' && <ListaLocaisTreino />}
     </div>
   );
 }

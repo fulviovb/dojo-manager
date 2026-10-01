@@ -36,11 +36,17 @@ function textoObjetivo(o) {
   return `Conquistar ${META_LABEL[o.meta]}${prova ? ` em ${prova}` : ''}${comp ? ` ${comp}` : ''}`.trim();
 }
 
-// "Nome\nEndereço" (padrão das salas) → endereço; senão o nome inteiro.
-function enderecoDaSala(nomeSala) {
+// "Nome\nEndereço" (padrão das salas) → { nome, endereco }. Sem 2ª linha
+// ou sem nenhum número no endereço (ex.: "Criando novo Local de Treino"),
+// endereco vem vazio — não é endereço de verdade.
+function localDaSala(nomeSala) {
   const linhas = String(nomeSala || '').split('\n').map(l => l.trim()).filter(Boolean);
-  return linhas.length > 1 ? `${linhas[0]} - ${linhas.slice(1).join(', ')}` : (linhas[0] || '');
+  const endereco = linhas.slice(1).join(', ');
+  return { nome: linhas[0] || '', endereco: /\d/.test(endereco) ? endereco : '' };
 }
+
+// Texto do local pro formulário: "Nome - Endereço" (ou o endereço legado).
+const textoLocal = (l) => (l.Local ? `${l.Local.nome} - ${l.Local.endereco}` : (l.endereco || ''));
 
 // Arte marcial da escola com o mesmo nome do esporte do participante (ex.:
 // esporte "Karatê Shotokan" ↔ arte "Karatê Shotokan") — restringe faixa,
@@ -125,8 +131,10 @@ async function montarFormulario(participante) {
     where: { participante_id: participante.id }, include: [{ model: Competicao }], order: [['ordem', 'ASC'], ['created_at', 'ASC']],
   });
   const previstas = await CompeticaoPrevistaIncentivo.findAll({ where: { participante_id: participante.id }, include: [{ model: Competicao }] });
+  const { LocalTreino } = require('../models');
   const locais = await LocalTreinoIncentivo.findAll({
-    where: { participante_id: participante.id }, order: [['dia_semana', 'ASC'], ['hora_inicio', 'ASC']],
+    where: { participante_id: participante.id }, include: [{ model: LocalTreino, as: 'Local' }],
+    order: [['dia_semana', 'ASC'], ['hora_inicio', 'ASC']],
   });
 
   // Competições: as marcadas + as citadas nos objetivos, sem repetir, por data.
@@ -145,8 +153,8 @@ async function montarFormulario(participante) {
     curriculo_e_sugestao: !curriculoSalvo && !!curriculoSugerido,
     objetivos: objetivos.map(textoObjetivo).filter(Boolean),
     competicoes,
-    locais: locais.map(l => ({ endereco: l.endereco, dia: DIAS[l.dia_semana], inicio: hora(l.hora_inicio), fim: hora(l.hora_fim) })),
+    locais: locais.map(l => ({ endereco: textoLocal(l), dia: DIAS[l.dia_semana], inicio: hora(l.hora_inicio), fim: hora(l.hora_fim) })),
   };
 }
 
-module.exports = { arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, enderecoDaSala, nomeCompeticao, periodoCompeticao, localCompeticao, DIAS };
+module.exports = { arteDoEsporte, montarCurriculo, montarFormulario, textoObjetivo, localDaSala, textoLocal, nomeCompeticao, periodoCompeticao, localCompeticao, DIAS };
