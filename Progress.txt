@@ -1562,6 +1562,13 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     comprovante em PNG (~1 s). Achado: 6 comprovantes enviados são de 2024
     (fora da validade 2025/2026) — Emanuela (2), Isabele (1), Otávio (1),
     Sandra (2); a tela alerta pra trocar.
+[x] Removidos, a pedido do Fulvio (01/10/2026), os 6 comprovantes de 2024
+    (fora da validade): Sandra 2, Emanuela 2, Isabele 1, Otávio 1 — cada
+    um continua com ≥1 comprovante (Sandra 1, Emanuela 1, Isabele 2,
+    Otávio 2). Identificados relendo cada arquivo; removidos por id exato
+    (registro + PDF). Backup (dump de documentos_incentivo + cópia dos 6
+    PDFs + lista) em backups/2026-10-01-comprovantes-2024-removidos/
+    (pasta fora do git — .gitignore). documentos_incentivo: 218 → 212.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

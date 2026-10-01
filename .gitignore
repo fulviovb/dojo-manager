@@ -43,3 +43,6 @@ Thumbs.db
 
 # Claude Code — configuração local do usuário (não compartilhar)
 .claude/settings.local.json
+
+# Backups locais (dumps e documentos pessoais) — nunca versionar
+backups/
