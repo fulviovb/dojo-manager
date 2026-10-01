@@ -37,8 +37,8 @@ export function Modal({ titulo, onFechar, children, largura = 440 }) {
 
 const TIPO_PESSOA_LABEL = { atleta: 'Atleta', tecnico: 'Técnico', pessoa_juridica: 'Pessoa Jurídica' };
 const STATUS_PROGRAMA_LABEL = { documentacao_pendente: 'Documentação Pendente', documentacao_ok: 'Documentação OK — aguardando inscrição', inscrito: 'Inscrito', habilitado: 'Habilitado', indeferido: 'Indeferido', inabilitado: 'Inabilitado' };
-const STATUS_PROGRAMA_COR = { documentacao_ok: '#1565c0', inscrito: '#607d8b', documentacao_pendente: '#ef6c00', habilitado: '#2e7d32', indeferido: '#c62828', inabilitado: '#c62828' };
-const STATUS_PROGRAMA_BG = { documentacao_ok: '#e3f2fd', inscrito: '#eceff1', documentacao_pendente: '#fff3e0', habilitado: '#e8f5e9', indeferido: '#ffebee', inabilitado: '#ffebee' };
+const STATUS_PROGRAMA_COR = { documentacao_ok: '#1565c0', inscrito: '#2e7d32', documentacao_pendente: '#ef6c00', habilitado: '#2e7d32', indeferido: '#c62828', inabilitado: '#c62828' };
+const STATUS_PROGRAMA_BG = { documentacao_ok: '#e3f2fd', inscrito: '#e8f5e9', documentacao_pendente: '#fff3e0', habilitado: '#e8f5e9', indeferido: '#ffebee', inabilitado: '#ffebee' };
 
 // ── Modal: Novo Participante ───────────────────────────────────────────────
 
@@ -315,7 +315,7 @@ function ListaParticipantes({ onVerParticipante }) {
                 <td style={{ padding: '10px 16px', fontSize: 13, color: '#666' }}>{p.tipo_pessoa === 'pessoa_juridica' ? (p.cnpj || '—') : p.aluno_id ? 'Aluno' : 'Avulso'}</td>
                 <td style={{ padding: '10px 16px' }}>
                   <span style={{ background: STATUS_PROGRAMA_BG[p.status_programa], color: STATUS_PROGRAMA_COR[p.status_programa], fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
-                    {STATUS_PROGRAMA_LABEL[p.status_programa]}
+                    {p.status_programa === 'inscrito' ? '✓ ' : ''}{STATUS_PROGRAMA_LABEL[p.status_programa]}
                   </span>
                 </td>
                 <td style={{ padding: '10px 16px' }}>
