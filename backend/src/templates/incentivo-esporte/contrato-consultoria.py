@@ -131,7 +131,9 @@ par('8.3. Se o CONTRATANTE rescindir **após a aprovação do projeto**, sem cul
 par('8.4. Se o CONTRATADO rescindir sem justa causa após a aprovação, a remuneração será devida apenas pelas etapas cumpridas, com estes pesos: {peso_elaboracao} elaboração e protocolo, {peso_acompanhamento} acompanhamento, {peso_prestacao} prestação de contas.')
 par('8.5. Fica eleito o foro da Comarca de Curitiba/PR para dirimir questões deste contrato.')
 
-par('E, por estarem de acordo, as partes assinam este contrato em 2 (duas) vias de igual teor, ou eletronicamente (gov.br ou certificado digital), na presença de 2 (duas) testemunhas.')
+# Sem testemunhas (pedido do Fulvio): não são requisito de validade; com
+# assinatura eletrônica o contrato já vale como título executivo (CPC 784 §4º).
+par('E, por estarem de acordo, as partes assinam este contrato eletronicamente (gov.br ou certificado digital) ou em 2 (duas) vias de igual teor.')
 par('Curitiba, {data_extenso}.', WD_ALIGN_PARAGRAPH.RIGHT)
 
 LINHA = '_' * 45
@@ -152,10 +154,6 @@ doc.add_paragraph()
 par(LINHA, WD_ALIGN_PARAGRAPH.CENTER)
 par('**RESPONSÁVEL LEGAL:** {responsavel_nome} — CPF {responsavel_cpf}', WD_ALIGN_PARAGRAPH.CENTER)
 tag('{/menor}')
-doc.add_paragraph()
-par('**Testemunhas:**', WD_ALIGN_PARAGRAPH.LEFT)
-par('1. Nome: ______________________________ CPF: ________________ Assinatura: ________________', WD_ALIGN_PARAGRAPH.LEFT)
-par('2. Nome: ______________________________ CPF: ________________ Assinatura: ________________', WD_ALIGN_PARAGRAPH.LEFT)
 
 destino = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'contrato-consultoria.docx')
 doc.save(destino)

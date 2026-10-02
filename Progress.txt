@@ -1579,6 +1579,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     igual ao anterior. Item de login do checklist da PJ renomeado (3
     entidades atualizadas) e tela de cadastro do login com rótulo certo.
     PDFs PJ e PF conferidos com pdftotext.
+[x] Contrato de consultoria sem testemunhas (pedido do Fulvio): removido o
+    bloco de assinatura das testemunhas e a frase "na presença de 2
+    testemunhas"; texto final prioriza assinatura eletrônica (gov.br ou
+    certificado digital — CPC 784 §4º dispensa testemunhas pro título
+    executivo). Conferido em PDF gerado: 0 menções a testemunha.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
