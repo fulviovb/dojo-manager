@@ -179,7 +179,7 @@ function LinhaDocumento({ doc, rotulo, mudarStatus, enviarArquivo, remover }) {
 // Item "Login e senha do Sistema Incentivo online": não tem arquivo — a
 // senha fica cifrada no backend (CredencialIncentivo) e só vem em texto
 // claro quando o admin clica em "Mostrar"/"Copiar".
-function LinhaCredencial({ doc, participanteId, mudarStatus, onAlterado }) {
+function LinhaCredencial({ doc, participanteId, tipoPessoa, mudarStatus, onAlterado }) {
   const [credencial, setCredencial] = useState(undefined);
   const [senhaVisivel, setSenhaVisivel] = useState(null);
   const [modal, setModal] = useState(false);
@@ -276,7 +276,7 @@ function LinhaCredencial({ doc, participanteId, mudarStatus, onAlterado }) {
         <Modal titulo="Login e senha — Sistema Incentivo online" onFechar={() => setModal(false)} largura={400}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div>
-              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Login (e-Cidadão)</label>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>{tipoPessoa === 'pessoa_juridica' ? 'Login (e-mail institucional da entidade)' : 'Login (CPF no e-Cidadão)'}</label>
               <input value={form.login} autoComplete="off" onChange={e => setForm(f => ({ ...f, login: e.target.value }))} style={estiloInput} />
             </div>
             <div>
@@ -509,7 +509,7 @@ function SecaoDocumentos({ participante, onRefresh }) {
             if (def?.tipo === 'credencial') {
               return (
                 <div key={doc.id} style={{ padding: '10px 18px', borderBottom: '1px solid #f5f5f5' }}>
-                  <LinhaCredencial doc={doc} participanteId={participante.id} mudarStatus={mudarStatus} onAlterado={carregar} />
+                  <LinhaCredencial doc={doc} participanteId={participante.id} tipoPessoa={participante.tipo_pessoa} mudarStatus={mudarStatus} onAlterado={carregar} />
                 </div>
               );
             }
@@ -850,6 +850,7 @@ function ModalContratoConsultoria({ participante, onFechar }) {
     pj_razao_social: p.nome || '', pj_cnpj: p.cnpj || '', pj_sede: endereco, pj_cargo_representante: 'presidente',
     pj_representante_nome: p.responsavel_legal_nome || '', pj_representante_rg: p.responsavel_legal_rg || '', pj_representante_cpf: p.responsavel_legal_cpf || '',
     pj_documento_representacao: 'estatuto social e ata de eleição da diretoria registrada em cartório',
+    pj_email_institucional: p.tipo_pessoa === 'pessoa_juridica' ? (p.email || '') : '',
   }));
   const [faltando, setFaltando] = useState([]);
   const [erro, setErro] = useState('');
@@ -930,6 +931,7 @@ function ModalContratoConsultoria({ participante, onFechar }) {
         {pj ? (<>
           {linha(campo('pj_razao_social', 'Razão social', { flex: 2 }), campo('pj_cnpj', 'CNPJ'))}
           {linha(campo('pj_sede', 'Sede (endereço completo)', { flex: 3 }))}
+          {linha(campo('pj_email_institucional', 'E-mail institucional (login do CNPJ no Sistema Incentivo online)', { flex: 3 }))}
           {linha(campo('pj_cargo_representante', 'Cargo do representante'), campo('pj_representante_nome', 'Nome do representante', { flex: 2 }))}
           {linha(campo('pj_representante_rg', 'RG do representante'), campo('pj_representante_cpf', 'CPF do representante'))}
           {linha(campo('pj_documento_representacao', 'Documento que dá poderes ao representante', { flex: 3 }))}

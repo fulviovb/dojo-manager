@@ -66,7 +66,9 @@ const CHECKLIST_TECNICO = [
 // certidões de TODOS os colaboradores (§17 II/§18 — múltiplo, sem limite);
 // senão Anexo XX. Login do sistema é o CPF do representante legal (Art. 13).
 const CHECKLIST_PESSOA_JURIDICA = [
-  ITEM_CREDENCIAL,
+  // PJ entra no Sistema Incentivo online com login criado para o CNPJ,
+  // vinculado ao e-mail institucional (não pelo e-Cidadão do representante).
+  { ...ITEM_CREDENCIAL, nome: 'Login e senha do Sistema Incentivo online (login do CNPJ — e-mail institucional da entidade)' },
   { key: 'cartao_cnpj', nome: 'Comprovante de inscrição no CNPJ (ativo há pelo menos 12 meses)', condicao: 'sempre' },
   { key: 'alvara_funcionamento', nome: 'Alvará de funcionamento válido (Prefeitura de Curitiba)', condicao: 'sempre' },
   { key: 'estatuto_social', nome: 'Estatuto social', condicao: 'sempre' },

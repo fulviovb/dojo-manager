@@ -32,7 +32,7 @@ const CAMPOS_COMUNS = [
 ];
 const CAMPOS_PF = ['contratante_nome', 'contratante_rg', 'contratante_cpf', 'contratante_nascimento', 'contratante_endereco'];
 const CAMPOS_MENOR = ['responsavel_nome', 'responsavel_rg', 'responsavel_cpf'];
-const CAMPOS_PJ = ['pj_razao_social', 'pj_cnpj', 'pj_sede', 'pj_cargo_representante', 'pj_representante_nome', 'pj_representante_rg', 'pj_representante_cpf', 'pj_documento_representacao'];
+const CAMPOS_PJ = ['pj_razao_social', 'pj_cnpj', 'pj_sede', 'pj_email_institucional', 'pj_cargo_representante', 'pj_representante_nome', 'pj_representante_rg', 'pj_representante_cpf', 'pj_documento_representacao'];
 const NUMEROS = { // campo: [mín, máx]
   percentual: [1, 99], prazo_pagamento_dias: [1, 365], prazo_notas_dias: [1, 365], prazo_notificacao_dias: [1, 60],
   aviso_rescisao_dias: [1, 365], multa_percentual: [0, 20], peso_elaboracao: [0, 100], peso_acompanhamento: [0, 100], peso_prestacao: [0, 100],

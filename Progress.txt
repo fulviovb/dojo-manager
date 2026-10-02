@@ -1569,6 +1569,16 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     (registro + PDF). Backup (dump de documentos_incentivo + cópia dos 6
     PDFs + lista) em backups/2026-10-01-comprovantes-2024-removidos/
     (pasta fora do git — .gitignore). documentos_incentivo: 218 → 212.
+[x] Contrato de consultoria — cláusula 4 da PJ reescrita (informação do
+    Fulvio: no Sistema Incentivo online a PJ entra com login criado para o
+    CNPJ, vinculado ao e-mail institucional da entidade, não pelo e-Cidadão
+    do representante como diz o Art. 13 da Resolução). PJ: 4.1 login do
+    CNPJ + e-mail institucional (campo novo pj_email_institucional,
+    obrigatório, pré-preenchido com o e-mail da entidade); 4.2 autoriza
+    criar e acessar o login; 4.3 protocolo em nome da entidade. PF: texto
+    igual ao anterior. Item de login do checklist da PJ renomeado (3
+    entidades atualizadas) e tela de cadastro do login com rótulo certo.
+    PDFs PJ e PF conferidos com pdftotext.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

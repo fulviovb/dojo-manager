@@ -85,9 +85,18 @@ par('3.6. Não contratar, com recurso do incentivo, fornecedor ou prestador que 
 tag('{/pj}')
 
 titulo('CLÁUSULA 4ª — DO ACESSO AO SISTEMA INCENTIVO ONLINE')
-par('4.1. O protocolo é feito com login e senha individuais do e-Cidadão, pelo CPF do próprio proponente — na pessoa física, o atleta ou técnico; na pessoa jurídica, o seu representante legal (arts. 13 e 19 da Resolução).')
+# PF: login do e-Cidadão pelo CPF do proponente. PJ: login criado para o
+# CNPJ da entidade, vinculado ao e-mail institucional dela.
+tag('{#pf}')
+par('4.1. O protocolo é feito com login e senha individuais do e-Cidadão, pelo CPF do próprio proponente (arts. 13 e 19 da Resolução).')
 par('4.2. O CONTRATANTE (ou o representante legal que assina este contrato) **autoriza expressamente** o CONTRATADO a acessar o Sistema Incentivo online com essas credenciais, exclusivamente para executar o objeto deste contrato.')
 par('4.3. O CONTRATANTE declara estar ciente de que todo protocolo feito com suas credenciais é feito em seu nome e sob sua responsabilidade perante a Prefeitura, e que conferiu e aprovou o conteúdo antes do envio (cláusula 2.3).')
+tag('{/pf}')
+tag('{#pj}')
+par('4.1. O acesso ao Sistema Incentivo online é feito por login cadastrado para o CNPJ do CONTRATANTE, vinculado ao e-mail institucional da entidade ({pj_email_institucional}), que o CONTRATANTE fornecerá ao CONTRATADO e manterá ativo durante a vigência deste contrato.')
+par('4.2. O CONTRATANTE, por seu representante legal, **autoriza expressamente** o CONTRATADO a criar, se ainda não existir, e a acessar esse login, exclusivamente para executar o objeto deste contrato.')
+par('4.3. O CONTRATANTE declara estar ciente de que todo protocolo feito com esse login é feito em nome da entidade e sob sua responsabilidade perante a Prefeitura, e que conferiu e aprovou o conteúdo antes do envio (cláusula 2.3).')
+tag('{/pj}')
 par('4.4. O CONTRATADO guardará as credenciais com sigilo, sem repassá-las a terceiros, e não as usará para nada além do objeto. Ao fim do contrato, o CONTRATANTE pode alterar sua senha, e o CONTRATADO apagará as credenciais que mantiver.')
 
 titulo('CLÁUSULA 5ª — DA REMUNERAÇÃO')

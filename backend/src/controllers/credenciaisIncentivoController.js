@@ -1,5 +1,5 @@
 const { ParticipanteIncentivo, DocumentoIncentivo, CredencialIncentivo } = require('../models');
-const { ITEM_CREDENCIAL } = require('../constants/incentivoEsporte');
+const { ITEM_CREDENCIAL, buscarItemChecklist } = require('../constants/incentivoEsporte');
 const { cifrar, decifrar } = require('../utils/cifra');
 
 const buscarParticipante = (id, escola_id) => ParticipanteIncentivo.findOne({ where: { id, escola_id } });
@@ -12,7 +12,8 @@ async function marcarItemChecklist(participante, status) {
     where: { participante_id: participante.id, tipo_documento: ITEM_CREDENCIAL.key },
     defaults: {
       escola_id: participante.escola_id, participante_id: participante.id,
-      tipo_documento: ITEM_CREDENCIAL.key, nome_exibicao: ITEM_CREDENCIAL.nome,
+      tipo_documento: ITEM_CREDENCIAL.key,
+      nome_exibicao: buscarItemChecklist(participante.tipo_pessoa, ITEM_CREDENCIAL.key)?.nome || ITEM_CREDENCIAL.nome,
       origem: 'upload', status, ordem: 0,
     },
   });
