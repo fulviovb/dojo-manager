@@ -19,6 +19,9 @@ const ParticipanteIncentivo = sequelize.define('ParticipanteIncentivo', {
   aluno_id: { type: DataTypes.UUID },
 
   nome: { type: DataTypes.STRING, allowNull: false },
+  // Número que a Secretaria do Esporte (SMELJ) fornece depois do protocolo
+  // do projeto — usado pra consultar o andamento depois.
+  numero_protocolo: { type: DataTypes.STRING(50) },
   cpf: { type: DataTypes.STRING },
   rg: { type: DataTypes.STRING },
   data_nascimento: { type: DataTypes.DATEONLY },

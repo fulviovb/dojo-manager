@@ -1009,6 +1009,7 @@ function SecaoDadosPJ({ participante, onAtualizado }) {
         {!editando ? (
           <>
             <LinhaInfo label="CNPJ" valor={participante.cnpj} />
+            <LinhaInfo label="Nº protocolo" valor={participante.numero_protocolo || 'ainda não informado'} />
             <LinhaInfo label="Telefone" valor={participante.telefone} />
             <LinhaInfo label="Email" valor={participante.email} />
             <LinhaInfo label="Sede" valor={[participante.endereco, participante.bairro, participante.cep && `CEP ${participante.cep}`, [participante.cidade, participante.estado].filter(Boolean).join('/')].filter(Boolean).join(' - ')} />
@@ -1069,6 +1070,7 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
           <>
             <LinhaInfo label="CPF" valor={participante.cpf} />
             <LinhaInfo label="RG" valor={participante.rg} />
+            <LinhaInfo label="Nº protocolo" valor={participante.numero_protocolo || 'ainda não informado'} />
             <LinhaInfo label="Nascimento" valor={formatData(participante.data_nascimento)} />
             <LinhaInfo label="Telefone" valor={participante.telefone} />
             <LinhaInfo label="Email" valor={participante.email} />
@@ -1090,6 +1092,7 @@ function SecaoDadosPessoais({ participante, onAtualizado }) {
             <div style={{ display: 'flex', gap: 8 }}>
               <input placeholder="CPF" value={form.cpf || ''} onChange={e => setForm(f => ({ ...f, cpf: e.target.value }))} style={estiloInput} />
               <input placeholder="RG" value={form.rg || ''} onChange={e => setForm(f => ({ ...f, rg: e.target.value }))} style={estiloInput} />
+              <input placeholder="Nº do protocolo (SMELJ)" title="Número que a Secretaria do Esporte fornece após o protocolo do projeto" value={form.numero_protocolo || ''} onChange={e => setForm(f => ({ ...f, numero_protocolo: e.target.value }))} style={estiloInput} />
             </div>
             <input type="date" value={form.data_nascimento || ''} onChange={e => setForm(f => ({ ...f, data_nascimento: e.target.value }))} style={estiloInput} />
             <input placeholder="Telefone" value={form.telefone || ''} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))} style={estiloInput} />

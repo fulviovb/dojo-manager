@@ -418,8 +418,9 @@ export function CamposPJ({ form, setForm, permitirPreencherDeEntidade }) {
           </select>
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
         <div>{rotulo('Razão social / nome da entidade *')}<input {...campo('nome')} /></div>
+        <div>{rotulo('Nº do protocolo (SMELJ)')}<input {...campo('numero_protocolo')} placeholder="após o protocolo" /></div>
         <div>{rotulo('CNPJ')}<input value={form.cnpj || ''} placeholder="00.000.000/0000-00" onChange={e => setForm(f => ({ ...f, cnpj: formatarCnpjDigitado(e.target.value) }))} style={estiloInput} /></div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

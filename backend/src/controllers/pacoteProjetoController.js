@@ -118,6 +118,7 @@ const baixar = async (req, res) => {
     const linhas = [
       `PROJETO — ${participante.nome}`,
       `${TIPO_LABEL[participante.tipo_pessoa] || participante.tipo_pessoa} · ${documento}`,
+      `Nº do protocolo (SMELJ): ${participante.numero_protocolo || 'ainda não informado'}`,
       `Gerado em ${hoje.split('-').reverse().join('/')} pelo sistema da escola.`,
       '',
       ...formulario,

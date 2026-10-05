@@ -1593,6 +1593,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     navegador migradas pra chave v2 (aproveita só os dados do consultor —
     senão o percentual antigo de 10% voltaria). Testado: 11 parcelas → 400;
     PDFs 1x e 10x conferidos.
+[x] Número do protocolo (SMELJ) no participante do Incentivo ao Esporte
+    (pedido do Fulvio): coluna numero_protocolo (script
+    `2026-10-incentivo-numero-protocolo.js`). Na ficha aparece junto de
+    CPF/RG (PF) ou CNPJ (PJ), com "ainda não informado" quando vazio;
+    editável no "✎ Editar" (PF ao lado do RG; PJ nos campos da entidade).
+    Também no cabeçalho do LEIA-ME do "Baixar projeto". Testado via API.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
