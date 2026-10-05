@@ -794,11 +794,14 @@ function SecaoDespesas({ participante }) {
 // Gera o PDF do contrato (backend: contratoConsultoriaController). Dados do
 // contratante vêm do cadastro (editáveis aqui, sem alterar o cadastro); os
 // do consultor e as condições ficam salvos neste navegador pra próxima vez.
-const CHAVE_PREFS_CONTRATO = 'incentivo.contratoConsultoria.prefs';
+// v2: remuneração passou a ser % com teto + parcelas (out/2026); da v1 só
+// aproveitamos os dados do consultor.
+const CHAVE_PREFS_CONTRATO = 'incentivo.contratoConsultoria.prefs.v2';
+const CHAVE_PREFS_CONTRATO_V1 = 'incentivo.contratoConsultoria.prefs';
 const PREFS_CONTRATO_PADRAO = {
   contratado_nome: '', contratado_nacionalidade: 'brasileiro', contratado_estado_civil: 'casado', contratado_profissao: '',
   contratado_rg: '', contratado_cpf: '', contratado_endereco: '', contratado_email: '', contratado_telefone: '',
-  percentual: 10, pagamento_tipo: 'unico', prazo_pagamento_dias: 10, forma_pagamento: 'PIX para a chave ',
+  percentual: 20, teto: 1500, parcelas: 1, prazo_pagamento_dias: 10, forma_pagamento: 'PIX para a chave ',
   multa_percentual: 2, indice_correcao: 'IPCA', comprovante_pagamento: 'recibo',
   prazo_notas_dias: 15, prazo_notificacao_dias: 2, aviso_rescisao_dias: 15,
   peso_elaboracao: 60, peso_acompanhamento: 15, peso_prestacao: 25,
@@ -821,7 +824,11 @@ function dadosContratadoDeTecnico(t) {
 function lerPrefsContrato() {
   // Valor vazio salvo (tentativa que falhou) não apaga o padrão.
   try {
-    const salvas = JSON.parse(localStorage.getItem(CHAVE_PREFS_CONTRATO) || '{}');
+    let salvas = JSON.parse(localStorage.getItem(CHAVE_PREFS_CONTRATO) || 'null');
+    if (!salvas) {
+      const v1 = JSON.parse(localStorage.getItem(CHAVE_PREFS_CONTRATO_V1) || '{}');
+      salvas = Object.fromEntries(Object.entries(v1).filter(([k]) => k.startsWith('contratado_') || ['forma_pagamento', 'comprovante_pagamento', 'indice_correcao'].includes(k)));
+    }
     return { ...PREFS_CONTRATO_PADRAO, ...Object.fromEntries(Object.entries(salvas).filter(([, v]) => v !== '' && v != null)) };
   }
   catch { return { ...PREFS_CONTRATO_PADRAO }; }
@@ -948,14 +955,14 @@ function ModalContratoConsultoria({ participante, onFechar }) {
         {linha(campo('projeto_nome', 'Nome do projeto', { flex: 3 }), campo('data', 'Data do contrato', { type: 'date' }))}
         {linha(
           campo('percentual', 'Percentual (%)', { type: 'number', minWidth: 90 }),
-          <div key="pg" style={{ flex: 2, minWidth: 220 }}>
-            <label style={{ fontSize: 11, display: 'block', marginBottom: 3, color: '#555' }}>Forma de pagamento</label>
-            <select value={form.pagamento_tipo} onChange={e => setForm(f => ({ ...f, pagamento_tipo: e.target.value }))} style={{ ...estiloInput, padding: '6px 8px', fontSize: 13 }}>
-              <option value="unico">Parcela única (após 1ª parcela do incentivo)</option>
-              <option value="proporcional">Proporcional a cada parcela do incentivo</option>
+          campo('teto', 'Teto (R$)', { type: 'number', minWidth: 110 }),
+          <div key="parc" style={{ flex: 1, minWidth: 130 }}>
+            <label style={{ fontSize: 11, display: 'block', marginBottom: 3, color: faltando.includes('parcelas') ? '#c62828' : '#555' }}>Parcelas (mensais)</label>
+            <select value={form.parcelas} onChange={e => setForm(f => ({ ...f, parcelas: Number(e.target.value) }))} style={{ ...estiloInput, padding: '6px 8px', fontSize: 13 }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n === 1 ? 'À vista (1x)' : `${n}x`}</option>)}
             </select>
           </div>,
-          campo('prazo_pagamento_dias', 'Prazo (dias)', { type: 'number', minWidth: 90 }),
+          campo('prazo_pagamento_dias', '1ª parcela (dias após o incentivo)', { type: 'number', minWidth: 90 }),
         )}
         {linha(campo('forma_pagamento', 'Meio de pagamento (ex.: PIX para a chave ...)', { flex: 3 }), campo('comprovante_pagamento', 'Comprovante (recibo, RPA, nota fiscal)'))}
         {linha(campo('multa_percentual', 'Multa por atraso (%)', { type: 'number' }), campo('indice_correcao', 'Índice de correção'))}

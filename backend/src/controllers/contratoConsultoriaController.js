@@ -17,6 +17,24 @@ function extenso(n) {
   return u ? `${DEZENAS[d]} e ${UNIDADES[u]}` : DEZENAS[d];
 }
 
+const CENTENAS = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+// 1..999.
+function extensoAte999(n) {
+  if (n === 100) return 'cem';
+  const c = Math.floor(n / 100); const r = n % 100;
+  return [CENTENAS[c], r ? extenso(r) : ''].filter(Boolean).join(' e ');
+}
+// 1..999.999 por extenso ("mil e quinhentos", "dois mil trezentos e dez").
+function extensoInteiro(n) {
+  if (n < 1000) return extensoAte999(n);
+  const mil = Math.floor(n / 1000); const r = n % 1000;
+  const parteMil = mil === 1 ? 'mil' : `${extensoAte999(mil)} mil`;
+  if (!r) return parteMil;
+  // "e" antes do resto quando ele é < 100 ou centena redonda (1.500 → "mil e quinhentos").
+  const usaE = r < 100 || r % 100 === 0;
+  return `${parteMil}${usaE ? ' e ' : ' '}${extensoAte999(r)}`;
+}
+
 function idade(iso) {
   if (!iso) return null;
   const hoje = new Date(); const n = new Date(iso + 'T00:00:00');
@@ -34,7 +52,7 @@ const CAMPOS_PF = ['contratante_nome', 'contratante_rg', 'contratante_cpf', 'con
 const CAMPOS_MENOR = ['responsavel_nome', 'responsavel_rg', 'responsavel_cpf'];
 const CAMPOS_PJ = ['pj_razao_social', 'pj_cnpj', 'pj_sede', 'pj_email_institucional', 'pj_cargo_representante', 'pj_representante_nome', 'pj_representante_rg', 'pj_representante_cpf', 'pj_documento_representacao'];
 const NUMEROS = { // campo: [mín, máx]
-  percentual: [1, 99], prazo_pagamento_dias: [1, 365], prazo_notas_dias: [1, 365], prazo_notificacao_dias: [1, 60],
+  percentual: [1, 99], teto: [1, 1000000], parcelas: [1, 10], prazo_pagamento_dias: [1, 365], prazo_notas_dias: [1, 365], prazo_notificacao_dias: [1, 60],
   aviso_rescisao_dias: [1, 365], multa_percentual: [0, 20], peso_elaboracao: [0, 100], peso_acompanhamento: [0, 100], peso_prestacao: [0, 100],
 };
 
@@ -60,7 +78,6 @@ const gerar = async (req, res) => {
     if (numeros.peso_elaboracao + numeros.peso_acompanhamento + numeros.peso_prestacao !== 100) {
       return res.status(400).json({ erro: 'Os pesos das etapas precisam somar 100%', faltando: ['peso_elaboracao', 'peso_acompanhamento', 'peso_prestacao'] });
     }
-    if (!['unico', 'proporcional'].includes(c.pagamento_tipo)) return res.status(400).json({ erro: 'Escolha a forma de pagamento (parcela única ou proporcional)' });
     const data = /^\d{4}-\d{2}-\d{2}$/.test(c.data || '') ? c.data : new Date().toISOString().slice(0, 10);
     const [ano, mes, dia] = data.split('-').map(Number);
 
@@ -68,10 +85,14 @@ const gerar = async (req, res) => {
     const dados = {
       ...texto,
       pf: !pj, pj, menor,
-      pagamento_unico: c.pagamento_tipo === 'unico',
-      pagamento_proporcional: c.pagamento_tipo === 'proporcional',
+      parcela_unica: numeros.parcelas === 1,
+      parcelado: numeros.parcelas > 1,
+      parcelas: String(numeros.parcelas),
+      parcelas_extenso: extensoInteiro(numeros.parcelas),
       percentual: `${numeros.percentual}%`,
       percentual_extenso: `${extenso(numeros.percentual)} por cento`,
+      teto: `R$ ${numeros.teto.toLocaleString('pt-BR')},00`,
+      teto_extenso: `${extensoInteiro(numeros.teto)} ${numeros.teto === 1 ? 'real' : 'reais'}`,
       prazo_pagamento_dias: String(numeros.prazo_pagamento_dias),
       prazo_notas_dias: String(numeros.prazo_notas_dias),
       prazo_notificacao_dias: String(numeros.prazo_notificacao_dias),
@@ -93,4 +114,4 @@ const gerar = async (req, res) => {
   }
 };
 
-module.exports = { gerar, extenso };
+module.exports = { gerar, extenso, extensoInteiro };

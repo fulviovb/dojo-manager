@@ -1584,6 +1584,15 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     testemunhas"; texto final prioriza assinatura eletrônica (gov.br ou
     certificado digital — CPC 784 §4º dispensa testemunhas pro título
     executivo). Conferido em PDF gerado: 0 menções a testemunha.
+[x] Contrato de consultoria — remuneração nova (pedido do Fulvio,
+    05/10/2026): 20% do valor aprovado com teto de R$ 1.500,00 (ambos
+    editáveis no formulário), pagos em 1 a 10 parcelas mensais (1ª até N
+    dias após a 1ª parcela do incentivo, demais no mesmo dia dos meses
+    seguintes). Saíram as opções "parcela única / proporcional". Valores
+    por extenso até 999.999 ("mil e quinhentos reais"). Preferências do
+    navegador migradas pra chave v2 (aproveita só os dados do consultor —
+    senão o percentual antigo de 10% voltaria). Testado: 11 parcelas → 400;
+    PDFs 1x e 10x conferidos.
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
