@@ -1201,7 +1201,9 @@ export default function ParticipanteIncentivoDetalhe({ participanteId, onVoltar 
   const baixarProjeto = async () => {
     setBaixandoPacote(true); setErroPacote('');
     try {
-      const r = await axios.get(`/incentivo-esporte/participantes/${participanteId}/pacote-projeto`, { responseType: 'blob' });
+      // adapter 'fetch': no Chrome do escritório o XHR (padrão do axios) cai
+      // com erro de rede em resposta > 5 MiB; o fetch baixa normalmente.
+      const r = await axios.get(`/incentivo-esporte/participantes/${participanteId}/pacote-projeto`, { responseType: 'blob', adapter: 'fetch' });
       const nome = /filename="([^"]+)"/.exec(r.headers['content-disposition'] || '')?.[1] || 'Projeto.zip';
       const url = URL.createObjectURL(r.data);
       const a = document.createElement('a');
