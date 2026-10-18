@@ -21,6 +21,8 @@ import ExameFichaPage from './pages/ExameFichaPage';
 import ExameRelatorioPage from './pages/ExameRelatorioPage';
 import IncentivoEsporte from './pages/IncentivoEsporte';
 import ParticipanteIncentivoDetalhe from './pages/ParticipanteIncentivoDetalhe';
+import EvolucaoInfantil from './pages/EvolucaoInfantil';
+import FichaEvolucaoPage from './pages/FichaEvolucaoPage';
 
 // Nunca fixar "localhost" aqui: acessando de outro dispositivo pelo IP da
 // rede (ex: celular do avaliador), "localhost" apontaria pro próprio
@@ -52,13 +54,14 @@ const MENU = [
   { id: 'chamadas', label: 'Chamadas', icon: '✅' },
   { id: 'financeiro', label: 'Financeiro', icon: '💰' },
   { id: 'exames', label: 'Exames', icon: '🎖️' },
+  { id: 'evolucao-infantil', label: 'Evolução Infantil', icon: '🧒' },
   { id: 'conquistas', label: 'Conquistas', icon: '🏆' },
   { id: 'incentivo-esporte', label: 'Incentivo ao Esporte', icon: '📜' },
   { id: 'relatorios', label: 'Relatórios', icon: '📄' },
   { id: 'configuracoes', label: 'Configurações', icon: '⚙️' },
 ];
 
-const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, exames: Exames, conquistas: Conquistas, 'incentivo-esporte': IncentivoEsporte, relatorios: Relatorios, configuracoes: Configuracoes };
+const PAGINAS = { dashboard: Dashboard, alunos: Alunos, turmas: Turmas, chamadas: Chamadas, financeiro: Financeiro, exames: Exames, 'evolucao-infantil': EvolucaoInfantil, conquistas: Conquistas, 'incentivo-esporte': IncentivoEsporte, relatorios: Relatorios, configuracoes: Configuracoes };
 
 export default function App() {
   const checkinMatch = window.location.pathname.match(/^\/checkin\/([^/]+)/);
@@ -73,6 +76,8 @@ export default function App() {
   if (fichaMatch) return <ExameFichaPage exameId={fichaMatch[1]} participanteId={fichaMatch[2]} />;
   const relatorioExameMatch = window.location.pathname.match(/^\/exame\/([^/]+)\/relatorio-impressao/);
   if (relatorioExameMatch) return <ExameRelatorioPage exameId={relatorioExameMatch[1]} />;
+  const fichaEvolucaoMatch = window.location.pathname.match(/^\/evolucao-infantil\/ficha\/([^/]+)/);
+  if (fichaEvolucaoMatch) return <FichaEvolucaoPage fichaId={fichaEvolucaoMatch[1]} />;
   return <AppInterna />;
 }
 

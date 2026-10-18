@@ -50,6 +50,9 @@ app.use('/api/ocorrencias', require('./routes/ocorrencias'));
 // Conquistas (histórico de resultados em competições)
 app.use('/api/conquistas', require('./routes/conquistas'));
 
+// Evolução Infantil (Fichas de Evolução do Aluno — Karatê Infantil)
+app.use('/api/evolucao-infantil', require('./routes/evolucaoInfantil'));
+
 // Incentivo ao Esporte (Lei/Programa Municipal de Incentivo ao Esporte)
 app.use('/api/incentivo-esporte', require('./routes/incentivoEsporte'));
 

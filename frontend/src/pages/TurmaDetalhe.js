@@ -335,6 +335,12 @@ export default function TurmaDetalhe({ turmaId, onVoltar, onVerAluno }) {
                 )}
               </div>
               {erroTaxa && <p style={{ color: 'red', fontSize: 12, margin: '2px 0' }}>{erroTaxa}</p>}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                title="Alunos desta turma passam a ser acompanhados pelas Fichas de Evolução (menu Evolução Infantil)">
+                <input type="checkbox" checked={!!turma.educacao_infantil}
+                  onChange={async e => { await axios.put(`/turmas/${turmaId}`, { educacao_infantil: e.target.checked }); carregar(); }} />
+                Turma de educação infantil (Fichas de Evolução)
+              </label>
             </div>
             <div style={{ marginTop: 10, fontSize: 12, color: '#888' }}>
               {matriculas.length} aluno{matriculas.length !== 1 ? 's' : ''} matriculado{matriculas.length !== 1 ? 's' : ''}

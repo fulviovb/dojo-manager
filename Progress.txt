@@ -1600,6 +1600,26 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     editável no "✎ Editar" (PF ao lado do RG; PJ nos campos da entidade).
     Também no cabeçalho do LEIA-ME do "Baixar projeto". Testado via API.
 
+=== FASE 29: Evolução Infantil (Fichas de Evolução do Aluno — Karatê Infantil) ===
+[x] Pedido do Fulvio (18/10/2026): implementar o modelo de acompanhamento
+    de `modulo-karate-infantil/Fichas de Evolução do Aluno — Karatê
+    Infantil.pdf` (19 fichas, escala PA/ED/RS/DA). Catálogo transcrito em
+    `backend/src/constants/evolucaoInfantil.js`; tabela
+    fichas_evolucao_infantil + coluna turmas.educacao_infantil (script
+    `2026-10-evolucao-infantil-schema.js`, já aplicado; FKs conferidas como
+    RESTRICT). Telas: menu "Evolução Infantil", card no perfil do aluno,
+    checkbox na turma, impressão no layout do PDF. Trimestral lê os níveis
+    das Mensais; Mensal/Resumo sugerem níveis pela média das temáticas.
+    Testado via API (validação de chaves/níveis, Mensal duplicada → 409,
+    aluno fora da turma → 400, sugestão) e no navegador (Mensal, Trimestral,
+    Metas, Registro Livre, impressão). Fichas de teste apagadas (0 no banco).
+[x] Turmas marcadas como educação infantil: CEI Maria Imaculada (Karatê,
+    3–6 anos) e CRIANÇA EM FOCO (Karatê, 2–5 anos). Em aberto com o Fulvio:
+    Grande Aprendiz — Karatê 17:30 tem 5–10 anos (maioria 7–9, já ensino
+    fundamental); Jiu-Jitsu 17:15 tem 4–6 anos. Marcar pela tela da turma.
+[ ] PDF tem Agilidade e Reação só no Resumo (Mensal e Trimestral têm 12
+    áreas) — mantido igual ao PDF; confirmar com o Fulvio se é intencional.
+
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"
     no console ao desmontar componente na tela de Chamadas. Investigado:

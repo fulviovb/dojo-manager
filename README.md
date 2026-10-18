@@ -601,6 +601,32 @@ excluí-lo — **Roteiro Padrão nunca pode ser excluído** direto, precisa ser
 desmarcado primeiro. Ver "Módulo de Exame de Faixa" acima pras regras
 completas.
 
+### Evolução Infantil
+
+Acompanhamento pedagógico das turmas de educação infantil com as 19
+"Fichas de Evolução do Aluno — Karatê Infantil"
+(`modulo-karate-infantil/*.pdf`). Só entram turmas marcadas com
+"Turma de educação infantil" na tela da turma (`turmas.educacao_infantil`).
+
+- **Catálogo** em `backend/src/constants/evolucaoInfantil.js` (fonte única,
+  servido em `GET /api/evolucao-infantil/modelos`): Observação Inicial, 13
+  fichas temáticas (Atenção e Escuta … Autonomia), Mensal, Trimestral,
+  Metas, Registro Livre e Resumo. Escala igual em todas: PA / ED / RS / DA
+  (observação pedagógica, não é nota). As fichas salvas guardam só chaves —
+  **não renomeie chaves do catálogo**, só rótulos.
+- **Uma tabela**: `fichas_evolucao_infantil` (`niveis`, `textos`, `blocos`
+  em JSON; FKs com RESTRICT). Uma Mensal por aluno/turma/mês (409 se repetir).
+- **Trimestral não tem níveis próprios**: a grade mostra os níveis das 3
+  Mensais do período; o professor escreve só as observações.
+- **Sugestão**: na Mensal e no Resumo, "✨ Sugerir pelas fichas temáticas"
+  preenche as áreas vazias com a média arredondada dos itens das temáticas
+  do período (`GET /api/evolucao-infantil/sugestao`).
+- Telas: menu **Evolução Infantil** (turma → mês → quem tem Observação
+  Inicial/Mensal, atalhos "+ registrar"), card no perfil do aluno com linha
+  do tempo mensal, e impressão no layout do PDF em
+  `/evolucao-infantil/ficha/:id`.
+- Acesso: admin e professor da turma (`ehDonoDaTurma`).
+
 ### Incentivo ao Esporte
 
 Gestão do Programa Municipal de Incentivo ao Esporte de Curitiba (Resolução

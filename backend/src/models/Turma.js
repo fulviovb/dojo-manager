@@ -19,6 +19,8 @@ const Turma = sequelize.define('Turma', {
   // Cobrança única gerada (se preenchida) toda vez que um aluno é
   // matriculado nesta turma — nem toda turma cobra taxa de matrícula.
   taxa_matricula: { type: DataTypes.DECIMAL(10, 2) },
+  // Turma acompanhada pelas Fichas de Evolução (módulo Evolução Infantil).
+  educacao_infantil: { type: DataTypes.BOOLEAN, defaultValue: false },
 }, { tableName: 'turmas', indexes: [{ unique: true, fields: ['escola_id', 'nome'] }] });
 
 module.exports = Turma;

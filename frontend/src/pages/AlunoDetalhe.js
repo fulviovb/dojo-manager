@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { SERVER_ORIGIN } from '../components/Avatar';
+import { EvolucaoAluno } from '../components/EvolucaoInfantil';
 
 // ── Cores das faixas ──────────────────────────────────────────────────────────
 
@@ -1108,6 +1109,9 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
   const { aluno, graduacoes, matriculas, frequencia, mensalidades, ocorrencias, assinaturas, conquistas } = dados;
   // Um aluno pode ter graduação atual em mais de uma arte marcial (ex: Vermelha
   // no Karatê e Branca no Jiu-Jitsu) — mostra uma faixa por arte, não só a primeira.
+  // Fichas de Evolução só para quem está matriculado em turma de educação
+  // infantil (o perfil já traz só matrículas ativas).
+  const turmasInfantis = matriculas.filter(m => m.Turma?.educacao_infantil).map(m => ({ id: m.Turma.id, nome: m.Turma.nome }));
   const faixasAtuais = graduacoes
     .filter(g => g.atual)
     .map(g => ({ arteNome: g.arte.nome, faixa: g.atual.Faixa }));
@@ -1155,6 +1159,7 @@ export default function AlunoDetalhe({ alunoId, onVoltar }) {
         <div>
           <SecaoGraduacao dadosGraduacao={graduacoes} alunoId={alunoId} onRefresh={carregar} />
           <SecaoTurmas matriculas={matriculas} alunoId={alunoId} graduacoes={graduacoes} onRefresh={carregar} />
+          {turmasInfantis.length > 0 && <EvolucaoAluno aluno={aluno} turmas={turmasInfantis} />}
           <SecaoConquistas conquistas={conquistas} alunoId={alunoId} alunoNome={aluno.nome} onRefresh={carregar} />
           <SecaoFrequencia frequencia={frequencia} />
         </div>

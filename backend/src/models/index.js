@@ -36,6 +36,7 @@ const ObjetivoIncentivo = require('./ObjetivoIncentivo');
 const CompeticaoPrevistaIncentivo = require('./CompeticaoPrevistaIncentivo');
 const LocalTreinoIncentivo = require('./LocalTreinoIncentivo');
 const LocalTreino = require('./LocalTreino');
+const FichaEvolucaoInfantil = require('./FichaEvolucaoInfantil');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -264,6 +265,12 @@ LocalTreinoIncentivo.belongsTo(ParticipanteIncentivo, { foreignKey: 'participant
 LocalTreinoIncentivo.belongsTo(LocalTreino, { foreignKey: 'local_id', as: 'Local', onDelete: 'RESTRICT' });
 LocalTreino.hasMany(LocalTreinoIncentivo, { foreignKey: 'local_id' });
 
+// Evolução Infantil — RESTRICT explícito: sem ele o Sequelize cria FK
+// não-nula com ON DELETE CASCADE, e apagar aluno/turma levaria as fichas.
+FichaEvolucaoInfantil.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno', onDelete: 'RESTRICT' });
+FichaEvolucaoInfantil.belongsTo(Usuario, { foreignKey: 'professor_id', as: 'Professor', onDelete: 'RESTRICT' });
+FichaEvolucaoInfantil.belongsTo(Turma, { foreignKey: 'turma_id', onDelete: 'RESTRICT' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -275,4 +282,5 @@ module.exports = {
   ParticipanteIncentivo, DocumentoIncentivo, ContrapartidaIncentivo, DespesaIncentivo,
   CredencialIncentivo, EntidadeFederativa, EsporteIncentivo,
   ObjetivoIncentivo, CompeticaoPrevistaIncentivo, LocalTreinoIncentivo, LocalTreino,
+  FichaEvolucaoInfantil,
 };
