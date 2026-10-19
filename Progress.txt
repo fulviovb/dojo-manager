@@ -1619,6 +1619,22 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     fundamental); Jiu-Jitsu 17:15 tem 4–6 anos. Marcar pela tela da turma.
 [ ] PDF tem Agilidade e Reação só no Resumo (Mensal e Trimestral têm 12
     áreas) — mantido igual ao PDF; confirmar com o Fulvio se é intencional.
+[x] Visões da turma (19/10/2026), sobre a ficha Mensal:
+    - Mapa da turma (aba "Mapa da turma"): aluno × área com siglas coloridas,
+      ▲▼ vs mês anterior, presenças no mês, média da turma por área e cards
+      "pedem mais atenção" / "pontos fortes" / "avançaram".
+      GET /api/evolucao-infantil/turmas/:turma_id/mapa?mes=AAAA-MM.
+    - Preenchimento rápido ("⚡ Preencher Mensal"): só os níveis, aluno por
+      aluno (acordeão que avança sozinho), contorno tracejado no nível do mês
+      anterior, "copiar mês anterior nos vazios", salvar em lote.
+      POST /api/evolucao-infantil/turmas/:turma_id/mensal-lote — cria a
+      Mensal ou troca só os níveis, preservando os textos da ficha completa.
+    Testado via API (lote cria/atualiza, textos preservados, chaves inválidas
+    descartadas, aluno fora da turma → 400, turma não infantil → 404) e no
+    navegador. Fichas de teste (2 Mensais da CEI) apagadas; as 9 fichas reais
+    da Criança em Foco criadas em 19/10 não foram tocadas.
+[ ] Próximo: relatório semestral para os pais (PDF por criança com gráfico
+    de evolução, pontos fortes, foco e mensagem do professor).
 
 === BUGS CONHECIDOS ===
 [x] Frontend (dev, React 18 StrictMode): warning "destroy is not a function"

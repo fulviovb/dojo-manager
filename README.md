@@ -625,6 +625,14 @@ Acompanhamento pedagógico das turmas de educação infantil com as 19
   Inicial/Mensal, atalhos "+ registrar"), card no perfil do aluno com linha
   do tempo mensal, e impressão no layout do PDF em
   `/evolucao-infantil/ficha/:id`.
+- **Mapa da turma** (aba no menu): Mensal do mês em grade aluno × área,
+  setas de mudança vs. mês anterior, presenças no mês e média da turma por
+  área (`GET /api/evolucao-infantil/turmas/:turma_id/mapa`).
+- **⚡ Preencher Mensal**: tela rápida (pensada pro celular) só com os
+  níveis, aluno por aluno, com o nível do mês anterior tracejado e opção de
+  copiá-lo nos vazios. Salva em lote
+  (`POST /api/evolucao-infantil/turmas/:turma_id/mensal-lote`) sem apagar
+  os textos de uma Mensal já escrita.
 - Acesso: admin e professor da turma (`ehDonoDaTurma`).
 
 ### Incentivo ao Esporte

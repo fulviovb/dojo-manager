@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
-const { FichaEvolucaoInfantil, Turma, MatriculaAluno, Usuario, ArteMarcial } = require('../models');
+const { FichaEvolucaoInfantil, Turma, MatriculaAluno, Usuario, ArteMarcial, Aula, Chamada } = require('../models');
+const sequelize = require('../config/database');
 const { ehDonoDaTurma } = require('../middleware/autorizacao');
 const { NIVEIS, AREAS, MODELOS, MODELO_POR_SLUG, TEMATICAS } = require('../constants/evolucaoInfantil');
 
@@ -295,4 +296,121 @@ const sugestao = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
-module.exports = { modelos, turmas, listar, buscar, criar, atualizar, remover, evolucaoAluno, sugestao };
+const mesAnterior = (mes) => fimDoMes(`${mes}-01`, -1).slice(0, 7);
+
+const carregarTurmaInfantil = async (req, res) => {
+  const turma = await Turma.findOne({
+    where: { id: req.params.turma_id, ...whereTurmasDoUsuario(req.usuario), educacao_infantil: true },
+  });
+  if (!turma) { res.status(404).json({ erro: 'Turma não encontrada' }); return null; }
+  return turma;
+};
+
+// Mapa da turma: Mensal do mês (e do mês anterior, pra comparar) de cada
+// aluno com matrícula ativa, presenças no mês e média da turma por área.
+const mapaTurma = async (req, res) => {
+  try {
+    const turma = await carregarTurmaInfantil(req, res);
+    if (!turma) return;
+    const mes = RE_MES.test(req.query.mes || '') ? req.query.mes : new Date().toISOString().slice(0, 7);
+    const anterior = mesAnterior(mes);
+    const areas = MODELO_POR_SLUG.mensal.itens;
+
+    const matriculas = await MatriculaAluno.findAll({
+      where: { turma_id: turma.id, ativa: true },
+      include: [{ model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'data_nascimento', 'foto_url'] }],
+    });
+    const alunoIds = matriculas.map((m) => m.aluno_id);
+
+    const mensais = alunoIds.length ? await FichaEvolucaoInfantil.findAll({
+      where: {
+        escola_id: req.usuario.escola_id, turma_id: turma.id, aluno_id: alunoIds, modelo: 'mensal',
+        data_inicio: [`${mes}-01`, `${anterior}-01`],
+      },
+      attributes: ['id', 'aluno_id', 'data_inicio', 'niveis'],
+    }) : [];
+
+    const aulas = await Aula.findAll({
+      where: { turma_id: turma.id, data: { [Op.between]: [`${mes}-01`, fimDoMes(`${mes}-01`)] } },
+      attributes: ['id'],
+    });
+    const chamadas = aulas.length && alunoIds.length ? await Chamada.findAll({
+      where: { aula_id: aulas.map((a) => a.id), aluno_id: alunoIds },
+      attributes: ['aluno_id'],
+    }) : [];
+
+    const alunos = matriculas.map((m) => {
+      const atual = mensais.find((f) => f.aluno_id === m.aluno_id && f.data_inicio.slice(0, 7) === mes);
+      const ant = mensais.find((f) => f.aluno_id === m.aluno_id && f.data_inicio.slice(0, 7) === anterior);
+      return {
+        id: m.Aluno.id, nome: m.Aluno.nome, data_nascimento: m.Aluno.data_nascimento, foto_url: m.Aluno.foto_url,
+        mensal_id: atual?.id || null,
+        niveis: atual?.niveis || {},
+        niveis_anterior: ant?.niveis || {},
+        presencas: chamadas.filter((c) => c.aluno_id === m.aluno_id).length,
+      };
+    }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    const media = (chave, campo) => {
+      const vals = alunos.map((a) => a[campo][chave]).filter(Boolean);
+      return vals.length ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10 : null;
+    };
+    const medias = Object.fromEntries(areas.map((a) => {
+      const contagem = { 1: 0, 2: 0, 3: 0, 4: 0 };
+      alunos.forEach((al) => { if (al.niveis[a.k]) contagem[al.niveis[a.k]] += 1; });
+      return [a.k, { atual: media(a.k, 'niveis'), anterior: media(a.k, 'niveis_anterior'), contagem }];
+    }));
+
+    res.json({
+      turma: { id: turma.id, nome: turma.nome }, mes, mes_anterior: anterior, areas,
+      aulas_no_mes: aulas.length, alunos, medias,
+    });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+// Preenchimento rápido: grava só os níveis da Mensal de vários alunos de uma
+// vez. Cria a ficha quando não existe; quando existe, troca os níveis e
+// preserva os textos já escritos na ficha completa.
+const mensalLote = async (req, res) => {
+  try {
+    const turma = await carregarTurmaInfantil(req, res);
+    if (!turma) return;
+    if (!RE_MES.test(req.body.mes || '')) return res.status(400).json({ erro: 'Informe o mês' });
+    const lista = Array.isArray(req.body.alunos) ? req.body.alunos : [];
+    if (lista.length === 0) return res.status(400).json({ erro: 'Nenhum aluno para salvar' });
+
+    const modelo = MODELO_POR_SLUG.mensal;
+    const dataInicio = `${req.body.mes}-01`;
+    const matriculados = new Set((await MatriculaAluno.findAll({
+      where: { turma_id: turma.id, aluno_id: lista.map((a) => a?.aluno_id).filter(Boolean) },
+      attributes: ['aluno_id'],
+    })).map((m) => m.aluno_id));
+    const fora = lista.filter((a) => !matriculados.has(a?.aluno_id));
+    if (fora.length) return res.status(400).json({ erro: 'Há alunos que não estão matriculados nesta turma' });
+
+    let criadas = 0;
+    let atualizadas = 0;
+    await sequelize.transaction(async (transaction) => {
+      for (const item of lista) {
+        const { niveis } = normalizarFicha(modelo, { data_inicio: req.body.mes, niveis: item.niveis });
+        const existente = await FichaEvolucaoInfantil.findOne({
+          where: { escola_id: req.usuario.escola_id, aluno_id: item.aluno_id, turma_id: turma.id, modelo: 'mensal', data_inicio: dataInicio },
+          transaction,
+        });
+        if (existente) {
+          await existente.update({ niveis }, { transaction });
+          atualizadas += 1;
+        } else if (Object.keys(niveis).length) {
+          await FichaEvolucaoInfantil.create({
+            escola_id: req.usuario.escola_id, aluno_id: item.aluno_id, turma_id: turma.id, professor_id: req.usuario.id,
+            modelo: 'mensal', data_inicio: dataInicio, data_fim: fimDoMes(dataInicio), niveis, textos: {}, blocos: null,
+          }, { transaction });
+          criadas += 1;
+        }
+      }
+    });
+    res.json({ criadas, atualizadas });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
+module.exports = { modelos, turmas, listar, buscar, criar, atualizar, remover, evolucaoAluno, sugestao, mapaTurma, mensalLote };

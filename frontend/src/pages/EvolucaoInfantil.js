@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { SERVER_ORIGIN } from '../components/Avatar';
 import { EvolucaoAluno, formatMes, formatData, idadeEm, hojeLocal, btnCinza, estiloInput } from '../components/EvolucaoInfantil';
+import { MapaTurma, PreencherMensal } from '../components/EvolucaoInfantilTurma';
 
-// Tela do menu "Evolução Infantil": turma → mês → quem já tem as fichas.
+// Tela do menu "Evolução Infantil": turma → mês → três visões: quem já tem
+// as fichas, o mapa da turma (Mensal aluno × área) e o preenchimento rápido.
 // Só aparecem turmas marcadas como educação infantil (TurmaDetalhe).
 const chip = (ok) => ({
   fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 10, border: 'none', cursor: 'pointer',
@@ -15,6 +17,7 @@ export default function EvolucaoInfantil({ onVerAluno }) {
   const [dados, setDados] = useState(null);
   const [turmaId, setTurmaId] = useState(null);
   const [selecionado, setSelecionado] = useState(null); // { aluno, abrirModelo }
+  const [visao, setVisao] = useState('alunos'); // alunos | mapa | preencher
 
   const carregar = useCallback(() => {
     axios.get('/evolucao-infantil/turmas', { params: { mes } }).then((r) => {
@@ -55,6 +58,10 @@ export default function EvolucaoInfantil({ onVerAluno }) {
     );
   }
 
+  if (visao === 'preencher') {
+    return <PreencherMensal turmaId={turma.id} mes={mes} onSair={() => { setVisao('alunos'); carregar(); }} />;
+  }
+
   const comMensal = turma.alunos.filter((a) => a.mensal_id).length;
   const comInicial = turma.alunos.filter((a) => a.tem_observacao_inicial).length;
 
@@ -75,6 +82,22 @@ export default function EvolucaoInfantil({ onVerAluno }) {
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid #e5e5e5', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        {[['alunos', 'Alunos e fichas'], ['mapa', 'Mapa da turma']].map(([k, l]) => (
+          <button key={k} onClick={() => setVisao(k)}
+            style={{ padding: '8px 14px', background: 'none', border: 'none', borderBottom: visao === k ? '3px solid #c62828' : '3px solid transparent', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: visao === k ? '#1e2a38' : '#888' }}>
+            {l}
+          </button>
+        ))}
+        <button onClick={() => setVisao('preencher')}
+          style={{ marginLeft: 'auto', marginBottom: 6, background: '#2e7d32', color: '#fff', border: 'none', padding: '7px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          ⚡ Preencher Mensal de {formatMes(mes)}
+        </button>
+      </div>
+
+      {visao === 'mapa' ? (
+        <MapaTurma turmaId={turma.id} mes={mes} onAbrirAluno={(a) => setSelecionado({ aluno: a })} onPreencher={() => setVisao('preencher')} />
+      ) : (<>
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         {[
           ['Observação inicial', comInicial, turma.alunos.length],
@@ -129,6 +152,7 @@ export default function EvolucaoInfantil({ onVerAluno }) {
           </tbody>
         </table>
       </div>
+      </>)}
     </div>
   );
 }
