@@ -25,26 +25,71 @@ const hojeISO = () => {
 const diasAte = (iso) => Math.ceil((new Date(iso + 'T23:59:59') - new Date()) / 86400000);
 const erroApi = (e) => e.response?.data?.erro || 'Erro ao salvar';
 
-function Barra({ valor, total }) {
-  const pct = total > 0 ? Math.min(100, (valor / total) * 100) : 0;
-  const cor = pct >= 100 ? '#2e7d32' : pct >= 50 ? '#f9a825' : '#c62828';
+const COR_COMPROVADO = '#2e7d32';
+const COR_SEM_COMPROVANTE = '#f9a825';
+
+// Barra em duas camadas: verde = lançado com comprovante; amarelo = lançado
+// sem comprovante; cinza = ainda não lançado.
+function Barra({ comprovado, lancado, total }) {
+  const pct = (v) => (total > 0 ? Math.min(100, (v / total) * 100) : 0);
+  const pComp = pct(comprovado);
+  const pSem = Math.max(0, pct(lancado) - pComp);
   return (
-    <div style={{ height: 6, background: '#eee', borderRadius: 3, marginTop: 4, width: 140 }}>
-      <div style={{ height: 6, width: `${pct}%`, background: cor, borderRadius: 3 }} />
+    <div style={{ display: 'flex', height: 6, background: '#eee', borderRadius: 3, marginTop: 4, width: 150, overflow: 'hidden' }}>
+      <div style={{ width: `${pComp}%`, background: COR_COMPROVADO }} />
+      <div style={{ width: `${pSem}%`, background: COR_SEM_COMPROVANTE }} />
     </div>
   );
 }
 
-function CelulaVerba({ valor, gasto, falta }) {
+function CelulaVerba({ valor, resumo, fonte }) {
   if (valor == null) return <span style={{ color: '#bbb' }}>Não recebeu</span>;
+  const lancado = resumo[`lancado_${fonte}`];
+  const comprovado = resumo[`comprovado_${fonte}`];
+  const faltaLancar = resumo[`falta_lancar_${fonte}`];
+  const faltaComprovar = resumo[`falta_comprovar_${fonte}`];
+  if (faltaComprovar === 0) {
+    return (
+      <div>
+        <div><strong>{formatarMoeda(comprovado)}</strong> <span style={{ color: '#999' }}>de {formatarMoeda(valor)}</span></div>
+        <Barra comprovado={comprovado} lancado={lancado} total={parseFloat(valor)} />
+        <div style={{ fontSize: 11, marginTop: 3, color: COR_COMPROVADO, fontWeight: 600 }}>✓ Lançado e comprovado</div>
+      </div>
+    );
+  }
   return (
     <div>
-      <div><strong>{formatarMoeda(gasto)}</strong> <span style={{ color: '#999' }}>de {formatarMoeda(valor)}</span></div>
-      <Barra valor={gasto} total={parseFloat(valor)} />
-      <div style={{ fontSize: 11, marginTop: 3, color: falta > 0 ? '#c62828' : '#2e7d32', fontWeight: 600 }}>
-        {falta > 0 ? `Falta comprovar ${formatarMoeda(falta)}` : '✓ Comprovado'}
+      <div><strong>{formatarMoeda(lancado)}</strong> <span style={{ color: '#999' }}>lançado de {formatarMoeda(valor)}</span></div>
+      <Barra comprovado={comprovado} lancado={lancado} total={parseFloat(valor)} />
+      <div style={{ fontSize: 11, marginTop: 3, fontWeight: 600, lineHeight: 1.5 }}>
+        <div style={{ color: faltaLancar > 0 ? '#c62828' : COR_COMPROVADO }}>
+          {faltaLancar > 0 ? `Falta lançar ${formatarMoeda(faltaLancar)}` : '✓ Tudo lançado'}
+        </div>
+        <div style={{ color: '#ef6c00' }}>Falta comprovar {formatarMoeda(faltaComprovar)}</div>
       </div>
     </div>
+  );
+}
+
+// Envia (ou troca) o comprovante de um gasto já lançado, direto da lista.
+function BotaoEnviarComprovante({ bolsaId, gasto, onEnviado, rotulo = '📎 Enviar comprovante' }) {
+  const [enviando, setEnviando] = useState(false);
+  const enviar = async (arquivo) => {
+    if (!arquivo) return;
+    setEnviando(true);
+    try {
+      const fd = new FormData();
+      fd.append('comprovante', arquivo);
+      await axios.put(`/incentivo-esporte/bolsas/${bolsaId}/despesas/${gasto.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      onEnviado();
+    } catch (e) { window.alert(erroApi(e)); } finally { setEnviando(false); }
+  };
+  return (
+    <label style={{ ...btnCinza, padding: '4px 10px', display: 'inline-block', borderColor: '#f9a825', color: '#8d6e00', background: '#fffde7', fontWeight: 600, whiteSpace: 'nowrap', cursor: enviando ? 'wait' : 'pointer' }}>
+      {enviando ? 'Enviando...' : rotulo}
+      <input type="file" accept="application/pdf,image/*" style={{ display: 'none' }} disabled={enviando}
+        onChange={e => { enviar(e.target.files[0]); e.target.value = ''; }} />
+    </label>
   );
 }
 
@@ -174,12 +219,21 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
         <div>
           <label style={rotulo}>{gasto?.comprovante_url ? 'Substituir comprovante' : 'Comprovante (PDF ou imagem)'}</label>
           <input type="file" accept="application/pdf,image/*" onChange={e => setForm(f => ({ ...f, arquivo: e.target.files[0] }))} />
+          {!form.arquivo && !gasto?.comprovante_url && (
+            <div style={{ fontSize: 12, color: '#8d6e00', background: '#fffde7', border: '1px solid #f9e08a', borderRadius: 4, padding: '8px 10px', marginTop: 6 }}>
+              ⚠ Este gasto precisa de comprovante. Dá para lançar agora sem ele, mas o valor
+              fica como <strong>“falta comprovar”</strong> até o comprovante ser enviado
+              (botão “Enviar comprovante” na lista de gastos).
+            </div>
+          )}
         </div>
         <div><label style={rotulo}>Observação</label><input value={form.observacao} onChange={set('observacao')} style={estiloInput} /></div>
         {erro && <div style={{ color: '#c62828', fontSize: 13 }}>{erro}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onFechar} style={btnCinza}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando || !form.categoria || !form.valor || !form.data_despesa} style={btnVerde}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button onClick={salvar} disabled={salvando || !form.categoria || !form.valor || !form.data_despesa} style={btnVerde}>
+            {salvando ? 'Salvando...' : (!form.arquivo && !gasto?.comprovante_url ? 'Lançar sem comprovante' : 'Salvar')}
+          </button>
         </div>
       </div>
     </Modal>
@@ -231,13 +285,18 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ ...cardEstilo, padding: 14, flex: '1 1 240px', border: '1px solid #eee' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Bolsa</div>
-          <CelulaVerba valor={bolsa.valor_bolsa} gasto={r.gasto_bolsa} falta={r.falta_bolsa} />
+          <CelulaVerba valor={bolsa.valor_bolsa} resumo={r} fonte="bolsa" />
         </div>
         <div style={{ ...cardEstilo, padding: 14, flex: '1 1 240px', border: '1px solid #eee' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Suplementação (gastos do 2º semestre)</div>
-          <CelulaVerba valor={bolsa.valor_suplementacao} gasto={r.gasto_suplementacao} falta={r.falta_suplementacao} />
+          <CelulaVerba valor={bolsa.valor_suplementacao} resumo={r} fonte="suplementacao" />
         </div>
       </div>
+      {r.qtd_sem_comprovante > 0 && (
+        <div style={{ fontSize: 13, color: '#8d6e00', background: '#fffde7', border: '1px solid #f9e08a', borderRadius: 4, padding: '8px 12px', marginBottom: 14 }}>
+          ⚠ {r.qtd_sem_comprovante} gasto(s) lançado(s) sem comprovante, somando {formatarMoeda(r.sem_comprovante_bolsa + (r.sem_comprovante_suplementacao || 0))}. Envie o comprovante pela lista abaixo.
+        </div>
+      )}
       {bolsa.observacao && <div style={{ fontSize: 13, color: '#555', background: '#fafafa', padding: 10, borderRadius: 4, marginBottom: 14, whiteSpace: 'pre-wrap' }}>{bolsa.observacao}</div>}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
@@ -259,7 +318,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
           <tbody>
             {gastos.length === 0 && <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#aaa', fontSize: 13 }}>Nenhum gasto lançado.</td></tr>}
             {gastos.map(g => (
-              <tr key={g.id} style={{ borderTop: '1px solid #f0f0f0' }}>
+              <tr key={g.id} style={{ borderTop: '1px solid #f0f0f0', background: g.comprovante_url ? undefined : '#fffdf0' }}>
                 <td style={{ ...td, padding: '8px 12px', whiteSpace: 'nowrap' }}>{formatData(g.data_despesa)}</td>
                 <td style={{ ...td, padding: '8px 12px' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: g.fonte === 'suplementacao' ? '#ede7f6' : '#e3f2fd', color: g.fonte === 'suplementacao' ? '#5e35b1' : '#1565c0' }}>{FONTE_LABEL[g.fonte]}</span>
@@ -272,7 +331,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
                 <td style={{ ...td, padding: '8px 12px' }}>
                   {g.comprovante_url
                     ? <a href={`${SERVER_ORIGIN}${g.comprovante_url}`} target="_blank" rel="noreferrer" style={{ ...btnAzul, textDecoration: 'none' }}>Ver</a>
-                    : <span style={{ fontSize: 11, fontWeight: 700, color: '#c62828' }}>✕ Falta</span>}
+                    : <BotaoEnviarComprovante bolsaId={bolsaId} gasto={g} onEnviado={recarregar} />}
                 </td>
                 <td style={{ ...td, padding: '8px 12px' }}>
                   <button onClick={() => alternarPrestado(g)} title={g.prestado_contas ? `Lançado na prestação em ${formatData(g.data_prestado_contas)}` : ''}
@@ -324,11 +383,12 @@ export default function BolsasIncentivo() {
 
   const soma = (fn) => lista.reduce((s, b) => s + (fn(b) || 0), 0);
   const totalRecebido = soma(b => b.resumo.valor_total);
-  const totalSup = soma(b => b.valor_suplementacao == null ? 0 : parseFloat(b.valor_suplementacao));
-  const supComprovada = soma(b => b.resumo.gasto_suplementacao);
-  const faltaSup = soma(b => b.resumo.falta_suplementacao);
-  const faltaBolsa = soma(b => b.resumo.falta_bolsa);
-  const semComprovante = soma(b => b.resumo.qtd_sem_comprovante);
+  const faltaLancarSup = soma(b => b.resumo.falta_lancar_suplementacao);
+  const faltaComprovarSup = soma(b => b.resumo.falta_comprovar_suplementacao);
+  const faltaLancarBolsa = soma(b => b.resumo.falta_lancar_bolsa);
+  const faltaComprovarBolsa = soma(b => b.resumo.falta_comprovar_bolsa);
+  const qtdSemComprovante = soma(b => b.resumo.qtd_sem_comprovante);
+  const valorSemComprovante = soma(b => b.resumo.sem_comprovante_bolsa + (b.resumo.sem_comprovante_suplementacao || 0));
   const fimSup = lista[0]?.periodo_suplementacao?.fim;
   const dias = fimSup ? diasAte(fimSup) : null;
 
@@ -345,11 +405,12 @@ export default function BolsasIncentivo() {
       {lista.length > 0 && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <Indicador titulo="Total recebido" valor={formatarMoeda(totalRecebido)} detalhe={`${lista.length} atletas`} />
-          <Indicador titulo="Suplementação comprovada" valor={formatarMoeda(supComprovada)} detalhe={`de ${formatarMoeda(totalSup)}`} cor={faltaSup > 0 ? '#ef6c00' : '#2e7d32'} />
-          <Indicador titulo="Falta comprovar (suplementação)" valor={formatarMoeda(faltaSup)}
-            detalhe={dias == null ? null : dias > 0 ? `${dias} dias até ${formatData(fimSup)}` : 'Prazo do 2º semestre encerrado'} cor={faltaSup > 0 ? '#c62828' : '#2e7d32'} />
-          <Indicador titulo="Falta comprovar (bolsa)" valor={formatarMoeda(faltaBolsa)} cor={faltaBolsa > 0 ? '#c62828' : '#2e7d32'}
-            detalhe={semComprovante ? `${semComprovante} gasto(s) sem comprovante` : null} />
+          <Indicador titulo="Suplementação — falta lançar" valor={formatarMoeda(faltaLancarSup)} cor={faltaLancarSup > 0 ? '#c62828' : '#2e7d32'}
+            detalhe={`Falta comprovar ${formatarMoeda(faltaComprovarSup)}${dias == null ? '' : dias > 0 ? ` · ${dias} dias até ${formatData(fimSup)}` : ' · prazo encerrado'}`} />
+          <Indicador titulo="Bolsa — falta lançar" valor={formatarMoeda(faltaLancarBolsa)} cor={faltaLancarBolsa > 0 ? '#c62828' : '#2e7d32'}
+            detalhe={`Falta comprovar ${formatarMoeda(faltaComprovarBolsa)}`} />
+          <Indicador titulo="Lançado sem comprovante" valor={formatarMoeda(valorSemComprovante)} cor={qtdSemComprovante > 0 ? '#ef6c00' : '#2e7d32'}
+            detalhe={qtdSemComprovante ? `${qtdSemComprovante} gasto(s) aguardando comprovante` : 'Nenhum pendente'} />
         </div>
       )}
 
@@ -368,8 +429,8 @@ export default function BolsasIncentivo() {
               return (
                 <tr key={b.id} onClick={() => setAberta(b.id)} style={{ borderTop: '1px solid #f0f0f0', cursor: 'pointer' }}>
                   <td style={{ ...td, fontWeight: 600 }}>{b.nome}<div style={{ fontSize: 11, color: '#999', fontWeight: 400 }}>{formatarMoeda(r.valor_total)} no total</div></td>
-                  <td style={td}><CelulaVerba valor={b.valor_bolsa} gasto={r.gasto_bolsa} falta={r.falta_bolsa} /></td>
-                  <td style={td}><CelulaVerba valor={b.valor_suplementacao} gasto={r.gasto_suplementacao} falta={r.falta_suplementacao} /></td>
+                  <td style={td}><CelulaVerba valor={b.valor_bolsa} resumo={r} fonte="bolsa" /></td>
+                  <td style={td}><CelulaVerba valor={b.valor_suplementacao} resumo={r} fonte="suplementacao" /></td>
                   <td style={{ ...td, fontSize: 12 }}>
                     {r.qtd_despesas === 0 && <div style={{ color: '#999' }}>Nenhum gasto lançado</div>}
                     {r.qtd_sem_comprovante > 0 && <div style={{ color: '#c62828' }}>{r.qtd_sem_comprovante} sem comprovante</div>}

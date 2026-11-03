@@ -50,19 +50,29 @@ function validarDespesa(bolsa, { fonte, data_despesa, valor }) {
   return null;
 }
 
+// Duas medidas por verba: "lançado" (todo gasto cadastrado) e "comprovado"
+// (só gastos com comprovante anexado). Gasto pode ser lançado sem
+// comprovante e receber o arquivo depois.
 function resumo(bolsa) {
   const despesas = bolsa.Despesas || [];
-  const soma = (fonte) => num(despesas.filter(d => d.fonte === fonte).reduce((s, d) => s + num(d.valor), 0));
-  const gastoBolsa = soma('bolsa');
-  const gastoSup = soma('suplementacao');
+  const soma = (fonte, soComprovante) => num(despesas
+    .filter(d => d.fonte === fonte && (!soComprovante || d.comprovante_url))
+    .reduce((s, d) => s + num(d.valor), 0));
+  const falta = (valor, feito) => (valor == null ? null : num(Math.max(0, valor - feito)));
   const valorBolsa = num(bolsa.valor_bolsa);
   const valorSup = bolsa.valor_suplementacao == null ? null : num(bolsa.valor_suplementacao);
+  const r = { valor_total: num(valorBolsa + (valorSup || 0)) };
+  [['bolsa', valorBolsa], ['suplementacao', valorSup]].forEach(([fonte, valor]) => {
+    const lancado = soma(fonte, false);
+    const comprovado = soma(fonte, true);
+    r[`lancado_${fonte}`] = lancado;
+    r[`comprovado_${fonte}`] = comprovado;
+    r[`falta_lancar_${fonte}`] = falta(valor, lancado);
+    r[`falta_comprovar_${fonte}`] = falta(valor, comprovado);
+    r[`sem_comprovante_${fonte}`] = num(lancado - comprovado);
+  });
   return {
-    valor_total: num(valorBolsa + (valorSup || 0)),
-    gasto_bolsa: gastoBolsa,
-    falta_bolsa: num(Math.max(0, valorBolsa - gastoBolsa)),
-    gasto_suplementacao: gastoSup,
-    falta_suplementacao: valorSup == null ? null : num(Math.max(0, valorSup - gastoSup)),
+    ...r,
     qtd_despesas: despesas.length,
     qtd_sem_comprovante: despesas.filter(d => !d.comprovante_url).length,
     qtd_nao_prestadas: despesas.filter(d => !d.prestado_contas).length,

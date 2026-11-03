@@ -1671,6 +1671,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     criou as tabelas e importou os 11 bolsistas de 2026 (R$ 25.000 de bolsa
     + R$ 18.800 de suplementação). Sandra Regina não tem cadastro de aluno
     (bolsa sem vínculo). Pendente: lançar os gastos/comprovantes já feitos.
+[x] Bolsas recebidas: gasto pode ser lançado SEM comprovante (aviso no
+    formulário, botão "Lançar sem comprovante") e o arquivo enviado depois
+    pelo botão "Enviar comprovante" na lista de gastos. Cada verba mostra
+    "falta lançar" (valor − lançado) e "falta comprovar" (valor − lançado
+    com comprovante); barra verde = comprovado, amarela = sem comprovante.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
