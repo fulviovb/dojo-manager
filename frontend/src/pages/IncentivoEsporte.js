@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import BolsasIncentivo from './BolsasIncentivo';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const btnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -1056,6 +1057,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
 
   const ABAS = [
     ['participantes', 'Participantes'],
+    ['bolsas', 'Bolsas recebidas'],
     ['contrapartidas', 'Contrapartidas'],
     ['despesas', 'Despesas'],
     ['entidades', 'Entidades'],
@@ -1077,6 +1079,7 @@ export default function IncentivoEsporte({ onVerParticipanteIncentivo }) {
       </div>
 
       {aba === 'participantes' && <ListaParticipantes onVerParticipante={onVerParticipanteIncentivo} />}
+      {aba === 'bolsas' && <BolsasIncentivo />}
       {aba === 'contrapartidas' && <ListaContrapartidasGeral />}
       {aba === 'despesas' && <ListaDespesasGeral />}
       {aba === 'entidades' && <ListaEntidades />}

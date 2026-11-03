@@ -5,6 +5,7 @@ const participantes = require('../controllers/participantesIncentivoController')
 const documentos = require('../controllers/documentosIncentivoController');
 const contrapartidas = require('../controllers/contrapartidasIncentivoController');
 const despesas = require('../controllers/despesasIncentivoController');
+const bolsas = require('../controllers/bolsasIncentivoController');
 const credenciais = require('../controllers/credenciaisIncentivoController');
 const entidades = require('../controllers/entidadesFederativasController');
 const contrato = require('../controllers/contratoConsultoriaController');
@@ -97,5 +98,16 @@ router.get('/despesas', despesas.listar);
 router.post('/despesas', despesas.criar);
 router.put('/despesas/:id', despesas.atualizar);
 router.delete('/despesas/:id', despesas.remover);
+
+// Bolsas já recebidas: acompanhamento de gastos e prestação de contas.
+router.get('/bolsas/anos', bolsas.listarAnos);
+router.get('/bolsas', bolsas.listar);
+router.get('/bolsas/:id', bolsas.buscar);
+router.post('/bolsas', bolsas.criar);
+router.put('/bolsas/:id', bolsas.atualizar);
+router.delete('/bolsas/:id', bolsas.remover);
+router.post('/bolsas/:id/despesas', bolsas.criarDespesa);
+router.put('/bolsas/:id/despesas/:despesaId', bolsas.atualizarDespesa);
+router.delete('/bolsas/:id/despesas/:despesaId', bolsas.removerDespesa);
 
 module.exports = router;

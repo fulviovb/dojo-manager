@@ -1659,6 +1659,18 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Aulas agora filtradas por `data >= data_matricula`; o critério de % de
     faltas (vermelho) só vale com pelo menos 3 aulas desde a matrícula.
     Alertas na base real: 31 → 20.
+[x] Bolsas recebidas do Incentivo ao Esporte (aba "Bolsas recebidas"):
+    acompanhamento dos gastos e da prestação de contas das bolsas já pagas.
+    Models BolsaIncentivo (valor da bolsa + suplementação do 2º semestre,
+    datas de recebimento, situação da prestação) e DespesaBolsaIncentivo
+    (verba bolsa|suplementacao, categoria do edital, comprovante, lançado
+    na prestação). Gasto da suplementação só é aceito com data entre 01/07
+    e 31/12 do ano da bolsa — gasto do 1º semestre não cobre a suplementação.
+    Painel por atleta: comprovado × falta comprovar em cada verba, gastos
+    sem comprovante e não lançados. Script `2026-11-incentivo-bolsas.js`
+    criou as tabelas e importou os 11 bolsistas de 2026 (R$ 25.000 de bolsa
+    + R$ 18.800 de suplementação). Sandra Regina não tem cadastro de aluno
+    (bolsa sem vínculo). Pendente: lançar os gastos/comprovantes já feitos.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

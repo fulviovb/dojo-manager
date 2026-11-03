@@ -29,6 +29,8 @@ const ParticipanteIncentivo = require('./ParticipanteIncentivo');
 const DocumentoIncentivo = require('./DocumentoIncentivo');
 const ContrapartidaIncentivo = require('./ContrapartidaIncentivo');
 const DespesaIncentivo = require('./DespesaIncentivo');
+const BolsaIncentivo = require('./BolsaIncentivo');
+const DespesaBolsaIncentivo = require('./DespesaBolsaIncentivo');
 const CredencialIncentivo = require('./CredencialIncentivo');
 const EntidadeFederativa = require('./EntidadeFederativa');
 const EsporteIncentivo = require('./EsporteIncentivo');
@@ -271,6 +273,12 @@ FichaEvolucaoInfantil.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno', 
 FichaEvolucaoInfantil.belongsTo(Usuario, { foreignKey: 'professor_id', as: 'Professor', onDelete: 'RESTRICT' });
 FichaEvolucaoInfantil.belongsTo(Turma, { foreignKey: 'turma_id', onDelete: 'RESTRICT' });
 
+// Bolsas já recebidas (acompanhamento de gastos/prestação de contas).
+// RESTRICT: apagar bolsa nunca leva os gastos comprovados junto.
+BolsaIncentivo.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno', onDelete: 'SET NULL' });
+BolsaIncentivo.hasMany(DespesaBolsaIncentivo, { foreignKey: 'bolsa_id', as: 'Despesas', onDelete: 'RESTRICT' });
+DespesaBolsaIncentivo.belongsTo(BolsaIncentivo, { foreignKey: 'bolsa_id', onDelete: 'RESTRICT' });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -280,6 +288,7 @@ module.exports = {
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
   Competicao, Conquista,
   ParticipanteIncentivo, DocumentoIncentivo, ContrapartidaIncentivo, DespesaIncentivo,
+  BolsaIncentivo, DespesaBolsaIncentivo,
   CredencialIncentivo, EntidadeFederativa, EsporteIncentivo,
   ObjetivoIncentivo, CompeticaoPrevistaIncentivo, LocalTreinoIncentivo, LocalTreino,
   FichaEvolucaoInfantil,
