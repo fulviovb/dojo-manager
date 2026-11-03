@@ -92,6 +92,12 @@ function CelulaVerba({ valor, resumo, fonte }) {
   );
 }
 
+// Relatório de prestação de contas (página standalone em nova aba).
+function abrirRelatorio(params) {
+  const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))).toString();
+  window.open(`${window.location.origin}/incentivo/prestacao-contas?${qs}`, '_blank');
+}
+
 // ── Visualização de comprovantes ────────────────────────────────────────────
 
 const ehImagem = (nomeOuUrl) => /\.(jpe?g|png|webp|gif)$/i.test(nomeOuUrl || '');
@@ -485,7 +491,8 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
           Bolsa recebida {bolsa.data_recebimento_bolsa ? `em ${formatData(bolsa.data_recebimento_bolsa)}` : '(data não informada)'}
           {bolsa.valor_suplementacao != null && ` · Suplementação ${bolsa.data_recebimento_suplementacao ? `em ${formatData(bolsa.data_recebimento_suplementacao)}` : '(data não informada)'}`}
         </span>
-        <button onClick={() => setEditandoDados(true)} style={{ ...btnCinza, marginLeft: 'auto' }}>Editar dados</button>
+        <button onClick={() => abrirRelatorio({ bolsa_id: bolsa.id })} style={{ ...btnCinza, marginLeft: 'auto' }}>📄 Relatório de prestação de contas</button>
+        <button onClick={() => setEditandoDados(true)} style={btnCinza}>Editar dados</button>
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -631,7 +638,11 @@ export default function BolsasIncentivo() {
               style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#999' }}>×</button>
           )}
         </div>
-        <button onClick={() => setNova(true)} style={{ ...btnVerde, marginLeft: 'auto' }}>+ Nova bolsa</button>
+        <button onClick={() => abrirRelatorio({ ano, atleta: filtroAtleta.trim() })} disabled={!visiveis.length} style={{ ...btnCinza, marginLeft: 'auto', padding: '8px 14px' }}
+          title={termo ? 'Relatório dos atletas filtrados' : 'Relatório de todos os atletas do ano'}>
+          📄 Relatório de prestação de contas{termo ? ` (${visiveis.length})` : ''}
+        </button>
+        <button onClick={() => setNova(true)} style={btnVerde}>+ Nova bolsa</button>
       </div>
 
       {lista.length > 0 && (

@@ -2,7 +2,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { BolsaIncentivo, DespesaBolsaIncentivo, Usuario } = require('../models');
+const { BolsaIncentivo, DespesaBolsaIncentivo, Usuario, Escola, ParticipanteIncentivo } = require('../models');
+const { Op } = require('sequelize');
+const { CATEGORIAS_DESPESA } = require('../constants/incentivoEsporte');
 const { dataLocalISO } = require('../utils/data');
 const { lerNotaFiscal } = require('../services/leituraNotaFiscal');
 const os = require('os');
@@ -132,6 +134,56 @@ const serializar = (b) => {
   const aloc = alocarGastos(b, b.Despesas || []);
   json.Despesas = (json.Despesas || []).map(d => ({ ...d, alocacao: aloc.get(d.id) }));
   return { ...json, resumo: resumo(b), periodo_suplementacao: periodoSuplementacao(b.ano), periodo_ano: periodoAno(b.ano) };
+};
+
+// ── Relatório de prestação de contas ──────────────────────────────────────
+// Um atleta (bolsa_id) ou todos do ano (opcionalmente filtrados por nome).
+// Devolve cada bolsa já serializada (gastos com alocação por verba + resumo)
+// e o nº de protocolo / CPF da inscrição do atleta no Incentivo, quando houver.
+const relatorio = async (req, res) => {
+  try {
+    const escola_id = req.usuario.escola_id;
+    const where = { escola_id };
+    if (req.query.bolsa_id) where.id = req.query.bolsa_id;
+    else if (req.query.ano) where.ano = parseInt(req.query.ano, 10);
+    else return res.status(400).json({ erro: 'Informe o ano ou a bolsa' });
+    const bolsas = await BolsaIncentivo.findAll({
+      where,
+      include: [{ model: DespesaBolsaIncentivo, as: 'Despesas' }],
+      order: [['nome', 'ASC'], [{ model: DespesaBolsaIncentivo, as: 'Despesas' }, 'data_despesa', 'ASC']],
+    });
+    if (!bolsas.length) return res.status(404).json({ erro: 'Nenhuma bolsa encontrada' });
+
+    const filtro = String(req.query.atleta || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const norm = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const selecionadas = filtro ? bolsas.filter(b => norm(b.nome).includes(filtro)) : bolsas;
+
+    // Inscrição do atleta no Incentivo (protocolo, CPF): por aluno_id, senão por nome.
+    const participantes = await ParticipanteIncentivo.findAll({
+      where: {
+        escola_id, tipo_pessoa: 'atleta',
+        [Op.or]: [
+          { aluno_id: selecionadas.map(b => b.aluno_id).filter(Boolean) },
+          { nome: selecionadas.map(b => b.nome) },
+        ],
+      },
+      attributes: ['nome', 'aluno_id', 'cpf', 'numero_protocolo'],
+    });
+    const inscricao = (b) => participantes.find(p => b.aluno_id && p.aluno_id === b.aluno_id)
+      || participantes.find(p => norm(p.nome) === norm(b.nome)) || null;
+
+    const escola = await Escola.findByPk(escola_id, { attributes: ['nome', 'logo_url'] });
+    res.json({
+      escola: escola ? { nome: escola.nome, logo_url: escola.logo_url } : null,
+      gerado_em: new Date().toISOString(),
+      hoje: dataLocalISO(),
+      categorias: CATEGORIAS_DESPESA,
+      bolsas: selecionadas.map(b => {
+        const insc = inscricao(b);
+        return { ...serializar(b), inscricao: insc ? { cpf: insc.cpf, numero_protocolo: insc.numero_protocolo } : null };
+      }),
+    });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
 // ── Bolsas ──────────────────────────────────────────────────────────────────
@@ -322,7 +374,7 @@ const removerDespesa = async (req, res) => {
 };
 
 module.exports = {
-  listarAnos, listar, buscar, criar, atualizar, remover,
+  listarAnos, listar, buscar, relatorio, criar, atualizar, remover,
   criarDespesa, atualizarDespesa, removerDespesa, lerComprovante,
   _test: { validarDespesa, resumo, alocarGastos },
 };

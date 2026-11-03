@@ -23,6 +23,7 @@ import IncentivoEsporte from './pages/IncentivoEsporte';
 import ParticipanteIncentivoDetalhe from './pages/ParticipanteIncentivoDetalhe';
 import EvolucaoInfantil from './pages/EvolucaoInfantil';
 import FichaEvolucaoPage from './pages/FichaEvolucaoPage';
+import PrestacaoContasPage from './pages/PrestacaoContasPage';
 
 // Nunca fixar "localhost" aqui: acessando de outro dispositivo pelo IP da
 // rede (ex: celular do avaliador), "localhost" apontaria pro próprio
@@ -78,6 +79,7 @@ export default function App() {
   if (relatorioExameMatch) return <ExameRelatorioPage exameId={relatorioExameMatch[1]} />;
   const fichaEvolucaoMatch = window.location.pathname.match(/^\/evolucao-infantil\/ficha\/([^/]+)/);
   if (fichaEvolucaoMatch) return <FichaEvolucaoPage fichaId={fichaEvolucaoMatch[1]} />;
+  if (window.location.pathname === '/incentivo/prestacao-contas') return <PrestacaoContasPage />;
   return <AppInterna />;
 }
 

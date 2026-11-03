@@ -1706,6 +1706,16 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
 [x] Bolsas recebidas: filtro por atleta (busca por parte do nome, sem
     diferenciar acento/maiúscula, com sugestões dos nomes). Indicadores do
     topo passam a somar só os atletas filtrados ("3 de 11 atletas (filtro)").
+[x] Relatório de prestação de contas das bolsas (página standalone
+    /incentivo/prestacao-contas, GET /incentivo-esporte/bolsas/relatorio).
+    Por atleta (botão na ficha) ou do ano inteiro / atletas filtrados (botão
+    na aba — resumo geral + uma página por atleta). Inclui: dados do atleta
+    (CPF e nº protocolo vindos da inscrição no Incentivo), indicadores (valor
+    a gastar, a comprovar, a prestar contas = não declarado na prefeitura,
+    % executado/comprovado, gasto médio, por semestre), execução por verba,
+    pendências, gastos por tipo e por mês (barras), detalhamento com "conta
+    para" de cada gasto, regra aplicada e assinaturas. Imprimir/PDF (A4,
+    quebra de página por atleta) e Exportar XLS (abas Resumo, Gastos, Por tipo).
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
