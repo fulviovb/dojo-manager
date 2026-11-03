@@ -1703,6 +1703,9 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     virou legado nullable (script `2026-11-incentivo-bolsas-fonte-automatica.js`).
     Conferido com os 9 gastos reais do Fulvio: suplementação 4.000 coberta,
     bolsa 3.277,01 lançado / 3.017,01 comprovado.
+[x] Bolsas recebidas: filtro por atleta (busca por parte do nome, sem
+    diferenciar acento/maiúscula, com sugestões dos nomes). Indicadores do
+    topo passam a somar só os atletas filtrados ("3 de 11 atletas (filtro)").
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

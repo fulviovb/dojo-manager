@@ -585,6 +585,7 @@ export default function BolsasIncentivo() {
   const [categorias, setCategorias] = useState([]);
   const [aberta, setAberta] = useState(null);
   const [nova, setNova] = useState(false);
+  const [filtroAtleta, setFiltroAtleta] = useState('');
 
   useEffect(() => {
     axios.get('/incentivo-esporte/catalogos').then(r => setCategorias(r.data.categoriasDespesa));
@@ -599,7 +600,11 @@ export default function BolsasIncentivo() {
   }, [ano]);
   useEffect(() => { carregar(); }, [carregar]);
 
-  const soma = (fn) => lista.reduce((s, b) => s + (fn(b) || 0), 0);
+  // Filtro por atleta: busca por parte do nome, sem diferenciar acento/maiúscula.
+  const normalizar = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const termo = normalizar(filtroAtleta);
+  const visiveis = termo ? lista.filter(b => normalizar(b.nome).includes(termo)) : lista;
+  const soma = (fn) => visiveis.reduce((s, b) => s + (fn(b) || 0), 0);
   const totalRecebido = soma(b => b.resumo.valor_total);
   const faltaLancarSup = soma(b => b.resumo.falta_lancar_suplementacao);
   const faltaComprovarSup = soma(b => b.resumo.falta_comprovar_suplementacao);
@@ -617,12 +622,21 @@ export default function BolsasIncentivo() {
         <select value={ano || ''} onChange={e => setAno(parseInt(e.target.value, 10))} style={{ ...estiloInput, width: 110 }}>
           {anos.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
+        <div style={{ position: 'relative', width: 260, maxWidth: '100%' }}>
+          <input value={filtroAtleta} onChange={e => setFiltroAtleta(e.target.value)} placeholder="🔍 Filtrar por atleta"
+            list="bolsas-atletas" style={{ ...estiloInput, paddingRight: 28 }} />
+          <datalist id="bolsas-atletas">{lista.map(b => <option key={b.id} value={b.nome} />)}</datalist>
+          {filtroAtleta && (
+            <button onClick={() => setFiltroAtleta('')} title="Limpar filtro"
+              style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#999' }}>×</button>
+          )}
+        </div>
         <button onClick={() => setNova(true)} style={{ ...btnVerde, marginLeft: 'auto' }}>+ Nova bolsa</button>
       </div>
 
       {lista.length > 0 && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          <Indicador titulo="Total recebido" valor={formatarMoeda(totalRecebido)} detalhe={`${lista.length} atletas`} />
+          <Indicador titulo="Total recebido" valor={formatarMoeda(totalRecebido)} detalhe={termo ? `${visiveis.length} de ${lista.length} atletas (filtro)` : `${lista.length} atletas`} />
           <Indicador titulo="Suplementação — falta lançar" valor={formatarMoeda(faltaLancarSup)} cor={faltaLancarSup > 0 ? '#c62828' : '#2e7d32'}
             detalhe={`Falta comprovar ${formatarMoeda(faltaComprovarSup)}${dias == null ? '' : dias > 0 ? ` · ${dias} dias até ${formatData(fimSup)}` : ' · prazo encerrado'}`} />
           <Indicador titulo="Bolsa — falta lançar" valor={formatarMoeda(faltaLancarBolsa)} cor={faltaLancarBolsa > 0 ? '#c62828' : '#2e7d32'}
@@ -641,7 +655,8 @@ export default function BolsasIncentivo() {
           </thead>
           <tbody>
             {lista.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhuma bolsa cadastrada neste ano.</td></tr>}
-            {lista.map(b => {
+            {lista.length > 0 && visiveis.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Nenhum atleta encontrado para “{filtroAtleta}”.</td></tr>}
+            {visiveis.map(b => {
               const r = b.resumo;
               const sit = SITUACAO[b.situacao_prestacao];
               return (
