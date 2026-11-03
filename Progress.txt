@@ -1688,6 +1688,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     não digitados e mostra "Lido do comprovante — confira" com "usar este
     valor/data"; no envio posterior pergunta se atualiza o gasto quando
     o comprovante diverge.
+[x] Bolsas recebidas: visualização de comprovantes na própria tela.
+    Miniatura na lista de gastos (imagem de verdade; PDF vira ícone);
+    clique abre visualizador em tela cheia — imagem com "tamanho real"/
+    "ajustar à tela", PDF embutido (iframe) — com ←/→ entre os comprovantes
+    do atleta, Esc fecha, "Abrir em nova aba" e "Baixar". No formulário,
+    prévia do arquivo escolhido (antes de salvar) e do comprovante atual.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

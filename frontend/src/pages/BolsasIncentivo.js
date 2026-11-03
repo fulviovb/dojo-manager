@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Modal, formatData, formatarMoeda, estiloInput, btnVerde, btnAzul, btnCinza, cardEstilo, thEstilo } from './IncentivoEsporte';
+import { Modal, formatData, formatarMoeda, estiloInput, btnVerde, btnCinza, cardEstilo, thEstilo } from './IncentivoEsporte';
 import { SERVER_ORIGIN } from '../components/Avatar';
 
 // Aba "Bolsas": acompanhamento das bolsas JÁ RECEBIDAS (gastos comprovados e
@@ -70,6 +70,102 @@ function CelulaVerba({ valor, resumo, fonte }) {
     </div>
   );
 }
+
+// ── Visualização de comprovantes ────────────────────────────────────────────
+
+const ehImagem = (nomeOuUrl) => /\.(jpe?g|png|webp|gif)$/i.test(nomeOuUrl || '');
+const urlArquivo = (caminho) => `${SERVER_ORIGIN}${caminho}`;
+
+// Miniatura clicável: imagem de verdade, ou ícone de PDF.
+function Miniatura({ url, onClick, tamanho = 40 }) {
+  const base = { width: tamanho, height: tamanho, borderRadius: 4, border: '1px solid #ddd', cursor: 'pointer', flexShrink: 0, background: '#fafafa' };
+  if (ehImagem(url)) {
+    return <img src={url} alt="Comprovante" onClick={onClick} title="Ver comprovante" style={{ ...base, objectFit: 'cover' }} />;
+  }
+  return (
+    <div onClick={onClick} title="Ver comprovante" style={{ ...base, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#c62828' }}>PDF</div>
+  );
+}
+
+// Tela cheia: imagem (clique alterna ajustar/tamanho real) ou PDF embutido.
+// `itens` = [{ url, titulo, subtitulo }]; setas ←/→ navegam, Esc fecha.
+function VisualizadorComprovante({ itens, inicial = 0, onFechar }) {
+  const [i, setI] = useState(inicial);
+  const [zoom, setZoom] = useState(false);
+  const item = itens[i];
+  const ir = useCallback((d) => { setZoom(false); setI(x => (x + d + itens.length) % itens.length); }, [itens.length]);
+
+  useEffect(() => {
+    const tecla = (e) => {
+      if (e.key === 'Escape') onFechar();
+      else if (e.key === 'ArrowRight' && itens.length > 1) ir(1);
+      else if (e.key === 'ArrowLeft' && itens.length > 1) ir(-1);
+    };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, [ir, itens.length, onFechar]);
+
+  if (!item) return null;
+  const imagem = item.imagem ?? ehImagem(item.url);
+  const btnEscuro = { background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', padding: '6px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13, textDecoration: 'none' };
+  const seta = (lado) => ({ ...btnEscuro, position: 'absolute', top: '50%', [lado]: 12, transform: 'translateY(-50%)', fontSize: 22, padding: '10px 14px' });
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 2000, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', color: '#fff', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{item.titulo}</div>
+          {item.subtitulo && <div style={{ fontSize: 12, opacity: 0.75 }}>{item.subtitulo}</div>}
+        </div>
+        {itens.length > 1 && <span style={{ fontSize: 12, opacity: 0.75 }}>{i + 1} de {itens.length}</span>}
+        {imagem && <button onClick={() => setZoom(z => !z)} style={btnEscuro}>{zoom ? 'Ajustar à tela' : 'Tamanho real'}</button>}
+        <a href={item.url} target="_blank" rel="noreferrer" style={btnEscuro}>Abrir em nova aba</a>
+        <a href={item.url} download style={btnEscuro}>Baixar</a>
+        <button onClick={onFechar} style={{ ...btnEscuro, fontSize: 18, padding: '2px 12px' }} title="Fechar (Esc)">×</button>
+      </div>
+      <div style={{ flex: 1, position: 'relative', overflow: 'auto', display: 'flex', alignItems: zoom ? 'flex-start' : 'center', justifyContent: zoom ? 'flex-start' : 'center', padding: '0 16px 16px' }}
+        onClick={e => { if (e.target === e.currentTarget) onFechar(); }}>
+        {imagem ? (
+          <img key={item.url} src={item.url} alt={item.titulo} onClick={() => setZoom(z => !z)}
+            style={zoom ? { cursor: 'zoom-out', margin: 'auto' } : { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', cursor: 'zoom-in', background: '#fff' }} />
+        ) : (
+          <iframe key={item.url} src={item.url} title={item.titulo} style={{ width: '100%', maxWidth: 1000, height: '100%', border: 'none', background: '#fff', borderRadius: 4 }} />
+        )}
+        {itens.length > 1 && (
+          <>
+            <button onClick={() => ir(-1)} style={seta('left')} title="Anterior (←)">‹</button>
+            <button onClick={() => ir(1)} style={seta('right')} title="Próximo (→)">›</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Pré-visualização do arquivo escolhido no formulário (antes de salvar).
+function PreviaArquivo({ arquivo, urlExistente, onVer }) {
+  const [urlLocal, setUrlLocal] = useState(null);
+  useEffect(() => {
+    if (!arquivo) { setUrlLocal(null); return undefined; }
+    const u = URL.createObjectURL(arquivo);
+    setUrlLocal(u);
+    return () => URL.revokeObjectURL(u);
+  }, [arquivo]);
+  const url = urlLocal || (urlExistente && urlArquivo(urlExistente));
+  if (!url) return null;
+  const imagem = arquivo ? arquivo.type.startsWith('image/') : ehImagem(urlExistente);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+      {imagem
+        ? <img src={url} alt="Prévia do comprovante" onClick={() => onVer(url, imagem)} style={{ maxWidth: 120, maxHeight: 90, borderRadius: 4, border: '1px solid #ddd', cursor: 'zoom-in', objectFit: 'contain', background: '#fafafa' }} />
+        : <Miniatura url={url} onClick={() => onVer(url, imagem)} tamanho={48} />}
+      <button type="button" onClick={() => onVer(url, imagem)} style={{ ...linkUsarBase, marginLeft: 0 }}>
+        {arquivo ? 'Ver arquivo escolhido' : 'Ver comprovante atual'}
+      </button>
+    </div>
+  );
+}
+const linkUsarBase = { background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 };
 
 // Leitura do comprovante no servidor (pdftotext/OCR local): sugere valor e
 // data de emissão. Nunca lança erro — falha vira { falhou: true }.
@@ -224,6 +320,7 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
   const [salvando, setSalvando] = useState(false);
   const [leitura, setLeitura] = useState(null); // null | { lendo } | resultado
   const [tocado, setTocado] = useState({}); // campos que o usuário digitou
+  const [visualizar, setVisualizar] = useState(null); // { url, imagem }
   const set = (k) => (e) => { setTocado(t => ({ ...t, [k]: true })); setForm(f => ({ ...f, [k]: e.target.value })); };
   const periodo = bolsa.periodo_suplementacao;
   const foraDoPeriodo = form.fonte === 'suplementacao' && form.data_despesa
@@ -296,6 +393,7 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
               (botão “Enviar comprovante” na lista de gastos).
             </div>
           )}
+          <PreviaArquivo arquivo={form.arquivo} urlExistente={gasto?.comprovante_url} onVer={(url, imagem) => setVisualizar({ url, imagem })} />
           {form.arquivo && leitura && <AvisoLeitura leitura={leitura} form={form} usar={usar} />}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -320,6 +418,10 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
           </button>
         </div>
       </div>
+      {visualizar && (
+        <VisualizadorComprovante onFechar={() => setVisualizar(null)}
+          itens={[{ url: visualizar.url, imagem: visualizar.imagem, titulo: form.arquivo ? form.arquivo.name : 'Comprovante atual' }]} />
+      )}
     </Modal>
   );
 }
@@ -331,6 +433,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
   const [editandoDados, setEditandoDados] = useState(false);
   const [gastoEmEdicao, setGastoEmEdicao] = useState(null); // null fechado, {} novo, obj editar
   const [filtroFonte, setFiltroFonte] = useState('todas');
+  const [vendo, setVendo] = useState(null); // índice em comComprovante
 
   const carregar = useCallback(() => {
     axios.get(`/incentivo-esporte/bolsas/${bolsaId}`).then(r => setBolsa(r.data));
@@ -354,6 +457,13 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
   const r = bolsa.resumo;
   const sit = SITUACAO[bolsa.situacao_prestacao];
   const gastos = bolsa.Despesas.filter(g => filtroFonte === 'todas' || g.fonte === filtroFonte);
+  // Navegação do visualizador: comprovantes dos gastos visíveis, na ordem da lista.
+  const comComprovante = gastos.filter(g => g.comprovante_url);
+  const itensVisualizador = comComprovante.map(g => ({
+    url: urlArquivo(g.comprovante_url),
+    titulo: `${formatarMoeda(g.valor)} · ${formatData(g.data_despesa)} · ${FONTE_LABEL[g.fonte]}`,
+    subtitulo: [catLabel(g.categoria), g.descricao].filter(Boolean).join(' — '),
+  }));
 
   return (
     <Modal titulo={`${bolsa.nome} — bolsa ${bolsa.ano}`} onFechar={onFechar} largura={860}>
@@ -414,7 +524,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
                 <td style={{ ...td, padding: '8px 12px', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatarMoeda(g.valor)}</td>
                 <td style={{ ...td, padding: '8px 12px' }}>
                   {g.comprovante_url
-                    ? <a href={`${SERVER_ORIGIN}${g.comprovante_url}`} target="_blank" rel="noreferrer" style={{ ...btnAzul, textDecoration: 'none' }}>Ver</a>
+                    ? <Miniatura url={urlArquivo(g.comprovante_url)} onClick={() => setVendo(comComprovante.indexOf(g))} />
                     : <BotaoEnviarComprovante bolsaId={bolsaId} gasto={g} onEnviado={recarregar} />}
                 </td>
                 <td style={{ ...td, padding: '8px 12px' }}>
@@ -433,6 +543,9 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
         </table>
       </div>
 
+      {vendo !== null && itensVisualizador.length > 0 && (
+        <VisualizadorComprovante itens={itensVisualizador} inicial={Math.min(vendo, itensVisualizador.length - 1)} onFechar={() => setVendo(null)} />
+      )}
       {editandoDados && <ModalDadosBolsa bolsa={bolsa} onFechar={() => setEditandoDados(false)} onSalvo={() => { setEditandoDados(false); recarregar(); }} />}
       {gastoEmEdicao && (
         <ModalGasto bolsa={bolsa} gasto={gastoEmEdicao.id ? gastoEmEdicao : null} categorias={categorias}
