@@ -101,6 +101,7 @@ router.delete('/despesas/:id', despesas.remover);
 
 // Bolsas já recebidas: acompanhamento de gastos e prestação de contas.
 router.get('/bolsas/anos', bolsas.listarAnos);
+router.post('/bolsas/ler-comprovante', bolsas.lerComprovante);
 router.get('/bolsas', bolsas.listar);
 router.get('/bolsas/:id', bolsas.buscar);
 router.post('/bolsas', bolsas.criar);

@@ -1676,6 +1676,18 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     pelo botão "Enviar comprovante" na lista de gastos. Cada verba mostra
     "falta lançar" (valor − lançado) e "falta comprovar" (valor − lançado
     com comprovante); barra verde = comprovado, amarela = sem comprovante.
+[x] Bolsas recebidas: leitura do comprovante ao anexar (POST
+    /incentivo-esporte/bolsas/ler-comprovante, `services/leituraNotaFiscal.js`).
+    Local, sem serviço externo: pdftotext / OCR tesseract (reusa extrairTexto
+    da leitura de resultado). Acha valor e data de emissão por rótulos com
+    prioridade (valor total da nota > valor a pagar > total > valor; data de
+    emissão > data de pagamento > data), na mesma linha ou na coluna de
+    baixo (DANFE/boleto); ignora datas de vencimento/nascimento/validade.
+    Testado: DANFE, NFC-e (também como foto/OCR), NFS-e, PIX, recibo,
+    boleto e comprovante Nubank escaneado. No formulário preenche os campos
+    não digitados e mostra "Lido do comprovante — confira" com "usar este
+    valor/data"; no envio posterior pergunta se atualiza o gasto quando
+    o comprovante diverge.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

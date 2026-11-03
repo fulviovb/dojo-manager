@@ -71,22 +71,51 @@ function CelulaVerba({ valor, resumo, fonte }) {
   );
 }
 
+// Leitura do comprovante no servidor (pdftotext/OCR local): sugere valor e
+// data de emissão. Nunca lança erro — falha vira { falhou: true }.
+async function lerComprovante(arquivo) {
+  try {
+    const fd = new FormData();
+    fd.append('comprovante', arquivo);
+    const r = await axios.post('/incentivo-esporte/bolsas/ler-comprovante', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return r.data;
+  } catch { return { falhou: true }; }
+}
+const mesmoValor = (a, b) => Math.abs(parseFloat(a) - parseFloat(b)) < 0.005;
+
 // Envia (ou troca) o comprovante de um gasto já lançado, direto da lista.
+// Lê o arquivo antes: se valor/data do comprovante diferem do lançado,
+// oferece corrigir o gasto.
 function BotaoEnviarComprovante({ bolsaId, gasto, onEnviado, rotulo = '📎 Enviar comprovante' }) {
-  const [enviando, setEnviando] = useState(false);
+  const [etapa, setEtapa] = useState(null); // null | 'lendo' | 'enviando'
   const enviar = async (arquivo) => {
     if (!arquivo) return;
-    setEnviando(true);
+    const url = `/incentivo-esporte/bolsas/${bolsaId}/despesas/${gasto.id}`;
     try {
+      setEtapa('lendo');
+      const lido = await lerComprovante(arquivo);
+      setEtapa('enviando');
       const fd = new FormData();
       fd.append('comprovante', arquivo);
-      await axios.put(`/incentivo-esporte/bolsas/${bolsaId}/despesas/${gasto.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await axios.put(url, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const difValor = lido.valor != null && !mesmoValor(lido.valor, gasto.valor);
+      const difData = lido.data_emissao && lido.data_emissao !== gasto.data_despesa;
+      if ((difValor || difData) && window.confirm(
+        'Comprovante enviado.\n\nO comprovante indica:\n'
+        + (difValor ? `  • valor ${formatarMoeda(lido.valor)} (lançado: ${formatarMoeda(gasto.valor)})\n` : '')
+        + (difData ? `  • data ${formatData(lido.data_emissao)} (lançada: ${formatData(gasto.data_despesa)})\n` : '')
+        + '\nAtualizar o gasto com os dados do comprovante?')) {
+        try {
+          await axios.put(url, { ...(difValor ? { valor: lido.valor } : {}), ...(difData ? { data_despesa: lido.data_emissao } : {}) });
+        } catch (e) { window.alert(`O comprovante foi salvo, mas o gasto não foi atualizado: ${erroApi(e)}`); }
+      }
       onEnviado();
-    } catch (e) { window.alert(erroApi(e)); } finally { setEnviando(false); }
+    } catch (e) { window.alert(erroApi(e)); } finally { setEtapa(null); }
   };
+  const enviando = etapa !== null;
   return (
     <label style={{ ...btnCinza, padding: '4px 10px', display: 'inline-block', borderColor: '#f9a825', color: '#8d6e00', background: '#fffde7', fontWeight: 600, whiteSpace: 'nowrap', cursor: enviando ? 'wait' : 'pointer' }}>
-      {enviando ? 'Enviando...' : rotulo}
+      {etapa === 'lendo' ? 'Lendo...' : etapa === 'enviando' ? 'Enviando...' : rotulo}
       <input type="file" accept="application/pdf,image/*" style={{ display: 'none' }} disabled={enviando}
         onChange={e => { enviar(e.target.files[0]); e.target.value = ''; }} />
     </label>
@@ -159,6 +188,33 @@ function ModalDadosBolsa({ bolsa, anoPadrao, onFechar, onSalvo }) {
 
 // ── Modal: lançar/editar gasto ──────────────────────────────────────────────
 
+const linkUsar = { background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0, marginLeft: 6 };
+
+function AvisoLeitura({ leitura, form, usar }) {
+  const caixa = (cor, bg, borda, filhos) => (
+    <div style={{ fontSize: 12, color: cor, background: bg, border: `1px solid ${borda}`, borderRadius: 4, padding: '8px 10px', marginTop: 6, lineHeight: 1.6 }}>{filhos}</div>
+  );
+  if (leitura.lendo) return caixa('#555', '#f5f5f5', '#e0e0e0', '🔍 Lendo o comprovante...');
+  if (leitura.falhou || (leitura.valor == null && !leitura.data_emissao)) {
+    return caixa('#555', '#f5f5f5', '#e0e0e0', 'Não consegui identificar valor nem data neste arquivo — preencha manualmente.');
+  }
+  const difValor = leitura.valor != null && !(form.valor !== '' && mesmoValor(form.valor, leitura.valor));
+  const difData = leitura.data_emissao && leitura.data_emissao !== form.data_despesa;
+  return caixa('#1b5e20', '#e8f5e9', '#c8e6c9', (
+    <>
+      <div>🔍 <strong>Lido do comprovante{leitura.metodo === 'ocr' ? ' (por OCR)' : ''}</strong> — confira antes de salvar:</div>
+      <div>
+        Valor: {leitura.valor != null ? <strong>{formatarMoeda(leitura.valor)}</strong> : <em>não encontrado</em>}
+        {difValor && <button type="button" style={linkUsar} onClick={() => usar('valor', leitura.valor.toFixed(2))}>usar este valor</button>}
+      </div>
+      <div>
+        Data de emissão: {leitura.data_emissao ? <strong>{formatData(leitura.data_emissao)}</strong> : <em>não encontrada</em>}
+        {difData && <button type="button" style={linkUsar} onClick={() => usar('data_despesa', leitura.data_emissao)}>usar esta data</button>}
+      </div>
+    </>
+  ));
+}
+
 function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
   const temSup = bolsa.valor_suplementacao != null;
   const [form, setForm] = useState(() => gasto
@@ -166,8 +222,30 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
     : { fonte: temSup ? 'suplementacao' : 'bolsa', categoria: categorias[0]?.valor || '', descricao: '', valor: '', data_despesa: hojeISO(), observacao: '', arquivo: null });
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const [leitura, setLeitura] = useState(null); // null | { lendo } | resultado
+  const [tocado, setTocado] = useState({}); // campos que o usuário digitou
+  const set = (k) => (e) => { setTocado(t => ({ ...t, [k]: true })); setForm(f => ({ ...f, [k]: e.target.value })); };
   const periodo = bolsa.periodo_suplementacao;
+  const foraDoPeriodo = form.fonte === 'suplementacao' && form.data_despesa
+    && (form.data_despesa < periodo.inicio || form.data_despesa > periodo.fim);
+
+  // Ao escolher o arquivo: lê e preenche valor/data que o usuário ainda não
+  // digitou. Se ele já digitou algo diferente, só sugere (botão "usar").
+  const escolherArquivo = async (arquivo) => {
+    setForm(f => ({ ...f, arquivo: arquivo || null }));
+    if (!arquivo) { setLeitura(null); return; }
+    setLeitura({ lendo: true });
+    const lido = await lerComprovante(arquivo);
+    setLeitura(lido);
+    const preencherValor = lido.valor != null && (!gasto && !tocado.valor);
+    const preencherData = lido.data_emissao && (!gasto && !tocado.data_despesa);
+    setForm(f => ({
+      ...f,
+      ...(preencherValor ? { valor: lido.valor.toFixed(2) } : {}),
+      ...(preencherData ? { data_despesa: lido.data_emissao } : {}),
+    }));
+  };
+  const usar = (campo, v) => { setTocado(t => ({ ...t, [campo]: true })); setForm(f => ({ ...f, [campo]: v })); };
 
   const salvar = async () => {
     setSalvando(true); setErro('');
@@ -208,17 +286,9 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
           </select>
         </div>
         <div><label style={rotulo}>Descrição</label><input value={form.descricao} onChange={set('descricao')} placeholder="Ex.: inscrição Campeonato Brasileiro" style={estiloInput} /></div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}><label style={rotulo}>Valor (R$)</label><input type="number" step="0.01" value={form.valor} onChange={set('valor')} style={estiloInput} /></div>
-          <div style={{ flex: 1 }}>
-            <label style={rotulo}>Data do gasto</label>
-            <input type="date" value={form.data_despesa} onChange={set('data_despesa')} style={estiloInput}
-              min={form.fonte === 'suplementacao' ? periodo.inicio : undefined} max={form.fonte === 'suplementacao' ? periodo.fim : undefined} />
-          </div>
-        </div>
         <div>
           <label style={rotulo}>{gasto?.comprovante_url ? 'Substituir comprovante' : 'Comprovante (PDF ou imagem)'}</label>
-          <input type="file" accept="application/pdf,image/*" onChange={e => setForm(f => ({ ...f, arquivo: e.target.files[0] }))} />
+          <input type="file" accept="application/pdf,image/*" onChange={e => escolherArquivo(e.target.files[0])} />
           {!form.arquivo && !gasto?.comprovante_url && (
             <div style={{ fontSize: 12, color: '#8d6e00', background: '#fffde7', border: '1px solid #f9e08a', borderRadius: 4, padding: '8px 10px', marginTop: 6 }}>
               ⚠ Este gasto precisa de comprovante. Dá para lançar agora sem ele, mas o valor
@@ -226,7 +296,21 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
               (botão “Enviar comprovante” na lista de gastos).
             </div>
           )}
+          {form.arquivo && leitura && <AvisoLeitura leitura={leitura} form={form} usar={usar} />}
         </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}><label style={rotulo}>Valor (R$)</label><input type="number" step="0.01" value={form.valor} onChange={set('valor')} style={estiloInput} /></div>
+          <div style={{ flex: 1 }}>
+            <label style={rotulo}>Data de emissão / do gasto</label>
+            <input type="date" value={form.data_despesa} onChange={set('data_despesa')} style={estiloInput}
+              min={form.fonte === 'suplementacao' ? periodo.inicio : undefined} max={form.fonte === 'suplementacao' ? periodo.fim : undefined} />
+          </div>
+        </div>
+        {foraDoPeriodo && (
+          <div style={{ fontSize: 12, color: '#c62828', marginTop: -4 }}>
+            ✕ Data fora do 2º semestre — este gasto não pode ser lançado na suplementação. Lance na bolsa ou corrija a data.
+          </div>
+        )}
         <div><label style={rotulo}>Observação</label><input value={form.observacao} onChange={set('observacao')} style={estiloInput} /></div>
         {erro && <div style={{ color: '#c62828', fontSize: 13 }}>{erro}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

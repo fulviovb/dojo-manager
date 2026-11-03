@@ -170,4 +170,4 @@ async function lerComprovante(caminho) {
   return { ...interpretar(texto), metodo, trecho: limpar(texto).slice(0, 600) };
 }
 
-module.exports = { lerComprovante, interpretar };
+module.exports = { lerComprovante, interpretar, extrairTexto };

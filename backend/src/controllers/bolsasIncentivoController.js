@@ -4,6 +4,8 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { BolsaIncentivo, DespesaBolsaIncentivo, Usuario } = require('../models');
 const { dataLocalISO } = require('../utils/data');
+const { lerNotaFiscal } = require('../services/leituraNotaFiscal');
+const os = require('os');
 
 // Acompanhamento das bolsas já recebidas: valores, gastos comprovados por
 // verba (bolsa × suplementação) e situação da prestação de contas.
@@ -183,6 +185,36 @@ const remover = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
+// ── Leitura do comprovante (sugere valor e data de emissão) ───────────────
+// Arquivo vai pra pasta temporária, é lido localmente e apagado — o
+// comprovante "de verdade" é enviado depois, junto com o gasto.
+const uploadLeitura = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, os.tmpdir()),
+    filename: (req, file, cb) => cb(null, `leitura-${uuidv4()}${path.extname(file.originalname).toLowerCase()}`),
+  }),
+  fileFilter: (req, file, cb) => {
+    if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.mimetype)) {
+      return cb(new Error('Formato não suportado (use JPEG, PNG, WEBP ou PDF)'));
+    }
+    cb(null, true);
+  },
+  limits: { fileSize: 10 * 1024 * 1024 },
+}).single('comprovante');
+
+const lerComprovante = (req, res) => {
+  uploadLeitura(req, res, async (err) => {
+    if (err) return res.status(400).json({ erro: err.message || 'Erro no upload' });
+    if (!req.file) return res.status(400).json({ erro: 'Envie o arquivo do comprovante' });
+    try {
+      res.json(await lerNotaFiscal(req.file.path));
+    } catch (e) {
+      console.error(e);
+      res.status(422).json({ erro: 'Não foi possível ler o comprovante — preencha manualmente' });
+    } finally { fs.unlink(req.file.path, () => {}); }
+  });
+};
+
 // ── Gastos da bolsa ─────────────────────────────────────────────────────────
 
 const buscarDespesa = (id, escola_id) => DespesaBolsaIncentivo.findOne({
@@ -253,6 +285,6 @@ const removerDespesa = async (req, res) => {
 
 module.exports = {
   listarAnos, listar, buscar, criar, atualizar, remover,
-  criarDespesa, atualizarDespesa, removerDespesa,
+  criarDespesa, atualizarDespesa, removerDespesa, lerComprovante,
   _test: { validarDespesa, resumo },
 };
