@@ -13,7 +13,28 @@ const SITUACAO = {
   aprovada: { label: 'Aprovada', cor: '#2e7d32', bg: '#e8f5e9' },
   pendencia: { label: 'Com pendência', cor: '#c62828', bg: '#ffebee' },
 };
-const FONTE_LABEL = { bolsa: 'Bolsa', suplementacao: 'Suplementação' };
+// A verba de cada gasto é calculada pelo backend (alocarGastos): 2º semestre
+// cobre a suplementação primeiro; o resto (e o 1º semestre) cobre a bolsa.
+const ehSegundoSemestre = (data) => !!data && data.slice(5) >= '07-01';
+const CHIP_VERBA = {
+  suplementacao: { label: 'Suplementação', bg: '#ede7f6', cor: '#5e35b1' },
+  bolsa: { label: 'Bolsa', bg: '#e3f2fd', cor: '#1565c0' },
+  excedente: { label: 'Excedente', bg: '#f5f5f5', cor: '#777' },
+};
+function ChipsVerba({ alocacao, valor }) {
+  if (!alocacao) return null;
+  const partes = ['suplementacao', 'bolsa', 'excedente'].filter(k => alocacao[k] > 0);
+  const inteiro = partes.length === 1 && Math.abs(alocacao[partes[0]] - parseFloat(valor)) < 0.005;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
+      {partes.map(k => (
+        <span key={k} style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: CHIP_VERBA[k].bg, color: CHIP_VERBA[k].cor, whiteSpace: 'nowrap' }}>
+          {CHIP_VERBA[k].label}{inteiro ? '' : ` ${formatarMoeda(alocacao[k])}`}
+        </span>
+      ))}
+    </div>
+  );
+}
 const td = { padding: '10px 14px', fontSize: 13, verticalAlign: 'top' };
 const rotulo = { fontSize: 12, display: 'block', marginBottom: 4 };
 const btnPerigo = { background: 'none', border: '1px solid #f5c6c6', color: '#c62828', padding: '4px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 12 };
@@ -314,17 +335,16 @@ function AvisoLeitura({ leitura, form, usar }) {
 function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
   const temSup = bolsa.valor_suplementacao != null;
   const [form, setForm] = useState(() => gasto
-    ? { fonte: gasto.fonte, categoria: gasto.categoria, descricao: gasto.descricao || '', valor: gasto.valor, data_despesa: gasto.data_despesa, observacao: gasto.observacao || '', arquivo: null }
-    : { fonte: temSup ? 'suplementacao' : 'bolsa', categoria: categorias[0]?.valor || '', descricao: '', valor: '', data_despesa: hojeISO(), observacao: '', arquivo: null });
+    ? { categoria: gasto.categoria, descricao: gasto.descricao || '', valor: gasto.valor, data_despesa: gasto.data_despesa, observacao: gasto.observacao || '', arquivo: null }
+    : { categoria: categorias[0]?.valor || '', descricao: '', valor: '', data_despesa: hojeISO(), observacao: '', arquivo: null });
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [leitura, setLeitura] = useState(null); // null | { lendo } | resultado
   const [tocado, setTocado] = useState({}); // campos que o usuário digitou
   const [visualizar, setVisualizar] = useState(null); // { url, imagem }
   const set = (k) => (e) => { setTocado(t => ({ ...t, [k]: true })); setForm(f => ({ ...f, [k]: e.target.value })); };
-  const periodo = bolsa.periodo_suplementacao;
-  const foraDoPeriodo = form.fonte === 'suplementacao' && form.data_despesa
-    && (form.data_despesa < periodo.inicio || form.data_despesa > periodo.fim);
+  const periodoAno = bolsa.periodo_ano;
+  const foraDoAno = form.data_despesa && (form.data_despesa < periodoAno.inicio || form.data_despesa > periodoAno.fim);
 
   // Ao escolher o arquivo: lê e preenche valor/data que o usuário ainda não
   // digitou. Se ele já digitou algo diferente, só sugere (botão "usar").
@@ -361,22 +381,6 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
     <Modal titulo={gasto ? 'Editar gasto' : 'Novo gasto'} onFechar={onFechar} largura={460}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
-          <label style={rotulo}>Prestar contas na verba</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {['suplementacao', 'bolsa'].filter(f => f === 'bolsa' || temSup).map(f => (
-              <button key={f} onClick={() => setForm(x => ({ ...x, fonte: f }))}
-                style={{ ...btnCinza, flex: 1, padding: '8px', fontWeight: 600, background: form.fonte === f ? '#1e2a38' : '#fff', color: form.fonte === f ? '#fff' : '#333' }}>
-                {FONTE_LABEL[f]}
-              </button>
-            ))}
-          </div>
-          {form.fonte === 'suplementacao' && (
-            <div style={{ fontSize: 12, color: '#ef6c00', marginTop: 6 }}>
-              Só vale gasto feito entre {formatData(periodo.inicio)} e {formatData(periodo.fim)} (2º semestre).
-            </div>
-          )}
-        </div>
-        <div>
           <label style={rotulo}>Categoria (rubrica do edital)</label>
           <select value={form.categoria} onChange={set('categoria')} style={estiloInput}>
             {categorias.map(c => <option key={c.valor} value={c.valor}>{c.label}</option>)}
@@ -401,14 +405,22 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
           <div style={{ flex: 1 }}>
             <label style={rotulo}>Data de emissão / do gasto</label>
             <input type="date" value={form.data_despesa} onChange={set('data_despesa')} style={estiloInput}
-              min={form.fonte === 'suplementacao' ? periodo.inicio : undefined} max={form.fonte === 'suplementacao' ? periodo.fim : undefined} />
+              min={periodoAno.inicio} max={periodoAno.fim} />
           </div>
         </div>
-        {foraDoPeriodo && (
+        {form.data_despesa && (foraDoAno ? (
           <div style={{ fontSize: 12, color: '#c62828', marginTop: -4 }}>
-            ✕ Data fora do 2º semestre — este gasto não pode ser lançado na suplementação. Lance na bolsa ou corrija a data.
+            ✕ Data fora de {bolsa.ano} — só valem gastos do ano da bolsa ({formatData(periodoAno.inicio)} a {formatData(periodoAno.fim)}).
           </div>
-        )}
+        ) : (
+          <div style={{ fontSize: 12, color: '#555', background: '#f5f7fa', borderRadius: 4, padding: '6px 10px', marginTop: -4 }}>
+            {ehSegundoSemestre(form.data_despesa)
+              ? (temSup
+                ? <>📅 <strong>2º semestre</strong> — conta primeiro para a <strong>suplementação</strong>; o que passar dela vai para a bolsa.</>
+                : <>📅 2º semestre — conta para a <strong>bolsa</strong> (este atleta não recebeu suplementação).</>)
+              : <>📅 <strong>1º semestre</strong> — conta só para a <strong>bolsa</strong> (suplementação exige gasto do 2º semestre).</>}
+          </div>
+        ))}
         <div><label style={rotulo}>Observação</label><input value={form.observacao} onChange={set('observacao')} style={estiloInput} /></div>
         {erro && <div style={{ color: '#c62828', fontSize: 13 }}>{erro}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -456,17 +468,17 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
   if (!bolsa) return <Modal titulo="Carregando..." onFechar={onFechar}><p>Carregando...</p></Modal>;
   const r = bolsa.resumo;
   const sit = SITUACAO[bolsa.situacao_prestacao];
-  const gastos = bolsa.Despesas.filter(g => filtroFonte === 'todas' || g.fonte === filtroFonte);
+  const gastos = bolsa.Despesas.filter(g => filtroFonte === 'todas' || (filtroFonte === '2' ? ehSegundoSemestre(g.data_despesa) : !ehSegundoSemestre(g.data_despesa)));
   // Navegação do visualizador: comprovantes dos gastos visíveis, na ordem da lista.
   const comComprovante = gastos.filter(g => g.comprovante_url);
   const itensVisualizador = comComprovante.map(g => ({
     url: urlArquivo(g.comprovante_url),
-    titulo: `${formatarMoeda(g.valor)} · ${formatData(g.data_despesa)} · ${FONTE_LABEL[g.fonte]}`,
+    titulo: `${formatarMoeda(g.valor)} · ${formatData(g.data_despesa)} · ${ehSegundoSemestre(g.data_despesa) ? '2º' : '1º'} semestre`,
     subtitulo: [catLabel(g.categoria), g.descricao].filter(Boolean).join(' — '),
   }));
 
   return (
-    <Modal titulo={`${bolsa.nome} — bolsa ${bolsa.ano}`} onFechar={onFechar} largura={860}>
+    <Modal titulo={`${bolsa.nome} — bolsa ${bolsa.ano}`} onFechar={onFechar} largura={1040}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 10, color: sit.cor, background: sit.bg }}>{sit.label}</span>
         <span style={{ fontSize: 12, color: '#888' }}>
@@ -478,7 +490,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ ...cardEstilo, padding: 14, flex: '1 1 240px', border: '1px solid #eee' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Bolsa</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Bolsa (gastos de qualquer data de {bolsa.ano})</div>
           <CelulaVerba valor={bolsa.valor_bolsa} resumo={r} fonte="bolsa" />
         </div>
         <div style={{ ...cardEstilo, padding: 14, flex: '1 1 240px', border: '1px solid #eee' }}>
@@ -486,9 +498,18 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
           <CelulaVerba valor={bolsa.valor_suplementacao} resumo={r} fonte="suplementacao" />
         </div>
       </div>
+      <div style={{ fontSize: 12, color: '#555', marginTop: -6, marginBottom: 12 }}>
+        Total lançado {formatarMoeda(r.total_lancado)} ({formatarMoeda(r.lancado_segundo_semestre)} no 2º semestre).
+        A divisão é automática: gastos do 2º semestre cobrem primeiro a suplementação; o que sobra deles e os do 1º semestre cobrem a bolsa.
+      </div>
+      {r.excedente > 0 && (
+        <div style={{ fontSize: 13, color: '#555', background: '#f5f5f5', border: '1px solid #e0e0e0', borderRadius: 4, padding: '8px 12px', marginBottom: 14 }}>
+          ℹ {formatarMoeda(r.excedente)} lançados além do necessário (excedente) — não precisam entrar na prestação de contas.
+        </div>
+      )}
       {r.qtd_sem_comprovante > 0 && (
         <div style={{ fontSize: 13, color: '#8d6e00', background: '#fffde7', border: '1px solid #f9e08a', borderRadius: 4, padding: '8px 12px', marginBottom: 14 }}>
-          ⚠ {r.qtd_sem_comprovante} gasto(s) lançado(s) sem comprovante, somando {formatarMoeda(r.sem_comprovante_bolsa + (r.sem_comprovante_suplementacao || 0))}. Envie o comprovante pela lista abaixo.
+          ⚠ {r.qtd_sem_comprovante} gasto(s) lançado(s) sem comprovante, somando {formatarMoeda(r.sem_comprovante)}. Envie o comprovante pela lista abaixo.
         </div>
       )}
       {bolsa.observacao && <div style={{ fontSize: 13, color: '#555', background: '#fafafa', padding: 10, borderRadius: 4, marginBottom: 14, whiteSpace: 'pre-wrap' }}>{bolsa.observacao}</div>}
@@ -496,9 +517,9 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
         <strong style={{ fontSize: 14 }}>Gastos ({bolsa.Despesas.length})</strong>
         <select value={filtroFonte} onChange={e => setFiltroFonte(e.target.value)} style={{ ...estiloInput, width: 170, padding: '5px 8px' }}>
-          <option value="todas">Todas as verbas</option>
-          <option value="bolsa">Só bolsa</option>
-          {bolsa.valor_suplementacao != null && <option value="suplementacao">Só suplementação</option>}
+          <option value="todas">Ano inteiro</option>
+          <option value="1">Só 1º semestre</option>
+          <option value="2">Só 2º semestre</option>
         </select>
         <button onClick={() => setGastoEmEdicao({})} style={{ ...btnVerde, marginLeft: 'auto' }}>+ Novo gasto</button>
       </div>
@@ -506,7 +527,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
           <thead>
             <tr style={{ background: '#fafafa' }}>
-              {['Data', 'Verba', 'Categoria / descrição', 'Valor', 'Comprovante', 'Prestação', ''].map(h => <th key={h} style={{ ...thEstilo, padding: '8px 12px' }}>{h}</th>)}
+              {['Data', 'Conta para', 'Categoria / descrição', 'Valor', 'Comprovante', 'Prestação', ''].map(h => <th key={h} style={{ ...thEstilo, padding: '8px 12px' }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -515,7 +536,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
               <tr key={g.id} style={{ borderTop: '1px solid #f0f0f0', background: g.comprovante_url ? undefined : '#fffdf0' }}>
                 <td style={{ ...td, padding: '8px 12px', whiteSpace: 'nowrap' }}>{formatData(g.data_despesa)}</td>
                 <td style={{ ...td, padding: '8px 12px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: g.fonte === 'suplementacao' ? '#ede7f6' : '#e3f2fd', color: g.fonte === 'suplementacao' ? '#5e35b1' : '#1565c0' }}>{FONTE_LABEL[g.fonte]}</span>
+                  <ChipsVerba alocacao={g.alocacao} valor={g.valor} />
                 </td>
                 <td style={{ ...td, padding: '8px 12px' }}>
                   <div>{catLabel(g.categoria)}</div>
@@ -585,7 +606,7 @@ export default function BolsasIncentivo() {
   const faltaLancarBolsa = soma(b => b.resumo.falta_lancar_bolsa);
   const faltaComprovarBolsa = soma(b => b.resumo.falta_comprovar_bolsa);
   const qtdSemComprovante = soma(b => b.resumo.qtd_sem_comprovante);
-  const valorSemComprovante = soma(b => b.resumo.sem_comprovante_bolsa + (b.resumo.sem_comprovante_suplementacao || 0));
+  const valorSemComprovante = soma(b => b.resumo.sem_comprovante);
   const fimSup = lista[0]?.periodo_suplementacao?.fim;
   const dias = fimSup ? diasAte(fimSup) : null;
 

@@ -201,8 +201,9 @@ ParticipanteIncentivo 1―* DespesaIncentivo  (comprovante_url e reportado_prefe
                  são status independentes, não um ciclo de vida único)
 BolsaIncentivo 1―* DespesaBolsaIncentivo  (bolsa JÁ RECEBIDA num ciclo — aba "Bolsas
                  recebidas"; separada de ParticipanteIncentivo, que é a inscrição
-                 do ciclo seguinte. Aluno nullable. Gasto tem fonte bolsa|suplementacao;
-                 suplementação só aceita data no 2º semestre do ano da bolsa.
+                 do ciclo seguinte. Aluno nullable. Gasto só no ano da bolsa; a verba
+                 é calculada (2º semestre cobre a suplementação primeiro, sobra +
+                 1º semestre cobrem a bolsa) — `fonte` é legado ignorado.
                  FK RESTRICT: apagar bolsa exige remover os gastos antes)
 ```
 

@@ -35,50 +35,87 @@ const apagarArquivo = (url) => {
 const num = (v) => Math.round(parseFloat(v || 0) * 100) / 100;
 const bool = (v) => v === true || v === 'true';
 
-// Suplementação: só vale gasto do 2º semestre do ano da bolsa.
+// Regra de prestação de contas: todo gasto tem que ser do ANO da bolsa.
+// A suplementação só pode ser coberta por gasto do 2º SEMESTRE; a bolsa, por
+// gasto de qualquer data do ano. Não há escolha manual de verba: os gastos
+// do 2º semestre cobrem primeiro a suplementação, e o que sobrar deles + os
+// gastos do 1º semestre cobrem a bolsa (alocação que maximiza a cobertura).
 const periodoSuplementacao = (ano) => ({ inicio: `${ano}-07-01`, fim: `${ano}-12-31` });
+const periodoAno = (ano) => ({ inicio: `${ano}-01-01`, fim: `${ano}-12-31` });
+const ehSegundoSemestre = (data, ano) => data >= `${ano}-07-01` && data <= `${ano}-12-31`;
 
-function validarDespesa(bolsa, { fonte, data_despesa, valor }) {
-  if (!['bolsa', 'suplementacao'].includes(fonte)) return 'Informe a verba (bolsa ou suplementação)';
+function validarDespesa(bolsa, { data_despesa, valor }) {
   if (!data_despesa) return 'Informe a data do gasto';
   if (!(num(valor) > 0)) return 'Informe um valor maior que zero';
-  if (fonte === 'suplementacao') {
-    if (bolsa.valor_suplementacao == null) return 'Este atleta não recebeu suplementação';
-    const { inicio, fim } = periodoSuplementacao(bolsa.ano);
-    if (data_despesa < inicio || data_despesa > fim) {
-      return `Gasto da suplementação precisa ser do 2º semestre de ${bolsa.ano} (01/07 a 31/12)`;
-    }
-  }
+  const { inicio, fim } = periodoAno(bolsa.ano);
+  if (data_despesa < inicio || data_despesa > fim) return `O gasto precisa ser de ${bolsa.ano} (bolsa ${bolsa.ano})`;
   return null;
 }
 
-// Duas medidas por verba: "lançado" (todo gasto cadastrado) e "comprovado"
-// (só gastos com comprovante anexado). Gasto pode ser lançado sem
-// comprovante e receber o arquivo depois.
+// Cobertura das duas verbas por um conjunto de gastos.
+function cobertura(bolsa, gastos) {
+  const valorBolsa = num(bolsa.valor_bolsa);
+  const valorSup = bolsa.valor_suplementacao == null ? 0 : num(bolsa.valor_suplementacao);
+  const total = num(gastos.reduce((s, d) => s + num(d.valor), 0));
+  const segundoSem = num(gastos.filter(d => ehSegundoSemestre(d.data_despesa, bolsa.ano)).reduce((s, d) => s + num(d.valor), 0));
+  const sup = num(Math.min(valorSup, segundoSem));
+  const bol = num(Math.min(valorBolsa, total - sup));
+  return { total, segundoSem, sup, bol, excedente: num(Math.max(0, total - sup - bol)) };
+}
+
+// Duas medidas: "lançado" (todo gasto cadastrado) e "comprovado" (só gasto
+// com comprovante). Gasto pode ser lançado sem comprovante e receber o
+// arquivo depois.
 function resumo(bolsa) {
   const despesas = bolsa.Despesas || [];
-  const soma = (fonte, soComprovante) => num(despesas
-    .filter(d => d.fonte === fonte && (!soComprovante || d.comprovante_url))
-    .reduce((s, d) => s + num(d.valor), 0));
-  const falta = (valor, feito) => (valor == null ? null : num(Math.max(0, valor - feito)));
   const valorBolsa = num(bolsa.valor_bolsa);
   const valorSup = bolsa.valor_suplementacao == null ? null : num(bolsa.valor_suplementacao);
-  const r = { valor_total: num(valorBolsa + (valorSup || 0)) };
-  [['bolsa', valorBolsa], ['suplementacao', valorSup]].forEach(([fonte, valor]) => {
-    const lancado = soma(fonte, false);
-    const comprovado = soma(fonte, true);
-    r[`lancado_${fonte}`] = lancado;
-    r[`comprovado_${fonte}`] = comprovado;
-    r[`falta_lancar_${fonte}`] = falta(valor, lancado);
-    r[`falta_comprovar_${fonte}`] = falta(valor, comprovado);
-    r[`sem_comprovante_${fonte}`] = num(lancado - comprovado);
-  });
+  const lanc = cobertura(bolsa, despesas);
+  const comp = cobertura(bolsa, despesas.filter(d => d.comprovante_url));
   return {
-    ...r,
+    valor_total: num(valorBolsa + (valorSup || 0)),
+    total_lancado: lanc.total,
+    total_comprovado: comp.total,
+    lancado_segundo_semestre: lanc.segundoSem,
+    // Quanto de cada verba está coberto (lançado / comprovado).
+    lancado_bolsa: lanc.bol,
+    comprovado_bolsa: comp.bol,
+    falta_lancar_bolsa: num(valorBolsa - lanc.bol),
+    falta_comprovar_bolsa: num(valorBolsa - comp.bol),
+    lancado_suplementacao: valorSup == null ? 0 : lanc.sup,
+    comprovado_suplementacao: valorSup == null ? 0 : comp.sup,
+    falta_lancar_suplementacao: valorSup == null ? null : num(valorSup - lanc.sup),
+    falta_comprovar_suplementacao: valorSup == null ? null : num(valorSup - comp.sup),
+    excedente: lanc.excedente,
+    sem_comprovante: num(lanc.total - comp.total),
     qtd_despesas: despesas.length,
     qtd_sem_comprovante: despesas.filter(d => !d.comprovante_url).length,
     qtd_nao_prestadas: despesas.filter(d => !d.prestado_contas).length,
   };
+}
+
+// Para cada gasto, quanto dele vai pra suplementação, bolsa ou excedente —
+// orientação de onde declarar cada nota na prestação. 2º semestre enche a
+// suplementação primeiro (os com comprovante antes, depois por data); o
+// restante enche a bolsa por data.
+function alocarGastos(bolsa, despesas) {
+  let restaSup = bolsa.valor_suplementacao == null ? 0 : num(bolsa.valor_suplementacao);
+  let restaBolsa = num(bolsa.valor_bolsa);
+  const aloc = new Map(despesas.map(d => [d.id, { suplementacao: 0, bolsa: 0, excedente: 0 }]));
+  const porData = (a, b) => (a.data_despesa < b.data_despesa ? -1 : a.data_despesa > b.data_despesa ? 1 : 0);
+  const segundo = despesas.filter(d => ehSegundoSemestre(d.data_despesa, bolsa.ano))
+    .sort((a, b) => (!!b.comprovante_url - !!a.comprovante_url) || porData(a, b));
+  const sobra = new Map(despesas.map(d => [d.id, num(d.valor)]));
+  for (const d of segundo) {
+    const v = num(Math.min(restaSup, sobra.get(d.id)));
+    aloc.get(d.id).suplementacao = v; restaSup = num(restaSup - v); sobra.set(d.id, num(sobra.get(d.id) - v));
+  }
+  for (const d of [...despesas].sort(porData)) {
+    const v = num(Math.min(restaBolsa, sobra.get(d.id)));
+    aloc.get(d.id).bolsa = v; restaBolsa = num(restaBolsa - v);
+    aloc.get(d.id).excedente = num(sobra.get(d.id) - v);
+  }
+  return aloc;
 }
 
 const buscarBolsa = (id, escola_id) => BolsaIncentivo.findOne({
@@ -90,7 +127,12 @@ const buscarBolsa = (id, escola_id) => BolsaIncentivo.findOne({
   order: [[{ model: DespesaBolsaIncentivo, as: 'Despesas' }, 'data_despesa', 'DESC']],
 });
 
-const serializar = (b) => ({ ...b.toJSON(), resumo: resumo(b), periodo_suplementacao: periodoSuplementacao(b.ano) });
+const serializar = (b) => {
+  const json = b.toJSON();
+  const aloc = alocarGastos(b, b.Despesas || []);
+  json.Despesas = (json.Despesas || []).map(d => ({ ...d, alocacao: aloc.get(d.id) }));
+  return { ...json, resumo: resumo(b), periodo_suplementacao: periodoSuplementacao(b.ano), periodo_ano: periodoAno(b.ano) };
+};
 
 // ── Bolsas ──────────────────────────────────────────────────────────────────
 
@@ -109,7 +151,7 @@ const listar = async (req, res) => {
     if (req.query.ano) where.ano = parseInt(req.query.ano, 10);
     const bolsas = await BolsaIncentivo.findAll({
       where,
-      include: [{ model: DespesaBolsaIncentivo, as: 'Despesas', attributes: ['fonte', 'valor', 'comprovante_url', 'prestado_contas'] }],
+      include: [{ model: DespesaBolsaIncentivo, as: 'Despesas', attributes: ['valor', 'data_despesa', 'comprovante_url', 'prestado_contas'] }],
       order: [['ano', 'DESC'], ['nome', 'ASC']],
     });
     res.json(bolsas.map(b => {
@@ -163,10 +205,6 @@ const atualizar = async (req, res) => {
       if (!aluno) return res.status(400).json({ erro: 'Aluno não encontrado' });
     }
     // Tirar a suplementação ou mudar o ano invalidaria gastos já lançados.
-    const temGastoSup = bolsa.Despesas.some(d => d.fonte === 'suplementacao');
-    if (temGastoSup && 'valor_suplementacao' in dados && dados.valor_suplementacao == null) {
-      return res.status(400).json({ erro: 'Há gastos lançados na suplementação — remova-os antes' });
-    }
     if (bolsa.Despesas.length && dados.ano !== undefined && parseInt(dados.ano, 10) !== bolsa.ano) {
       return res.status(400).json({ erro: 'Há gastos lançados — não dá pra mudar o ano' });
     }
@@ -227,13 +265,13 @@ const criarDespesa = (req, res) => {
     try {
       const bolsa = await BolsaIncentivo.findOne({ where: { id: req.params.id, escola_id: req.usuario.escola_id } });
       if (!bolsa) { apagarArquivo(req.file && URL_BASE + req.file.filename); return res.status(404).json({ erro: 'Bolsa não encontrada' }); }
-      const { fonte, categoria, descricao, valor, data_despesa, prestado_contas, observacao } = req.body;
-      const erro = validarDespesa(bolsa, { fonte, data_despesa, valor }) || (!categoria && 'Informe a categoria');
+      const { categoria, descricao, valor, data_despesa, prestado_contas, observacao } = req.body;
+      const erro = validarDespesa(bolsa, { data_despesa, valor }) || (!categoria && 'Informe a categoria');
       if (erro) { apagarArquivo(req.file && URL_BASE + req.file.filename); return res.status(400).json({ erro }); }
 
       const despesa = await DespesaBolsaIncentivo.create({
         escola_id: req.usuario.escola_id, bolsa_id: bolsa.id,
-        fonte, categoria, descricao: descricao || null, valor: num(valor), data_despesa, observacao: observacao || null,
+        categoria, descricao: descricao || null, valor: num(valor), data_despesa, observacao: observacao || null,
         comprovante_url: req.file ? URL_BASE + req.file.filename : null,
         prestado_contas: bool(prestado_contas),
         data_prestado_contas: bool(prestado_contas) ? dataLocalISO() : null,
@@ -251,10 +289,10 @@ const atualizarDespesa = (req, res) => {
       const despesa = await buscarDespesa(req.params.despesaId, req.usuario.escola_id);
       if (!despesa) { apagarArquivo(novoArquivo); return res.status(404).json({ erro: 'Gasto não encontrado' }); }
 
-      const campos = ['fonte', 'categoria', 'descricao', 'valor', 'data_despesa', 'observacao'];
+      const campos = ['categoria', 'descricao', 'valor', 'data_despesa', 'observacao'];
       const dados = {};
       campos.forEach(c => { if (req.body[c] !== undefined) dados[c] = req.body[c] === '' ? null : req.body[c]; });
-      const final = { fonte: despesa.fonte, data_despesa: despesa.data_despesa, valor: despesa.valor, ...dados };
+      const final = { data_despesa: despesa.data_despesa, valor: despesa.valor, ...dados };
       const erro = validarDespesa(despesa.BolsaIncentivo, final) || (dados.categoria === null && 'Informe a categoria');
       if (erro) { apagarArquivo(novoArquivo); return res.status(400).json({ erro }); }
 
@@ -286,5 +324,5 @@ const removerDespesa = async (req, res) => {
 module.exports = {
   listarAnos, listar, buscar, criar, atualizar, remover,
   criarDespesa, atualizarDespesa, removerDespesa, lerComprovante,
-  _test: { validarDespesa, resumo },
+  _test: { validarDespesa, resumo, alocarGastos },
 };

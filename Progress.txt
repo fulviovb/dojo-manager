@@ -1694,6 +1694,15 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     "ajustar à tela", PDF embutido (iframe) — com ←/→ entre os comprovantes
     do atleta, Esc fecha, "Abrir em nova aba" e "Baixar". No formulário,
     prévia do arquivo escolhido (antes de salvar) e do comprovante atual.
+[x] Bolsas recebidas: verba calculada automaticamente (sem escolha manual).
+    Regra: todo gasto tem que ser do ano da bolsa; suplementação só pode ser
+    coberta por gasto do 2º semestre; bolsa por qualquer data do ano. Gastos
+    do 2º semestre cobrem primeiro a suplementação, sobra + 1º semestre cobrem
+    a bolsa (resumo) e cada gasto mostra "Conta para" (pode dividir uma nota
+    entre as duas verbas; excedente além do total é indicado). Coluna `fonte`
+    virou legado nullable (script `2026-11-incentivo-bolsas-fonte-automatica.js`).
+    Conferido com os 9 gastos reais do Fulvio: suplementação 4.000 coberta,
+    bolsa 3.277,01 lançado / 3.017,01 comprovado.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

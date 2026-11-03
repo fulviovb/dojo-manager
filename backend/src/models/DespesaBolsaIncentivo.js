@@ -1,14 +1,15 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-// Gasto comprovado de uma BolsaIncentivo. `fonte` diz contra qual verba o
-// gasto é prestado: 'bolsa' ou 'suplementacao'. Gasto de suplementação só é
-// aceito com data no 2º semestre do ano da bolsa (validado no controller).
+// Gasto comprovado de uma BolsaIncentivo. A verba (bolsa × suplementação)
+// NÃO é escolhida: é calculada pela data (ver alocarGastos no controller —
+// 2º semestre cobre a suplementação primeiro, o resto cobre a bolsa).
+// `fonte` é legado (nov/2026, escolha manual) — ignorado, novos gastos null.
 const DespesaBolsaIncentivo = sequelize.define('DespesaBolsaIncentivo', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   escola_id: { type: DataTypes.UUID, allowNull: false },
   bolsa_id: { type: DataTypes.UUID, allowNull: false },
-  fonte: { type: DataTypes.ENUM('bolsa', 'suplementacao'), allowNull: false },
+  fonte: { type: DataTypes.ENUM('bolsa', 'suplementacao'), allowNull: true },
 
   categoria: { type: DataTypes.STRING, allowNull: false }, // CATEGORIAS_DESPESA
   descricao: { type: DataTypes.STRING },
