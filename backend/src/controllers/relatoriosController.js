@@ -346,7 +346,10 @@ const exameFaixa = async (req, res) => {
         min_aulas: criterio ? criterio.min_aulas : null,
       });
     }
-    alunos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    // da graduação mais baixa pra mais alta (ordem da faixa); sem faixa no
+    // fim; empate por nome
+    const ordem = (a) => (a.faixa_atual ? a.faixa_atual.ordem : Infinity);
+    alunos.sort((a, b) => ordem(a) - ordem(b) || a.nome.localeCompare(b.nome, 'pt-BR'));
 
     res.json({ arte_marcial: arte, gerado_em: hoje, alunos });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }

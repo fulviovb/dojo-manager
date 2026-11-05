@@ -315,7 +315,7 @@ function CardExameFaixa({ artes }) {
   });
   const atingiram = visiveis.filter(a => a.min_aulas != null && a.aulas_na_faixa >= a.min_aulas);
   const gerar = () => {
-    // mantém a ordem alfabética da lista
+    // mantém a ordem da lista (por graduação)
     const ids = (alunos || []).filter(a => marcados.has(a.id)).map(a => a.id);
     abrirRelatorio('exame-faixa', { arte_marcial_id: arteId, aluno_ids: ids.join(',') });
   };

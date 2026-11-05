@@ -1725,7 +1725,8 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     idade, graduação atual, graduação pretendida (próxima faixa na ordem da
     arte) e aulas na faixa atual (com o mínimo do critério). Cálculo de aulas
     extraído para helper aulasNaFaixaAtual, compartilhado com % de Presença.
-    Professor só vê alunos das próprias turmas.
+    Professor só vê alunos das próprias turmas. Lista e relatório ordenados
+    por graduação (da mais baixa pra mais alta), depois por nome.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
