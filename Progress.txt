@@ -1717,6 +1717,16 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     para" de cada gasto, regra aplicada e assinaturas. Imprimir/PDF (A4,
     quebra de página por atleta) e Exportar XLS (abas Resumo, Gastos, Por tipo).
 
+[x] Relatório "Exame de Faixa" (Relatórios → card Exame de Faixa,
+    GET /relatorios/exame-faixa?arte_marcial_id=&aluno_ids=). Escolhe a arte
+    marcial, abre a lista de alunos ativos dela com checkbox (busca, marcar/
+    desmarcar todos, "marcar quem atingiu a carência"; mostra faixa e aulas/
+    mínimo pra ajudar a decidir) e gera só com os marcados: nome completo,
+    idade, graduação atual, graduação pretendida (próxima faixa na ordem da
+    arte) e aulas na faixa atual (com o mínimo do critério). Cálculo de aulas
+    extraído para helper aulasNaFaixaAtual, compartilhado com % de Presença.
+    Professor só vê alunos das próprias turmas.
+
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
 - GitHub: github.com/fulviovb/dojo-manager (branch padrão: master). O repo já

@@ -15,6 +15,7 @@ const TITULOS = {
   'aniversariantes': 'Aniversariantes por Mês',
   'presenca-minima': 'Frequência: Presença Mínima',
   'frequencia-percentual': 'Frequência: % de Presença',
+  'exame-faixa': 'Exame de Faixa',
   'financeiro': 'Financeiro: Pagamentos',
   'alunos-sem-plano': 'Alunos sem Plano de Assinatura',
   'alunos-sem-turma': 'Lista de Ex-Alunos',
@@ -314,6 +315,45 @@ function FrequenciaPercentual({ dados }) {
   );
 }
 
+function ExameFaixa({ dados }) {
+  const centro = { ...tdEstilo, textAlign: 'center' };
+  return (
+    <div>
+      <div style={{ marginBottom: 12, fontSize: 13, color: '#555' }}>
+        <div><strong>{dados.arte_marcial.nome}</strong></div>
+        <div>{dados.alunos.length} aluno{dados.alunos.length !== 1 ? 's' : ''} · gerado em {formatData(dados.gerado_em)}</div>
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead><tr>
+          <th style={{ ...thEstilo, width: 24 }}>#</th>
+          <th style={thEstilo}>Nome completo</th>
+          <th style={{ ...thEstilo, textAlign: 'center' }}>Idade</th>
+          <th style={thEstilo}>Graduação atual</th>
+          <th style={thEstilo}>Graduação pretendida</th>
+          <th style={{ ...thEstilo, textAlign: 'center' }}>Aulas na faixa atual</th>
+        </tr></thead>
+        <tbody>
+          {dados.alunos.length === 0 && <tr><td colSpan={6} style={tdEstilo}>Nenhum aluno selecionado.</td></tr>}
+          {dados.alunos.map((a, i) => (
+            <tr key={a.id}>
+              <td style={{ ...tdEstilo, color: '#888' }}>{i + 1}</td>
+              <td style={tdEstilo}>{a.nome}</td>
+              <td style={centro}>{a.idade ?? '—'}</td>
+              <td style={tdEstilo}><FaixaSwatch nome={a.faixa_atual?.nome} cor={a.faixa_atual?.cor} /></td>
+              <td style={tdEstilo}>{a.faixa_pretendida ? <FaixaSwatch nome={a.faixa_pretendida.nome} cor={a.faixa_pretendida.cor} /> : '— (última faixa)'}</td>
+              <td style={centro}>
+                {a.aulas_na_faixa}
+                {a.min_aulas != null && <div style={{ fontSize: 11, color: a.aulas_na_faixa >= a.min_aulas ? '#2e7d32' : '#c62828' }}>mín. {a.min_aulas}</div>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p style={{ fontSize: 11, color: '#888', marginTop: 12 }}>Aulas na faixa atual: presenças em qualquer turma da arte marcial desde a data da graduação atual (inclui treinos extras).</p>
+    </div>
+  );
+}
+
 function formatarMoeda(v) {
   return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -481,6 +521,7 @@ const RENDERIZADORES = {
   'aniversariantes': Aniversariantes,
   'presenca-minima': PresencaMinima,
   'frequencia-percentual': FrequenciaPercentual,
+  'exame-faixa': ExameFaixa,
   'financeiro': RelatorioFinanceiro,
   'alunos-sem-plano': AlunosSemPlano,
   'alunos-sem-turma': AlunosSemTurma,

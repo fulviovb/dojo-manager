@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { corDaFaixa } from '../utils/faixaCores';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const btnVerde = { background: '#2e7d32', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -282,6 +283,103 @@ function CardAlunosSemTurma() {
   );
 }
 
+// Exame de faixa: escolhe a arte, abre a lista de alunos dela com checkbox e
+// gera o relatório só com os marcados. A lista mostra faixa e carência pra
+// ajudar a decidir — o relatório em si traz idade, faixa atual/pretendida e
+// aulas na faixa atual.
+function CardExameFaixa({ artes }) {
+  const [arteId, setArteId] = useState('');
+  const [aberto, setAberto] = useState(false);
+  const [alunos, setAlunos] = useState(null);
+  const [erro, setErro] = useState('');
+  const [marcados, setMarcados] = useState(new Set());
+  const [busca, setBusca] = useState('');
+
+  const abrir = () => {
+    setAberto(true); setAlunos(null); setErro(''); setMarcados(new Set()); setBusca('');
+    axios.get(`/relatorios/exame-faixa?arte_marcial_id=${arteId}`)
+      .then(r => setAlunos(r.data.alunos))
+      .catch(ex => setErro(ex.response?.data?.erro || 'Não foi possível carregar os alunos.'));
+  };
+  const alternar = (id) => setMarcados(prev => {
+    const n = new Set(prev);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+  const normalizar = (t) => (t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const visiveis = (alunos || []).filter(a => normalizar(a.nome).includes(normalizar(busca)));
+  const marcarVarios = (lista, valor) => setMarcados(prev => {
+    const n = new Set(prev);
+    lista.forEach(a => (valor ? n.add(a.id) : n.delete(a.id)));
+    return n;
+  });
+  const atingiram = visiveis.filter(a => a.min_aulas != null && a.aulas_na_faixa >= a.min_aulas);
+  const gerar = () => {
+    // mantém a ordem alfabética da lista
+    const ids = (alunos || []).filter(a => marcados.has(a.id)).map(a => a.id);
+    abrirRelatorio('exame-faixa', { arte_marcial_id: arteId, aluno_ids: ids.join(',') });
+  };
+  const btnLink = { background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: 0 };
+
+  return (
+    <Card titulo="Exame de Faixa">
+      <div>
+        <span style={rotulo}>Programa Marcial</span>
+        <select value={arteId} onChange={e => setArteId(e.target.value)} style={estiloInput}>
+          <option value="">Selecione...</option>
+          {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+        </select>
+      </div>
+      <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Marque os alunos que vão fazer o exame: nome, idade, graduação atual e pretendida e aulas na faixa atual.</p>
+      <button style={btnVerde} disabled={!arteId} onClick={abrir}>Selecionar alunos</button>
+
+      {aberto && (
+        <div onClick={() => setAberto(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, width: 620, maxWidth: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong style={{ fontSize: 15 }}>Exame de Faixa — {artes.find(a => a.id === arteId)?.nome}</strong>
+              <button onClick={() => setAberto(false)} style={{ ...btnLink, fontSize: 20, color: '#888' }} aria-label="Fechar">×</button>
+            </div>
+            <div style={{ padding: '10px 18px', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input placeholder="Buscar aluno..." value={busca} onChange={e => setBusca(e.target.value)} style={estiloInput} />
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button style={btnLink} onClick={() => marcarVarios(visiveis, true)}>Marcar todos</button>
+                <button style={btnLink} onClick={() => marcarVarios(visiveis, false)}>Desmarcar todos</button>
+                <button style={btnLink} onClick={() => marcarVarios(atingiram, true)} disabled={!atingiram.length}>Marcar quem atingiu a carência ({atingiram.length})</button>
+              </div>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {erro && <p style={{ color: '#c62828', padding: '0 18px' }}>{erro}</p>}
+              {!erro && !alunos && <p style={{ color: '#888', padding: '0 18px' }}>Carregando...</p>}
+              {alunos && visiveis.length === 0 && <p style={{ color: '#888', padding: '0 18px' }}>Nenhum aluno encontrado.</p>}
+              {visiveis.map(a => {
+                const ok = a.min_aulas != null && a.aulas_na_faixa >= a.min_aulas;
+                return (
+                  <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 18px', borderBottom: '1px solid #f5f5f5', cursor: 'pointer', background: marcados.has(a.id) ? '#f1f8e9' : undefined }}>
+                    <input type="checkbox" checked={marcados.has(a.id)} onChange={() => alternar(a.id)} />
+                    <span style={{ flex: 1, fontSize: 13 }}>{a.nome}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#555', minWidth: 110 }}>
+                      {a.faixa_atual && <span style={{ width: 10, height: 10, borderRadius: 2, background: corDaFaixa(a.faixa_atual.nome, a.faixa_atual.cor), border: '1px solid #ccc' }} />}
+                      {a.faixa_atual?.nome || 'Sem faixa'}
+                    </span>
+                    <span style={{ fontSize: 12, minWidth: 70, textAlign: 'right', color: ok ? '#2e7d32' : '#888', fontWeight: ok ? 600 : 400 }} title="Aulas na faixa atual / mínimo exigido">
+                      {a.aulas_na_faixa}{a.min_aulas != null ? ` / ${a.min_aulas}` : ''} aulas
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#555' }}>{marcados.size} selecionado{marcados.size !== 1 ? 's' : ''}</span>
+              <button style={btnVerde} disabled={!marcados.size} onClick={gerar}>+ Gerar Relatório</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // ─── Página principal ────────────────────────────────────────────────────────
 
 export default function Relatorios() {
@@ -307,6 +405,7 @@ export default function Relatorios() {
     { titulo: 'Aniversariantes por mês', node: <CardAniversariantes /> },
     { titulo: 'Frequência: Presença Mínima', node: <CardPresencaMinima artes={artes} /> },
     { titulo: 'Frequência: % de Presença', node: <CardFrequenciaPercentual artes={artes} turmas={turmas} /> },
+    { titulo: 'Exame de Faixa', node: <CardExameFaixa artes={artes} /> },
     { titulo: 'Financeiro: Pagamentos', node: <CardFinanceiro turmas={turmas} planos={planos} /> },
     { titulo: 'Alunos sem Plano de Assinatura', node: <CardAlunosSemPlano /> },
     { titulo: 'Lista de Ex-Alunos', node: <CardAlunosSemTurma /> },

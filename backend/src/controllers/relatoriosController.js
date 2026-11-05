@@ -251,6 +251,107 @@ const aniversariantes = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
+// Aulas presentes desde o início da graduação atual (carência cumprida) —
+// presença em QUALQUER turma daquela arte marcial, somando `quantidade`
+// (Treino Extra pode valer mais de 1). Base comum de frequencia-percentual
+// e exame-faixa; mesma regra de usuariosController.perfil.
+const aulasNaFaixaAtual = async (aluno_id, arte_marcial_id, dataInicio) => {
+  if (!dataInicio) return 0;
+  return (await Chamada.sum('quantidade', {
+    where: { aluno_id },
+    include: [{
+      model: Aula,
+      attributes: [],
+      where: { data: { [Op.gte]: dataInicio } },
+      include: [{ model: Turma, attributes: [], where: { arte_marcial_id } }],
+    }],
+  })) || 0;
+};
+
+const idadeEm = (nascimento, hojeISO) => {
+  if (!nascimento) return null;
+  const [an, mn, dn] = String(nascimento).slice(0, 10).split('-').map(Number);
+  const [ah, mh, dh] = hojeISO.split('-').map(Number);
+  return ah - an - ((mh < mn || (mh === mn && dh < dn)) ? 1 : 0);
+};
+
+// GET /api/relatorios/exame-faixa?arte_marcial_id=&aluno_ids=id1,id2
+// Alunos ativos da arte marcial (matrícula ativa em turma ativa) com faixa
+// atual, próxima faixa (a seguinte na ordem da arte) e aulas na faixa atual.
+// Sem `aluno_ids` devolve todos (é a lista de seleção do card); com
+// `aluno_ids` devolve só os marcados (é o relatório). Professor só enxerga
+// alunos das turmas em que é professor_id.
+const exameFaixa = async (req, res) => {
+  try {
+    const escola_id = req.usuario.escola_id;
+    const { arte_marcial_id } = req.query;
+    if (!arte_marcial_id) return res.status(400).json({ erro: 'arte_marcial_id é obrigatório' });
+    const idsSelecionados = req.query.aluno_ids
+      ? new Set(String(req.query.aluno_ids).split(',').map((x) => x.trim()).filter(Boolean))
+      : null;
+
+    const arte = await ArteMarcial.findOne({ where: { id: arte_marcial_id, escola_id }, attributes: ['id', 'nome'] });
+    if (!arte) return res.status(404).json({ erro: 'Arte marcial não encontrada' });
+
+    const faixas = await Faixa.findAll({ where: { arte_marcial_id }, order: [['ordem', 'ASC']] });
+    const criterios = await CriterioGraduacao.findAll({ where: { escola_id, arte_marcial_id } });
+
+    const whereTurma = { ativa: true, arte_marcial_id, escola_id };
+    if (req.usuario.role === 'professor') whereTurma.professor_id = req.usuario.id;
+    const whereAluno = { escola_id, role: 'aluno', ativo: true };
+    if (idsSelecionados) whereAluno.id = [...idsSelecionados];
+
+    const matriculas = await MatriculaAluno.findAll({
+      where: { ativa: true },
+      include: [
+        { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'data_nascimento', 'foto_url'], where: whereAluno },
+        { model: Faixa, as: 'FaixaAtual', attributes: ['id', 'nome', 'cor', 'ordem', 'arte_marcial_id'] },
+        { model: Turma, attributes: ['id', 'nome'], where: whereTurma },
+      ],
+    });
+
+    const porAluno = new Map();
+    for (const m of matriculas) {
+      if (!porAluno.has(m.aluno_id)) porAluno.set(m.aluno_id, { aluno: m.Aluno, faixa: null, turmas: new Set() });
+      const g = porAluno.get(m.aluno_id);
+      g.turmas.add(m.Turma.nome.split('\n')[0]);
+      // várias matrículas na mesma arte: vale a faixa mais alta
+      if (m.FaixaAtual && m.FaixaAtual.arte_marcial_id === arte_marcial_id
+        && (!g.faixa || m.FaixaAtual.ordem > g.faixa.ordem)) g.faixa = m.FaixaAtual;
+    }
+
+    const atuais = await GraduacaoAluno.findAll({
+      where: { escola_id, atual: true, arte_marcial_id, aluno_id: [...porAluno.keys()] },
+      attributes: ['aluno_id', 'data_inicio'],
+    });
+    const inicio = new Map(atuais.map((g) => [g.aluno_id, g.data_inicio]));
+    const hoje = dataLocalISO(new Date());
+
+    const alunos = [];
+    for (const [id, g] of porAluno) {
+      const proxima = g.faixa ? faixas.find((f) => f.ordem > g.faixa.ordem) : null;
+      const criterio = g.faixa ? criterios.find((c) => c.faixa_id === g.faixa.id) : null;
+      const dataInicio = inicio.get(id) || null;
+      alunos.push({
+        id,
+        nome: g.aluno.nome,
+        foto_url: g.aluno.foto_url,
+        data_nascimento: g.aluno.data_nascimento,
+        idade: idadeEm(g.aluno.data_nascimento, hoje),
+        turmas: [...g.turmas],
+        faixa_atual: g.faixa ? { id: g.faixa.id, nome: g.faixa.nome, cor: g.faixa.cor, ordem: g.faixa.ordem } : null,
+        faixa_pretendida: proxima ? { id: proxima.id, nome: proxima.nome, cor: proxima.cor } : null,
+        data_inicio_faixa: dataInicio,
+        aulas_na_faixa: await aulasNaFaixaAtual(id, arte_marcial_id, dataInicio),
+        min_aulas: criterio ? criterio.min_aulas : null,
+      });
+    }
+    alunos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    res.json({ arte_marcial: arte, gerado_em: hoje, alunos });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
 // GET /api/relatorios/frequencia-percentual?arte_marcial_id=&turma_id=&ordenar_por=
 // — % de carência cumprida por cada aluno ativo em relação à FAIXA ATUAL (uma
 // linha por aluno+arte marcial): aulas presentes desde o início da graduação
@@ -316,17 +417,7 @@ const frequenciaPercentual = async (req, res) => {
       // sem isso "resetar" a carência já cumprida.
       // sum(quantidade), não count(*): Treino Extra pode valer mais de 1
       // "aula" por registro (ex: 2 treinos seguidos no mesmo dia).
-      const aulasPresentes = dataInicio
-        ? (await Chamada.sum('quantidade', {
-            where: { aluno_id: grupo.aluno.id },
-            include: [{
-              model: Aula,
-              attributes: [],
-              where: { data: { [Op.gte]: dataInicio } },
-              include: [{ model: Turma, attributes: [], where: { arte_marcial_id: grupo.faixaAtual.arte_marcial_id } }],
-            }],
-          })) || 0
-        : 0;
+      const aulasPresentes = await aulasNaFaixaAtual(grupo.aluno.id, grupo.faixaAtual.arte_marcial_id, dataInicio);
 
       alunosResp.push({
         id: grupo.aluno.id,
@@ -542,5 +633,5 @@ const alunosSemTurma = async (req, res) => {
 
 module.exports = {
   alunosPorGraduacao, alunosPorTurma, fichaCadastral, frequenciaTurma, frequenciaAluno, aniversariantes,
-  frequenciaPercentual, relatorioFinanceiro, alunosSemPlano, alunosSemTurma,
+  frequenciaPercentual, exameFaixa, relatorioFinanceiro, alunosSemPlano, alunosSemTurma,
 };
