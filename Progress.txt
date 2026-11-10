@@ -1728,6 +1728,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     Professor só vê alunos das próprias turmas. Lista e relatório ordenados
     por graduação (da mais baixa pra mais alta), depois por nome.
 
+[x] Relatório de prestação de contas (seção individual do atleta): removidos
+    os indicadores "Valor a prestar contas", "Gasto médio" e "Por semestre" e
+    a coluna "A prestar contas" da tabela Execução por verba — o atleta não
+    precisa deles. O resumo geral (vários atletas) e o XLS continuam iguais.
+
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
 - GitHub: github.com/fulviovb/dojo-manager (branch padrão: master). O repo já

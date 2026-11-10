@@ -75,8 +75,6 @@ function analisar(bolsa, categorias, hoje) {
     const doMes = gastos.filter(g => Number(g.data_despesa.slice(5, 7)) === i + 1);
     return { mes: m, valor: num(doMes.reduce((s, g) => s + num(g.valor), 0)), qtd: doMes.length, segundo: i >= 6 };
   });
-  const semestre1 = num(porMes.slice(0, 6).reduce((s, m) => s + m.valor, 0));
-  const semestre2 = num(porMes.slice(6).reduce((s, m) => s + m.valor, 0));
 
   const semComprovante = gastos.filter(g => !g.comprovante_url);
   const naoDeclarados = gastos.filter(g => !g.prestado_contas);
@@ -104,10 +102,8 @@ function analisar(bolsa, categorias, hoje) {
   }
 
   return {
-    recebido, temSup, verbas, total, porCategoria, porMes, semestre1, semestre2,
+    recebido, temSup, verbas, total, porCategoria, porMes,
     totalLancado: lanc.total, excedente: num(lanc.total - lanc.coberto), gastos, pendencias, diasPrazo, fimAno,
-    ticketMedio: gastos.length ? num(lanc.total / gastos.length) : 0,
-    maiorGasto: gastos.reduce((m, g) => (num(g.valor) > num(m?.valor || 0) ? g : m), null),
     qtdComprovante: gastos.length - semComprovante.length, qtdDeclarado: gastos.length - naoDeclarados.length,
     catLabel,
   };
@@ -203,21 +199,15 @@ function SecaoAtleta({ bolsa, a, quebraPagina, escola, hoje }) {
           detalhe={`Executado ${pct(a.total.gasto, a.recebido)}`} />
         <Kpi titulo="Valor a comprovar" valor={moeda(a.total.aComprovar)} cor={a.total.aComprovar > 0 ? COR.alerta : COR.ok}
           detalhe={`Comprovado ${pct(a.total.comprovado, a.recebido)}`} />
-        <Kpi titulo="Valor a prestar contas" valor={moeda(a.total.aPrestar)} cor={a.total.aPrestar > 0 ? COR.alerta : COR.ok}
-          detalhe={`Declarado ${pct(a.total.declarado, a.recebido)} na prefeitura`} />
-      </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
         <Kpi titulo="Gastos lançados" valor={a.gastos.length} detalhe={`${moeda(a.totalLancado)} no total`} />
         <Kpi titulo="Com comprovante" valor={`${a.qtdComprovante} de ${a.gastos.length}`} detalhe={`Declarados: ${a.qtdDeclarado} de ${a.gastos.length}`} />
-        <Kpi titulo="Gasto médio" valor={moeda(a.ticketMedio)} detalhe={a.maiorGasto ? `Maior: ${moeda(a.maiorGasto.valor)} (${data(a.maiorGasto.data_despesa)})` : null} />
-        <Kpi titulo="Por semestre" valor={`${moeda(a.semestre1)} · ${moeda(a.semestre2)}`} detalhe="1º semestre · 2º semestre" />
       </div>
 
       <h3 style={h3}>Execução por verba</h3>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead><tr>
           <th style={th}>Verba</th><th style={thR}>Recebido</th><th style={thR}>Gasto</th><th style={thR}>Comprovado</th><th style={thR}>Declarado</th>
-          <th style={thR}>A gastar</th><th style={thR}>A comprovar</th><th style={thR}>A prestar contas</th><th style={{ ...th, width: 110 }}>Execução</th>
+          <th style={thR}>A gastar</th><th style={thR}>A comprovar</th><th style={{ ...th, width: 110 }}>Execução</th>
         </tr></thead>
         <tbody>
           {[...a.verbas, a.total].map(v => (
@@ -226,7 +216,6 @@ function SecaoAtleta({ bolsa, a, quebraPagina, escola, hoje }) {
               <td style={tdR}>{moeda(v.recebido)}</td><td style={tdR}>{moeda(v.gasto)}</td><td style={tdR}>{moeda(v.comprovado)}</td><td style={tdR}>{moeda(v.declarado)}</td>
               <td style={{ ...tdR, color: v.aGastar > 0 ? COR.critico : COR.ok }}>{moeda(v.aGastar)}</td>
               <td style={{ ...tdR, color: v.aComprovar > 0 ? COR.alerta : COR.ok }}>{moeda(v.aComprovar)}</td>
-              <td style={{ ...tdR, color: v.aPrestar > 0 ? COR.alerta : COR.ok }}>{moeda(v.aPrestar)}</td>
               <td style={td}><BarraExecucao recebido={v.recebido} gasto={v.gasto} comprovado={v.comprovado} /></td>
             </tr>
           ))}
