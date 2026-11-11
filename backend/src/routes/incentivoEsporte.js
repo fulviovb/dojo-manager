@@ -104,6 +104,7 @@ router.get('/bolsas/anos', bolsas.listarAnos);
 router.post('/bolsas/ler-comprovante', bolsas.lerComprovante);
 router.get('/bolsas/relatorio', bolsas.relatorio);
 router.get('/bolsas', bolsas.listar);
+router.get('/bolsas/:id/relatorio-tecnico', bolsas.relatorioTecnico);
 router.get('/bolsas/:id', bolsas.buscar);
 router.post('/bolsas', bolsas.criar);
 router.put('/bolsas/:id', bolsas.atualizar);

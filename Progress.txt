@@ -1732,6 +1732,18 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     os indicadores "Valor a prestar contas", "Gasto médio" e "Por semestre" e
     a coluna "A prestar contas" da tabela Execução por verba — o atleta não
     precisa deles. O resumo geral (vários atletas) e o XLS continuam iguais.
+[x] Relatório técnico da prestação de contas final (11/11/2026): botão
+    "📝 Relatório técnico" na ficha da bolsa (aba Bolsas recebidas). GET
+    /api/incentivo-esporte/bolsas/:id/relatorio-tecnico (utils/relatorioTecnico.js)
+    monta: (1) texto do campo RELATÓRIO TÉCNICO com limite de 496 caracteres
+    (o campo da prefeitura cortou aí) — treinos do projeto do atleta no
+    Incentivo (horários seguidos no mesmo local são unidos; sem projeto, usa
+    as turmas), recursos pelas categorias dos gastos e resultados do ano por
+    competição, por importância, até caber; (2) texto de resultado por
+    competição; (3) área para colar a tabela de OBJETIVOS/COMPETIÇÕES PREVISTAS
+    da prefeitura — cada linha recebe sugestão pelas palavras Brasileiro,
+    Paranaense, Mundial… ("seleção paranaense/brasileira" é ignorado).
+    Textos editáveis, contador de caracteres e botão copiar.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

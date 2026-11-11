@@ -446,9 +446,159 @@ function ModalGasto({ bolsa, gasto, categorias, onFechar, onSalvo }) {
 
 // ── Modal: ficha da bolsa (resumo + gastos) ─────────────────────────────────
 
+// ── Relatório técnico (prestação de contas final da prefeitura) ────────────
+
+function copiarTexto(texto) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(texto);
+  const t = document.createElement('textarea');
+  t.value = texto; document.body.appendChild(t); t.select();
+  document.execCommand('copy'); document.body.removeChild(t);
+  return Promise.resolve();
+}
+
+function BotaoCopiar({ texto }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button type="button" onClick={() => copiarTexto(texto).then(() => { setOk(true); setTimeout(() => setOk(false), 1500); })}
+      style={{ ...btnCinza, padding: '4px 10px', fontSize: 12, whiteSpace: 'nowrap' }}>
+      {ok ? '✓ Copiado' : '📋 Copiar'}
+    </button>
+  );
+}
+
+const semAcento = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// Palavras que identificam a competição numa linha de objetivo / competição
+// prevista colada da prefeitura. "seleção paranaense/brasileira" é ignorado
+// (fala de quem o atleta representa, não da competição).
+const PALAVRAS_COMPETICAO = ['mundial', 'pan-americano', 'panamericano', 'pan americano', 'sul-americano', 'sulamericano',
+  'brasileiro', 'paranaense', 'open', 'copa', 'jogos', 'regional', 'municipal', 'curitibano', 'internacional', 'catarinense', 'paulista'];
+const NIVEL_POR_PALAVRA = { nacional: 'nacional', estadual: 'estadual' };
+
+function competicoesDaLinha(linha, competicoes) {
+  const l = semAcento(linha).replace(/selec[a-z]*\s+\S+/g, ' ');
+  const achadas = new Set();
+  for (const p of PALAVRAS_COMPETICAO) {
+    if (!l.includes(p)) continue;
+    const alvo = p.replace(/[\s-]/g, '');
+    competicoes.filter(c => semAcento(c.nome).replace(/[\s-]/g, '').includes(alvo)).forEach(c => achadas.add(c.id));
+  }
+  for (const [p, nivel] of Object.entries(NIVEL_POR_PALAVRA)) {
+    if (l.includes(p)) competicoes.filter(c => c.nivel === nivel).forEach(c => achadas.add(c.id));
+  }
+  // Mais específica ganha: "Copa Open Internacional" não entra numa linha de "Mundial".
+  return competicoes.filter(c => achadas.has(c.id));
+}
+
+function textoResultadoLinha(linha, competicoes) {
+  const achadas = competicoesDaLinha(linha, competicoes);
+  if (!achadas.length) return 'Resultado: ________';
+  const podios = achadas.reduce((s, c) => s + c.podios, 0);
+  const prefixo = podios > 1 ? `${podios} pódios. ` : '';
+  return prefixo + achadas.map(c => c.texto.replace(/\.$/, '')).join('; ') + '.';
+}
+
+// Linhas da tabela colada: tira cabeçalho, "editar" e colunas vazias.
+function linhasColadas(texto) {
+  return String(texto || '').split('\n')
+    .map(l => l.replace(/\beditar\b/gi, '').split('\t').map(c => c.trim()).filter(Boolean).join(' · ').trim())
+    .filter(l => l && !/^(objetivos|evento|competi[cç][oõ]es previstas)\b/i.test(l) && l.length > 8);
+}
+
+function ModalRelatorioTecnico({ bolsa, onFechar }) {
+  const [dados, setDados] = useState(null);
+  const [erro, setErro] = useState('');
+  const [texto, setTexto] = useState('');
+  const [colado, setColado] = useState('');
+  const [editadas, setEditadas] = useState({});
+
+  useEffect(() => {
+    axios.get(`/incentivo-esporte/bolsas/${bolsa.id}/relatorio-tecnico`)
+      .then(r => { setDados(r.data); setTexto(r.data.relatorio); })
+      .catch(e => setErro(e.response?.data?.erro || 'Erro ao gerar os textos'));
+  }, [bolsa.id]);
+
+  const linhas = linhasColadas(colado);
+  const tituloSecao = { fontSize: 13, fontWeight: 700, color: '#1e2a38', margin: '18px 0 6px' };
+  const dica = { fontSize: 12, color: '#777', marginBottom: 8 };
+
+  return (
+    <Modal titulo={`Relatório técnico — ${bolsa.nome} (${bolsa.ano})`} onFechar={onFechar} largura={900}>
+      {erro && <p style={{ color: '#c62828' }}>{erro}</p>}
+      {!dados && !erro && <p>Gerando textos...</p>}
+      {dados && (() => {
+        const excede = texto.length > dados.limite;
+        return (
+          <div>
+            {!dados.competicoes.length && (
+              <div style={{ fontSize: 13, color: '#8d6e00', background: '#fffde7', border: '1px solid #f9e08a', borderRadius: 4, padding: '8px 12px', marginBottom: 10 }}>
+                ⚠ Nenhuma conquista de {bolsa.ano} cadastrada para este atleta. Cadastre em Conquistas para os resultados entrarem no texto.
+              </div>
+            )}
+            {!dados.horarios_origem && (
+              <div style={{ fontSize: 13, color: '#8d6e00', background: '#fffde7', border: '1px solid #f9e08a', borderRadius: 4, padding: '8px 12px', marginBottom: 10 }}>
+                ⚠ Sem horários de treino (nem no projeto do Incentivo, nem em turmas). Complete o texto à mão.
+              </div>
+            )}
+
+            <div style={{ ...tituloSecao, marginTop: 0 }}>1. Relatório técnico</div>
+            <div style={dica}>
+              Treinos {dados.horarios_origem ? `(do ${dados.horarios_origem})` : ''}, uso dos recursos (pelas categorias dos gastos lançados) e resultados de {bolsa.ano}.
+              Pode editar à vontade — ex.: acrescentar uma competição que ainda vai acontecer.
+            </div>
+            <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={6}
+              style={{ ...estiloInput, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, borderColor: excede ? '#c62828' : undefined }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: excede ? '#c62828' : '#2e7d32' }}>
+                {texto.length} / {dados.limite} caracteres{excede ? ` — passou ${texto.length - dados.limite}, a prefeitura vai cortar` : ` — sobram ${dados.limite - texto.length}`}
+              </span>
+              {dados.resultados_omitidos > 0 && <span style={{ fontSize: 12, color: '#ef6c00' }}>{dados.resultados_omitidos} resultado(s) de menor peso ficaram de fora para caber</span>}
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                {texto !== dados.relatorio && <button type="button" onClick={() => setTexto(dados.relatorio)} style={{ ...btnCinza, padding: '4px 10px', fontSize: 12 }}>Restaurar</button>}
+                <BotaoCopiar texto={texto} />
+              </span>
+            </div>
+
+            <div style={tituloSecao}>2. Resultado alcançado por competição</div>
+            <div style={dica}>Use em “Competições previstas”. Se a sede/data mudou em relação ao projeto, vale mencionar (ex.: “Realizado em João Pessoa/PB”).</div>
+            {dados.competicoes.length === 0 && <div style={{ fontSize: 13, color: '#aaa' }}>Nenhuma competição com resultado em {bolsa.ano}.</div>}
+            {dados.competicoes.map(c => (
+              <div key={c.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 10px', border: '1px solid #eee', borderRadius: 4, marginBottom: 6 }}>
+                <div style={{ flex: 1, fontSize: 13, lineHeight: 1.5 }}>{c.texto}</div>
+                <BotaoCopiar texto={c.texto} />
+              </div>
+            ))}
+
+            <div style={tituloSecao}>3. Objetivos e competições previstas (colar da prefeitura)</div>
+            <div style={dica}>
+              Copie a tabela de OBJETIVOS ou de COMPETIÇÕES PREVISTAS do sistema da prefeitura e cole aqui. Para cada linha o sistema sugere o resultado
+              (pelas palavras Brasileiro, Paranaense, Mundial…). Confira e complete com “Objetivo alcançado/superado”.
+            </div>
+            <textarea value={colado} onChange={e => { setColado(e.target.value); setEditadas({}); }} rows={4} placeholder="Cole aqui as linhas dos objetivos…"
+              style={{ ...estiloInput, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', fontSize: 13 }} />
+            {linhas.map((l, i) => {
+              const sugestao = editadas[i] ?? textoResultadoLinha(l, dados.competicoes);
+              return (
+                <div key={i} style={{ border: '1px solid #eee', borderRadius: 4, padding: 10, marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: '#555', marginBottom: 6 }}><strong>{i + 1}.</strong> {l}</div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <textarea value={sugestao} onChange={e => setEditadas(x => ({ ...x, [i]: e.target.value }))} rows={2}
+                      style={{ ...estiloInput, flex: 1, fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5, borderColor: /_{4,}/.test(sugestao) ? '#f9a825' : undefined }} />
+                    <BotaoCopiar texto={sugestao} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+    </Modal>
+  );
+}
+
 function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
   const [bolsa, setBolsa] = useState(null);
   const [editandoDados, setEditandoDados] = useState(false);
+  const [relatorioTecnico, setRelatorioTecnico] = useState(false);
   const [gastoEmEdicao, setGastoEmEdicao] = useState(null); // null fechado, {} novo, obj editar
   const [filtroFonte, setFiltroFonte] = useState('todas');
   const [vendo, setVendo] = useState(null); // índice em comComprovante
@@ -492,6 +642,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
           {bolsa.valor_suplementacao != null && ` · Suplementação ${bolsa.data_recebimento_suplementacao ? `em ${formatData(bolsa.data_recebimento_suplementacao)}` : '(data não informada)'}`}
         </span>
         <button onClick={() => abrirRelatorio({ bolsa_id: bolsa.id })} style={{ ...btnCinza, marginLeft: 'auto' }}>📄 Relatório de prestação de contas</button>
+        <button onClick={() => setRelatorioTecnico(true)} style={btnCinza}>📝 Relatório técnico</button>
         <button onClick={() => setEditandoDados(true)} style={btnCinza}>Editar dados</button>
       </div>
 
@@ -575,6 +726,7 @@ function FichaBolsa({ bolsaId, categorias, onFechar, onAlterado }) {
         <VisualizadorComprovante itens={itensVisualizador} inicial={Math.min(vendo, itensVisualizador.length - 1)} onFechar={() => setVendo(null)} />
       )}
       {editandoDados && <ModalDadosBolsa bolsa={bolsa} onFechar={() => setEditandoDados(false)} onSalvo={() => { setEditandoDados(false); recarregar(); }} />}
+      {relatorioTecnico && <ModalRelatorioTecnico bolsa={bolsa} onFechar={() => setRelatorioTecnico(false)} />}
       {gastoEmEdicao && (
         <ModalGasto bolsa={bolsa} gasto={gastoEmEdicao.id ? gastoEmEdicao : null} categorias={categorias}
           onFechar={() => setGastoEmEdicao(null)} onSalvo={() => { setGastoEmEdicao(null); recarregar(); }} />

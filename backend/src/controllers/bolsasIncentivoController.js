@@ -7,6 +7,7 @@ const { Op } = require('sequelize');
 const { CATEGORIAS_DESPESA } = require('../constants/incentivoEsporte');
 const { dataLocalISO } = require('../utils/data');
 const { lerNotaFiscal } = require('../services/leituraNotaFiscal');
+const { montarRelatorioTecnico } = require('../utils/relatorioTecnico');
 const os = require('os');
 
 // Acompanhamento das bolsas já recebidas: valores, gastos comprovados por
@@ -373,8 +374,21 @@ const removerDespesa = async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 
+// Textos da prestação de contas final (Relatório técnico + resultados por
+// competição), gerados das conquistas do ano, horários e gastos da bolsa.
+const relatorioTecnico = async (req, res) => {
+  try {
+    const bolsa = await BolsaIncentivo.findOne({
+      where: { id: req.params.id, escola_id: req.usuario.escola_id },
+      include: [{ model: DespesaBolsaIncentivo, as: 'Despesas', attributes: ['categoria'] }],
+    });
+    if (!bolsa) return res.status(404).json({ erro: 'Bolsa não encontrada' });
+    res.json(await montarRelatorioTecnico(bolsa));
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+};
+
 module.exports = {
-  listarAnos, listar, buscar, relatorio, criar, atualizar, remover,
+  listarAnos, listar, buscar, relatorio, relatorioTecnico, criar, atualizar, remover,
   criarDespesa, atualizarDespesa, removerDespesa, lerComprovante,
   _test: { validarDespesa, resumo, alocarGastos },
 };
