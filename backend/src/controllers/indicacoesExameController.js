@@ -57,13 +57,18 @@ const indicar = async (req, res) => {
     const proxima = atual?.Faixa ? faixas.find((f) => f.ordem > atual.Faixa.ordem) : faixas[0];
     if (!proxima) return res.status(400).json({ erro: 'O aluno já está na última faixa desta arte marcial' });
 
-    // Próxima faixa opcional (ex: Cinza, Marrom 3): o exame pode ser pra ela
-    // ou pra seguinte não-opcional. Sem `faixa_pretendida_id` escolhido entre
-    // as opções, devolve 409 com as opções pra tela perguntar.
+    // Próxima faixa opcional (ex: Branca/Cinza, Cinza, Marrom 3): o exame
+    // pode ser pra ela, pra qualquer opcional logo em seguida, ou pra
+    // primeira não-opcional (Branca → Branca/Cinza, Cinza ou Azul). Sem
+    // `faixa_pretendida_id` escolhido entre as opções, devolve 409 com as
+    // opções pra tela perguntar.
     let pretendida = proxima;
     if (proxima.opcional) {
-      const pulo = faixas.find((f) => f.ordem > proxima.ordem && !f.opcional);
-      const opcoes = [proxima, pulo].filter(Boolean);
+      const opcoes = [];
+      for (const f of faixas.filter((x) => x.ordem >= proxima.ordem)) {
+        opcoes.push(f);
+        if (!f.opcional) break;
+      }
       if (opcoes.length > 1) {
         pretendida = opcoes.find((f) => f.id === req.body.faixa_pretendida_id);
         if (!pretendida) {

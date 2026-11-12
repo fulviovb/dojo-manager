@@ -1766,6 +1766,12 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     não-opcional (Branca → Cinza ou Azul; Marrom 2 → Marrom 3 ou Preta). API:
     POST /indicacoes-exame sem faixa_pretendida_id devolve 409 com `opcoes`.
     Checkbox "opcional" na edição de faixa em Configurações.
+[x] Faixa Branca/Cinza no Karatê (12/11/2026): opcional, carência 32 aulas
+    (igual à Branca). Opções na indicação agora cobrem opcionais em
+    sequência: Branca → Branca/Cinza, Cinza ou Azul. Fix: GET /artes-marciais
+    não trazia `opcional` nas faixas, então editar qualquer faixa em
+    Configurações desmarcava o opcional (Cinza e Marrom 3 perderam a marca ao
+    renumerar as faixas; restauradas).
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

@@ -164,7 +164,8 @@ Aula   1―* Chamada *―1 Usuario (Aluno)
 MatriculaAluno → graduacao_atual_faixa_id, aulas_desde_graduacao (contador p/ graduação)
 GraduacaoAluno → histórico de faixas por aluno + arte marcial (+ exame_participante_id/
                  nota_exame opcionais, quando confirmada a partir de um Exame de Faixa)
-Faixa.opcional → faixa que pode ser pulada no exame (Cinza, Marrom 3 no Karatê)
+Faixa.opcional → faixa que pode ser pulada no exame (Branca/Cinza, Cinza, Marrom 3 no Karatê;
+                 a indicação oferece as opcionais em sequência + a 1ª não-opcional)
 IndicacaoExame → aluno indicado ao próximo exame de faixa numa arte (indicado → aprovado;
                  aprovar gradua na faixa pretendida e guarda graduacao_id)
 Ocorrencia     → anotações do professor sobre um aluno

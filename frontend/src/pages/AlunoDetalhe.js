@@ -334,14 +334,17 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
         <Modal titulo={`Exame para qual faixa? — ${escolhaFaixa.arte.nome}`} onFechar={() => setEscolhaFaixa(null)} largura={420}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <p style={{ fontSize: 13, color: '#555', margin: 0 }}>
-              A faixa {escolhaFaixa.opcoes[0].nome} é opcional. O exame será para qual graduação?
+              {(() => {
+                const ops = escolhaFaixa.opcoes.filter(f => f.opcional).map(f => f.nome);
+                return ops.length > 1 ? `As faixas ${ops.slice(0, -1).join(', ')} e ${ops[ops.length - 1]} são opcionais.` : `A faixa ${ops[0]} é opcional.`;
+              })()} O exame será para qual graduação?
             </p>
             {escolhaFaixa.opcoes.map(f => (
               <button key={f.id} disabled={processandoArte === escolhaFaixa.arte.id} onClick={() => indicarExame(escolhaFaixa.arte, f.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, background: '#fff', cursor: 'pointer', textAlign: 'left' }}>
                 <BeltBar nome={f.nome} size="md" />
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{f.nome}</span>
-                <span style={{ fontSize: 11, color: '#888', marginLeft: 'auto' }}>{f.opcional ? 'faixa opcional' : `pula a ${escolhaFaixa.opcoes[0].nome}`}</span>
+                <span style={{ fontSize: 11, color: '#888', marginLeft: 'auto' }}>{f.opcional ? 'faixa opcional' : `pula ${escolhaFaixa.opcoes.filter(o => o.opcional).map(o => o.nome).join(' e ')}`}</span>
               </button>
             ))}
             {erroIndicacao && <div style={{ color: '#c62828', fontSize: 12 }}>{erroIndicacao}</div>}
