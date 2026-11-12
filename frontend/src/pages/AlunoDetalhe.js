@@ -160,13 +160,21 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
   const [modalAprovar, setModalAprovar] = useState(null); // { arte, indicacao }
   const [formAprovar, setFormAprovar] = useState({ data: '', observacao: '' });
 
-  const indicarExame = async (arteId) => {
-    setProcessandoArte(arteId); setErroIndicacao('');
+  const [escolhaFaixa, setEscolhaFaixa] = useState(null); // { arte, opcoes } — próxima faixa é opcional
+
+  const indicarExame = async (arte, faixaPretendidaId) => {
+    setProcessandoArte(arte.id); setErroIndicacao('');
     try {
-      await axios.post('/indicacoes-exame', { aluno_id: alunoId, arte_marcial_id: arteId });
+      await axios.post('/indicacoes-exame', { aluno_id: alunoId, arte_marcial_id: arte.id, faixa_pretendida_id: faixaPretendidaId });
+      setEscolhaFaixa(null);
       onRefresh();
     } catch (ex) {
-      setErroIndicacao(ex.response?.data?.erro || 'Não foi possível indicar o aluno ao exame.');
+      // próxima faixa é opcional (ex: Cinza, Marrom 3): pergunta pra qual é o exame
+      if (ex.response?.status === 409 && ex.response.data?.escolher_faixa) {
+        setEscolhaFaixa({ arte, opcoes: ex.response.data.opcoes });
+      } else {
+        setErroIndicacao(ex.response?.data?.erro || 'Não foi possível indicar o aluno ao exame.');
+      }
     } finally { setProcessandoArte(null); }
   };
 
@@ -227,7 +235,7 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
         <span style={cardTitle}>Graduação Marcial</span>
       </div>
       <div style={{ padding: '4px 0' }}>
-        {erroIndicacao && !modalAprovar && <div style={{ color: '#c62828', fontSize: 12, padding: '8px 18px 0' }}>{erroIndicacao}</div>}
+        {erroIndicacao && !modalAprovar && !escolhaFaixa && <div style={{ color: '#c62828', fontSize: 12, padding: '8px 18px 0' }}>{erroIndicacao}</div>}
         {dadosGraduacao.map(({ arte, atual, historico, aulasDesdeGraduacao, indicacao_exame: indicacao }) => (
           <div key={arte.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #f5f5f5', gap: 16, flexWrap: 'wrap' }}>
             {/* Arte marcial */}
@@ -266,7 +274,7 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
                 <button style={btnAzul} onClick={() => setModalHistId(arte.id)}>Ver Histórico</button>
               )}
               {!indicacao && (
-                <button style={btnCinza} disabled={processandoArte === arte.id} onClick={() => indicarExame(arte.id)}
+                <button style={btnCinza} disabled={processandoArte === arte.id} onClick={() => indicarExame(arte)}
                   title="Sinaliza que o aluno vai prestar o próximo exame de faixa (aparece no relatório Exame de Faixa)">
                   {processandoArte === arte.id ? '...' : 'Indicar p/ exame'}
                 </button>
@@ -320,6 +328,29 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
           </Modal>
         );
       })()}
+
+      {/* Modal escolha da faixa pretendida (próxima faixa é opcional) */}
+      {escolhaFaixa && (
+        <Modal titulo={`Exame para qual faixa? — ${escolhaFaixa.arte.nome}`} onFechar={() => setEscolhaFaixa(null)} largura={420}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: 13, color: '#555', margin: 0 }}>
+              A faixa {escolhaFaixa.opcoes[0].nome} é opcional. O exame será para qual graduação?
+            </p>
+            {escolhaFaixa.opcoes.map(f => (
+              <button key={f.id} disabled={processandoArte === escolhaFaixa.arte.id} onClick={() => indicarExame(escolhaFaixa.arte, f.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, background: '#fff', cursor: 'pointer', textAlign: 'left' }}>
+                <BeltBar nome={f.nome} size="md" />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{f.nome}</span>
+                <span style={{ fontSize: 11, color: '#888', marginLeft: 'auto' }}>{f.opcional ? 'faixa opcional' : `pula a ${escolhaFaixa.opcoes[0].nome}`}</span>
+              </button>
+            ))}
+            {erroIndicacao && <div style={{ color: '#c62828', fontSize: 12 }}>{erroIndicacao}</div>}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button style={btnCinza} onClick={() => setEscolhaFaixa(null)}>Cancelar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Modal aprovação no exame */}
       {modalAprovar && (

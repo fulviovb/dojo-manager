@@ -164,6 +164,7 @@ Aula   1―* Chamada *―1 Usuario (Aluno)
 MatriculaAluno → graduacao_atual_faixa_id, aulas_desde_graduacao (contador p/ graduação)
 GraduacaoAluno → histórico de faixas por aluno + arte marcial (+ exame_participante_id/
                  nota_exame opcionais, quando confirmada a partir de um Exame de Faixa)
+Faixa.opcional → faixa que pode ser pulada no exame (Cinza, Marrom 3 no Karatê)
 IndicacaoExame → aluno indicado ao próximo exame de faixa numa arte (indicado → aprovado;
                  aprovar gradua na faixa pretendida e guarda graduacao_id)
 Ocorrencia     → anotações do professor sobre um aluno
@@ -485,7 +486,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Financeiro            | `GET /financeiro/painel` (`?ano=` — indicadores + série mensal ganhos vs a receber)   | autenticado              |
 | Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes`, `/frequencia-percentual`, `/exame-faixa`, `/financeiro` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
-| Indicação ao exame    | `POST /indicacoes-exame` (`aluno_id`, `arte_marcial_id`), `POST /indicacoes-exame/:id/aprovar` (`data`, `observacao`), `DELETE /indicacoes-exame/:id` | admin+professor (professor: só alunos das turmas dele) |
+| Indicação ao exame    | `POST /indicacoes-exame` (`aluno_id`, `arte_marcial_id`, `faixa_pretendida_id` — obrigatório só se a próxima faixa for `opcional`; sem ele devolve 409 com as `opcoes`), `POST /indicacoes-exame/:id/aprovar` (`data`, `observacao`), `DELETE /indicacoes-exame/:id` | admin+professor (professor: só alunos das turmas dele) |
 | Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:codigo/login` (PIN, `:codigo` = `Exame.codigo`), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |

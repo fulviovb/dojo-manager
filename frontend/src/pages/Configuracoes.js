@@ -134,7 +134,7 @@ export default function Configuracoes() {
 
   const iniciarEdicaoFaixa = (faixa) => {
     setFaixaEditandoId(faixa.id);
-    setEdicaoFaixa({ nome: faixa.nome, cor: faixa.cor || '#ffffff', cor_secundaria: faixa.cor_secundaria || '#ffffff', ordem: faixa.ordem });
+    setEdicaoFaixa({ nome: faixa.nome, cor: faixa.cor || '#ffffff', cor_secundaria: faixa.cor_secundaria || '#ffffff', ordem: faixa.ordem, opcional: !!faixa.opcional });
     setDuasCoresEdicao(!!faixa.cor_secundaria);
   };
 
@@ -347,6 +347,9 @@ export default function Configuracoes() {
                     <input type="color" value={edicaoFaixa.cor_secundaria || '#ffffff'} onChange={e => setEdicaoFaixa(v => ({ ...v, cor_secundaria: e.target.value }))}
                       disabled={!duasCoresEdicao} style={{ height: 26, width: 32, border: '1px solid #ddd', borderRadius: 4, padding: 1, opacity: duasCoresEdicao ? 1 : 0.4 }} />
                     <input type="number" min={1} value={edicaoFaixa.ordem} onChange={e => setEdicaoFaixa(v => ({ ...v, ordem: Number(e.target.value) }))} style={{ ...estiloInput, width: 48, padding: '2px 6px' }} />
+                    <label title="Faixa que pode ser pulada no exame: ao indicar o aluno pra ela, o sistema pergunta se o exame é pra ela ou pra seguinte" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={!!edicaoFaixa.opcional} onChange={e => setEdicaoFaixa(v => ({ ...v, opcional: e.target.checked }))} /> opcional
+                    </label>
                     <button onClick={() => salvarEdicaoFaixa(f)} style={{ background: '#2e7d32', color: '#fff', border: 'none', borderRadius: 4, padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}>✓</button>
                     <button onClick={cancelarEdicaoFaixa} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 11 }}>✕</button>
                   </div>
@@ -360,6 +363,7 @@ export default function Configuracoes() {
                       background: f.cor_secundaria ? `linear-gradient(90deg, ${f.cor} 50%, ${f.cor_secundaria} 50%)` : f.cor,
                     }} />
                     {f.ordem}. {f.nome}
+                    {f.opcional && <span title="Faixa opcional no exame" style={{ fontSize: 10, color: '#8d6e00', background: '#fff8e1', borderRadius: 8, padding: '0 5px' }}>opcional</span>}
                   </span>
                 ))}
               </div>

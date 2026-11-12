@@ -1759,6 +1759,13 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     POST /indicacoes-exame/:id/aprovar, DELETE /indicacoes-exame/:id
     (admin+professor; professor só aluno de turma dele naquela arte).
     Testado ponta a ponta numa cópia isolada do banco.
+[x] Faixas opcionais no exame (12/11/2026): Faixa.opcional (coluna criada
+    por backend/src/scripts/2026-11-faixa-opcional.js, que também marca
+    Cinza e Marrom 3 do Karatê Shotokan). Ao indicar um aluno cuja próxima
+    faixa é opcional, a tela pergunta se o exame é pra ela ou pra seguinte
+    não-opcional (Branca → Cinza ou Azul; Marrom 2 → Marrom 3 ou Preta). API:
+    POST /indicacoes-exame sem faixa_pretendida_id devolve 409 com `opcoes`.
+    Checkbox "opcional" na edição de faixa em Configurações.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

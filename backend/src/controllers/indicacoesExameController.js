@@ -29,7 +29,7 @@ const comFaixas = (id) => IndicacaoExame.findByPk(id, {
   ],
 });
 
-// POST /api/indicacoes-exame { aluno_id, arte_marcial_id }
+// POST /api/indicacoes-exame { aluno_id, arte_marcial_id, faixa_pretendida_id? }
 // Faixa pretendida = a seguinte à graduação atual na ordem da arte (sem
 // graduação: a primeira faixa). Idempotente: se já houver indicação ativa
 // pra aluno+arte, devolve ela.
@@ -57,10 +57,29 @@ const indicar = async (req, res) => {
     const proxima = atual?.Faixa ? faixas.find((f) => f.ordem > atual.Faixa.ordem) : faixas[0];
     if (!proxima) return res.status(400).json({ erro: 'O aluno já está na última faixa desta arte marcial' });
 
+    // Próxima faixa opcional (ex: Cinza, Marrom 3): o exame pode ser pra ela
+    // ou pra seguinte não-opcional. Sem `faixa_pretendida_id` escolhido entre
+    // as opções, devolve 409 com as opções pra tela perguntar.
+    let pretendida = proxima;
+    if (proxima.opcional) {
+      const pulo = faixas.find((f) => f.ordem > proxima.ordem && !f.opcional);
+      const opcoes = [proxima, pulo].filter(Boolean);
+      if (opcoes.length > 1) {
+        pretendida = opcoes.find((f) => f.id === req.body.faixa_pretendida_id);
+        if (!pretendida) {
+          return res.status(409).json({
+            erro: 'Escolha a faixa pretendida',
+            escolher_faixa: true,
+            opcoes: opcoes.map((f) => ({ id: f.id, nome: f.nome, cor: f.cor, opcional: f.opcional })),
+          });
+        }
+      }
+    }
+
     const ind = await IndicacaoExame.create({
       escola_id, aluno_id, arte_marcial_id,
       faixa_atual_id: atual?.faixa_id || null,
-      faixa_pretendida_id: proxima.id,
+      faixa_pretendida_id: pretendida.id,
       status: 'indicado',
       data_indicacao: dataLocalISO(),
       indicado_por_id: req.usuario.id,
