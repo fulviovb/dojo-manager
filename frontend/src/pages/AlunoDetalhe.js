@@ -19,6 +19,14 @@ function corDaFaixa(nome = '') {
   return COR_FAIXA[cor] || '#FFFFFF';
 }
 
+// Faixa meio a meio pelo nome "Cor1/Cor2" (ex: Branca/Cinza): Cor1 na
+// metade de cima, Cor2 na de baixo. null se o nome não tiver "/".
+function fundoMeioAMeio(nome = '') {
+  const partes = nome.split('/').map(p => p.trim()).filter(Boolean);
+  if (partes.length !== 2) return null;
+  return `linear-gradient(to bottom, ${corDaFaixa(partes[0])} 50%, ${corDaFaixa(partes[1])} 50%)`;
+}
+
 function corTexto(cor) {
   if (!cor || cor === '#FFFFFF') return '#333';
   const r = parseInt(cor.slice(1, 3), 16);
@@ -48,7 +56,7 @@ function FaixaChip({ nome, size = 'sm' }) {
       boxShadow: '0 2px 5px rgba(0,0,0,0.18)',
       fontWeight: 700, fontSize,
     }}>
-      <div style={{ background: bg, color: fg, paddingLeft: px, paddingRight: temStripe ? 4 : px, height: '100%', display: 'flex', alignItems: 'center' }}>
+      <div style={{ background: fundoMeioAMeio(nome) || bg, color: fg, paddingLeft: px, paddingRight: temStripe ? 4 : px, height: '100%', display: 'flex', alignItems: 'center' }}>
         {nome}
       </div>
       {temStripe && (
@@ -60,7 +68,7 @@ function FaixaChip({ nome, size = 'sm' }) {
 
 function BeltBar({ nome, size = 'md' }) {
   const bg = corDaFaixa(nome);
-  const isWhite = bg === '#FFFFFF';
+  const isWhite = bg === '#FFFFFF' || !!fundoMeioAMeio(nome);
   const n = nome.toLowerCase();
   const temPreta = n.includes('- preta');
   const temBranca = n.includes('- branca') && !n.startsWith('branca');
@@ -79,7 +87,7 @@ function BeltBar({ nome, size = 'md' }) {
         boxShadow: '0 3px 8px rgba(0,0,0,0.25)',
       }}>
         {/* Corpo da faixa */}
-        <div style={{ position: 'absolute', inset: 0, background: bg }} />
+        <div style={{ position: 'absolute', inset: 0, background: fundoMeioAMeio(nome) || bg }} />
         {/* Costura central */}
         <div style={{ position: 'absolute', left: 0, right: 0, top: '48%', height: 1, background: 'rgba(0,0,0,0.08)' }} />
         {/* Ponta preta (Cinza-Preta etc) */}

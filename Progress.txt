@@ -1772,6 +1772,10 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     não trazia `opcional` nas faixas, então editar qualquer faixa em
     Configurações desmarcava o opcional (Cinza e Marrom 3 perderam a marca ao
     renumerar as faixas; restauradas).
+[x] Desenho de faixa meio a meio (12/11/2026): faixa com nome "Cor1/Cor2"
+    (ex: Branca/Cinza) aparece com Cor1 em cima e Cor2 embaixo no BeltBar e
+    FaixaChip da tela do aluno (escolha da faixa do exame, graduação atual,
+    histórico, tarja de indicação).
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
