@@ -39,6 +39,7 @@ const CompeticaoPrevistaIncentivo = require('./CompeticaoPrevistaIncentivo');
 const LocalTreinoIncentivo = require('./LocalTreinoIncentivo');
 const LocalTreino = require('./LocalTreino');
 const FichaEvolucaoInfantil = require('./FichaEvolucaoInfantil');
+const IndicacaoExame = require('./IndicacaoExame');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -279,6 +280,14 @@ BolsaIncentivo.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno', onDelet
 BolsaIncentivo.hasMany(DespesaBolsaIncentivo, { foreignKey: 'bolsa_id', as: 'Despesas', onDelete: 'RESTRICT' });
 DespesaBolsaIncentivo.belongsTo(BolsaIncentivo, { foreignKey: 'bolsa_id', onDelete: 'RESTRICT' });
 
+// Indicação ao próximo exame de faixa (sinalizada na tela do aluno).
+// constraints: false — sem FK no banco, então nada de ON DELETE CASCADE
+// implícito; a indicação é só um marcador e nunca leva dados junto.
+IndicacaoExame.belongsTo(Usuario, { foreignKey: 'aluno_id', as: 'Aluno', constraints: false });
+IndicacaoExame.belongsTo(ArteMarcial, { foreignKey: 'arte_marcial_id', constraints: false });
+IndicacaoExame.belongsTo(Faixa, { foreignKey: 'faixa_atual_id', as: 'FaixaAtual', constraints: false });
+IndicacaoExame.belongsTo(Faixa, { foreignKey: 'faixa_pretendida_id', as: 'FaixaPretendida', constraints: false });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -291,5 +300,5 @@ module.exports = {
   BolsaIncentivo, DespesaBolsaIncentivo,
   CredencialIncentivo, EntidadeFederativa, EsporteIncentivo,
   ObjetivoIncentivo, CompeticaoPrevistaIncentivo, LocalTreinoIncentivo, LocalTreino,
-  FichaEvolucaoInfantil,
+  FichaEvolucaoInfantil, IndicacaoExame,
 };

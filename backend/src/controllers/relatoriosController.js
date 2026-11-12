@@ -3,7 +3,7 @@ const sequelize = require('../config/database');
 const {
   Usuario, Turma, ArteMarcial, Faixa, MatriculaAluno, GraduacaoAluno,
   HorarioTurma, Sala, Aula, Chamada, AssinaturaAluno, PlanoMensalidade, CriterioGraduacao,
-  Pagamento, Mensalidade,
+  Pagamento, Mensalidade, IndicacaoExame,
 } = require('../models');
 const { ehDonoDaTurma } = require('../middleware/autorizacao');
 const { dataLocalISO } = require('../utils/data');
@@ -278,7 +278,9 @@ const idadeEm = (nascimento, hojeISO) => {
 // GET /api/relatorios/exame-faixa?arte_marcial_id=&aluno_ids=id1,id2
 // Alunos ativos da arte marcial (matrícula ativa em turma ativa) com faixa
 // atual, próxima faixa (a seguinte na ordem da arte) e aulas na faixa atual.
-// Sem `aluno_ids` devolve todos (é a lista de seleção do card); com
+// Só alunos INDICADOS ao próximo exame (IndicacaoExame status 'indicado',
+// marcado na tela do aluno); faixa pretendida vem da indicação.
+// Sem `aluno_ids` devolve todos os indicados (lista de seleção do card); com
 // `aluno_ids` devolve só os marcados (é o relatório). Professor só enxerga
 // alunos das turmas em que é professor_id.
 const exameFaixa = async (req, res) => {
@@ -298,8 +300,16 @@ const exameFaixa = async (req, res) => {
 
     const whereTurma = { ativa: true, arte_marcial_id, escola_id };
     if (req.usuario.role === 'professor') whereTurma.professor_id = req.usuario.id;
-    const whereAluno = { escola_id, role: 'aluno', ativo: true };
-    if (idsSelecionados) whereAluno.id = [...idsSelecionados];
+    // Só entra quem foi indicado ao próximo exame na tela do aluno.
+    const indicacoes = await IndicacaoExame.findAll({
+      where: { escola_id, arte_marcial_id, status: 'indicado' },
+      include: [{ model: Faixa, as: 'FaixaPretendida', attributes: ['id', 'nome', 'cor'] }],
+    });
+    const indicacaoPorAluno = new Map(indicacoes.map((i) => [i.aluno_id, i]));
+    let idsPermitidos = [...indicacaoPorAluno.keys()];
+    if (idsSelecionados) idsPermitidos = idsPermitidos.filter((id) => idsSelecionados.has(id));
+    if (!idsPermitidos.length) return res.json({ arte_marcial: arte, gerado_em: dataLocalISO(new Date()), alunos: [] });
+    const whereAluno = { escola_id, role: 'aluno', ativo: true, id: idsPermitidos };
 
     const matriculas = await MatriculaAluno.findAll({
       where: { ativa: true },
@@ -329,7 +339,9 @@ const exameFaixa = async (req, res) => {
 
     const alunos = [];
     for (const [id, g] of porAluno) {
-      const proxima = g.faixa ? faixas.find((f) => f.ordem > g.faixa.ordem) : null;
+      // faixa pretendida vem da indicação (fallback: a seguinte na ordem)
+      const proxima = indicacaoPorAluno.get(id)?.FaixaPretendida
+        || (g.faixa ? faixas.find((f) => f.ordem > g.faixa.ordem) : null);
       const criterio = g.faixa ? criterios.find((c) => c.faixa_id === g.faixa.id) : null;
       const dataInicio = inicio.get(id) || null;
       alunos.push({

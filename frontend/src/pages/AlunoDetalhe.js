@@ -154,6 +154,48 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
   const [faixas, setFaixas] = useState([]);
   const [formGrad, setFormGrad] = useState({ faixa_id: '', data_inicio: '', observacao: '' });
   const [salvando, setSalvando] = useState(false);
+  // Indicação ao próximo exame de faixa
+  const [processandoArte, setProcessandoArte] = useState(null);
+  const [erroIndicacao, setErroIndicacao] = useState('');
+  const [modalAprovar, setModalAprovar] = useState(null); // { arte, indicacao }
+  const [formAprovar, setFormAprovar] = useState({ data: '', observacao: '' });
+
+  const indicarExame = async (arteId) => {
+    setProcessandoArte(arteId); setErroIndicacao('');
+    try {
+      await axios.post('/indicacoes-exame', { aluno_id: alunoId, arte_marcial_id: arteId });
+      onRefresh();
+    } catch (ex) {
+      setErroIndicacao(ex.response?.data?.erro || 'Não foi possível indicar o aluno ao exame.');
+    } finally { setProcessandoArte(null); }
+  };
+
+  const cancelarIndicacao = async (arteId, indicacaoId) => {
+    setProcessandoArte(arteId); setErroIndicacao('');
+    try {
+      await axios.delete(`/indicacoes-exame/${indicacaoId}`);
+      onRefresh();
+    } catch (ex) {
+      setErroIndicacao(ex.response?.data?.erro || 'Não foi possível cancelar a indicação.');
+    } finally { setProcessandoArte(null); }
+  };
+
+  const abrirAprovar = (arte, indicacao) => {
+    setFormAprovar({ data: new Date().toLocaleDateString('sv-SE'), observacao: '' });
+    setErroIndicacao('');
+    setModalAprovar({ arte, indicacao });
+  };
+
+  const confirmarAprovacao = async () => {
+    setSalvando(true); setErroIndicacao('');
+    try {
+      await axios.post(`/indicacoes-exame/${modalAprovar.indicacao.id}/aprovar`, formAprovar);
+      setModalAprovar(null);
+      onRefresh();
+    } catch (ex) {
+      setErroIndicacao(ex.response?.data?.erro || 'Não foi possível registrar a aprovação.');
+    } finally { setSalvando(false); }
+  };
 
   const abrirNovaGrad = (arteId) => {
     axios.get('/faixas').then(r => {
@@ -185,7 +227,8 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
         <span style={cardTitle}>Graduação Marcial</span>
       </div>
       <div style={{ padding: '4px 0' }}>
-        {dadosGraduacao.map(({ arte, atual, historico, aulasDesdeGraduacao }) => (
+        {erroIndicacao && !modalAprovar && <div style={{ color: '#c62828', fontSize: 12, padding: '8px 18px 0' }}>{erroIndicacao}</div>}
+        {dadosGraduacao.map(({ arte, atual, historico, aulasDesdeGraduacao, indicacao_exame: indicacao }) => (
           <div key={arte.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #f5f5f5', gap: 16, flexWrap: 'wrap' }}>
             {/* Arte marcial */}
             <div style={{ minWidth: 180, fontWeight: 600, fontSize: 13, color: '#1e2a38' }}>{arte.nome}</div>
@@ -222,8 +265,29 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
               {historico.length > 0 && (
                 <button style={btnAzul} onClick={() => setModalHistId(arte.id)}>Ver Histórico</button>
               )}
+              {!indicacao && (
+                <button style={btnCinza} disabled={processandoArte === arte.id} onClick={() => indicarExame(arte.id)}
+                  title="Sinaliza que o aluno vai prestar o próximo exame de faixa (aparece no relatório Exame de Faixa)">
+                  {processandoArte === arte.id ? '...' : 'Indicar p/ exame'}
+                </button>
+              )}
               <button style={btnVerde} onClick={() => abrirNovaGrad(arte.id)}>+ Graduação</button>
             </div>
+
+            {/* Indicação ativa ao próximo exame */}
+            {indicacao && (
+              <div style={{ flexBasis: '100%', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff8e1', border: '1px solid #ffe082', borderRadius: 6, padding: '8px 12px' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#8d6e00' }}>INDICADO AO PRÓXIMO EXAME</span>
+                <span style={{ fontSize: 12, color: '#555', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  → <FaixaChip nome={indicacao.FaixaPretendida?.nome || ''} />
+                  <span style={{ color: '#888' }}>desde {formatData(indicacao.data_indicacao)}</span>
+                </span>
+                <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                  <button style={btnCinza} disabled={processandoArte === arte.id} onClick={() => cancelarIndicacao(arte.id, indicacao.id)}>Cancelar indicação</button>
+                  <button style={btnVerde} disabled={processandoArte === arte.id} onClick={() => abrirAprovar(arte, indicacao)}>✓ Aprovado</button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -256,6 +320,35 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
           </Modal>
         );
       })()}
+
+      {/* Modal aprovação no exame */}
+      {modalAprovar && (
+        <Modal titulo={`Aprovado no exame — ${modalAprovar.arte.nome}`} onFechar={() => setModalAprovar(null)} largura={420}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, marginBottom: 6 }}>Nova graduação</div>
+              <BeltBar nome={modalAprovar.indicacao.FaixaPretendida?.nome || ''} size="lg" />
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>{modalAprovar.indicacao.FaixaPretendida?.nome}</div>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Data do exame / graduação</label>
+              <input type="date" value={formAprovar.data} onChange={e => setFormAprovar(p => ({ ...p, data: e.target.value }))} style={estiloInput} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>Observação</label>
+              <input type="text" value={formAprovar.observacao} onChange={e => setFormAprovar(p => ({ ...p, observacao: e.target.value }))} style={estiloInput} placeholder="Padrão: Aprovado em exame de faixa" />
+            </div>
+            <p style={{ fontSize: 11, color: '#888', margin: 0 }}>A faixa atual é encerrada nesta data e a nova passa a ser a graduação atual do aluno (a carência recomeça a contar).</p>
+            {erroIndicacao && <div style={{ color: '#c62828', fontSize: 12 }}>{erroIndicacao}</div>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+              <button style={btnCinza} onClick={() => setModalAprovar(null)}>Cancelar</button>
+              <button style={btnVerde} disabled={!formAprovar.data || salvando} onClick={confirmarAprovacao}>
+                {salvando ? 'Salvando...' : 'Confirmar Aprovação'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Modal nova graduação */}
       {modalNovaArteId && (

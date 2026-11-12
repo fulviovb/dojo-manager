@@ -164,6 +164,8 @@ Aula   1―* Chamada *―1 Usuario (Aluno)
 MatriculaAluno → graduacao_atual_faixa_id, aulas_desde_graduacao (contador p/ graduação)
 GraduacaoAluno → histórico de faixas por aluno + arte marcial (+ exame_participante_id/
                  nota_exame opcionais, quando confirmada a partir de um Exame de Faixa)
+IndicacaoExame → aluno indicado ao próximo exame de faixa numa arte (indicado → aprovado;
+                 aprovar gradua na faixa pretendida e guarda graduacao_id)
 Ocorrencia     → anotações do professor sobre um aluno
 
 Exame  *―1 ArteMarcial, 1―* FaseExame 1―* CriterioExame *―* Faixa (via CriterioExameFaixa)
@@ -483,6 +485,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Financeiro            | `GET /financeiro/painel` (`?ano=` — indicadores + série mensal ganhos vs a receber)   | autenticado              |
 | Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes`, `/frequencia-percentual`, `/exame-faixa`, `/financeiro` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
+| Indicação ao exame    | `POST /indicacoes-exame` (`aluno_id`, `arte_marcial_id`), `POST /indicacoes-exame/:id/aprovar` (`data`, `observacao`), `DELETE /indicacoes-exame/:id` | admin+professor (professor: só alunos das turmas dele) |
 | Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:codigo/login` (PIN, `:codigo` = `Exame.codigo`), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
@@ -824,7 +827,7 @@ um específico). "Gerar Relatório" abre o resultado em nova aba, página imprim
 — mesmo padrão do recibo. 9 relatórios: Alunos por Graduação, Alunos por
 Turma-Horário, Ficha Cadastral Resumida, Aulas & Frequências (Turma, com modos
 Relação/Quantitativo), Aulas & Frequências (Aluno), Aniversariantes por Mês,
-Frequência: Presença Mínima, **Exame de Faixa** (seleção por checkbox dos alunos de uma arte marcial → nome, idade, graduação atual e pretendida, aulas na faixa atual), **Frequência: % de Presença** (todo aluno ativo
+Frequência: Presença Mínima, **Exame de Faixa** (lista só os alunos indicados ao próximo exame na tela do aluno, com checkbox → nome, idade, graduação atual e pretendida, aulas na faixa atual), **Frequência: % de Presença** (todo aluno ativo
 e o % de carência cumprida em relação à faixa atual — aulas presentes desde o
 início da graduação atual ÷ `CriterioGraduacao.min_aulas` da faixa; filtro por
 Programa Marcial e por Turma; ordena por Nome, Graduação ou Percentual) e

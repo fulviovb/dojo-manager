@@ -297,8 +297,9 @@ function CardExameFaixa({ artes }) {
 
   const abrir = () => {
     setAberto(true); setAlunos(null); setErro(''); setMarcados(new Set()); setBusca('');
+    // a lista já vem só com os indicados ao exame — todos marcados de saída
     axios.get(`/relatorios/exame-faixa?arte_marcial_id=${arteId}`)
-      .then(r => setAlunos(r.data.alunos))
+      .then(r => { setAlunos(r.data.alunos); setMarcados(new Set(r.data.alunos.map(a => a.id))); })
       .catch(ex => setErro(ex.response?.data?.erro || 'Não foi possível carregar os alunos.'));
   };
   const alternar = (id) => setMarcados(prev => {
@@ -330,7 +331,7 @@ function CardExameFaixa({ artes }) {
           {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
         </select>
       </div>
-      <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Marque os alunos que vão fazer o exame: nome, idade, graduação atual e pretendida e aulas na faixa atual.</p>
+      <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Lista os alunos indicados ao próximo exame (botão "Indicar p/ exame" na tela do aluno): nome, idade, graduação atual e pretendida e aulas na faixa atual.</p>
       <button style={btnVerde} disabled={!arteId} onClick={abrir}>Selecionar alunos</button>
 
       {aberto && (
@@ -351,7 +352,8 @@ function CardExameFaixa({ artes }) {
             <div style={{ overflowY: 'auto', flex: 1 }}>
               {erro && <p style={{ color: '#c62828', padding: '0 18px' }}>{erro}</p>}
               {!erro && !alunos && <p style={{ color: '#888', padding: '0 18px' }}>Carregando...</p>}
-              {alunos && visiveis.length === 0 && <p style={{ color: '#888', padding: '0 18px' }}>Nenhum aluno encontrado.</p>}
+              {alunos && alunos.length === 0 && <p style={{ color: '#888', padding: '0 18px' }}>Nenhum aluno indicado ao exame nesta arte marcial. Indique pelo botão "Indicar p/ exame" na tela do aluno (Graduação Marcial).</p>}
+              {alunos && alunos.length > 0 && visiveis.length === 0 && <p style={{ color: '#888', padding: '0 18px' }}>Nenhum aluno encontrado.</p>}
               {visiveis.map(a => {
                 const ok = a.min_aulas != null && a.aulas_na_faixa >= a.min_aulas;
                 return (

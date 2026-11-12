@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const { Usuario, MatriculaAluno, Turma, ArteMarcial, Faixa,
         GraduacaoAluno, Ocorrencia, Chamada, Aula,
         Mensalidade, PlanoMensalidade, AssinaturaAluno, CriterioGraduacao,
-        Conquista, Competicao } = require('../models');
+        Conquista, Competicao, IndicacaoExame } = require('../models');
 const { gerarFaturasPendentes } = require('../services/faturaService');
 
 const PASTA_FOTOS = path.join(__dirname, '..', '..', 'uploads', 'fotos');
@@ -180,7 +180,7 @@ const perfil = async (req, res) => {
 
     await gerarFaturasPendentes(req.usuario.escola_id);
 
-    const [artes, matriculas, graduacoes, chamadas, mensalidades, ocorrencias, criterios, assinaturas, conquistas] = await Promise.all([
+    const [artes, matriculas, graduacoes, chamadas, mensalidades, ocorrencias, criterios, assinaturas, conquistas, indicacoes] = await Promise.all([
       ArteMarcial.findAll({ where: { escola_id: req.usuario.escola_id }, order: [['nome', 'ASC']] }),
 
       MatriculaAluno.findAll({
@@ -237,6 +237,11 @@ const perfil = async (req, res) => {
           { model: Competicao, attributes: ['id', 'ano', 'nome', 'etapa', 'nivel', 'entidade', 'cidade', 'estado', 'pais'] },
         ],
         order: [[{ model: Competicao }, 'ano', 'DESC']],
+      }),
+
+      IndicacaoExame.findAll({
+        where: { aluno_id: aluno.id, escola_id: req.usuario.escola_id, status: 'indicado' },
+        include: [{ model: Faixa, as: 'FaixaPretendida', attributes: ['id', 'nome', 'cor', 'ordem'] }],
       }),
     ]);
 
@@ -311,7 +316,13 @@ const perfil = async (req, res) => {
       const atual = historicoComPresencas.find(h => h.atual) || null;
       const aulasDesdeGraduacao = atual ? atual.aulas_presentes : 0;
 
-      return { arte: arte.toJSON(), atual, historico: historicoComPresencas, aulasDesdeGraduacao };
+      // indicação ativa ao próximo exame de faixa nesta arte (ou null)
+      const indicacao = indicacoes.find(i => i.arte_marcial_id === arte.id);
+
+      return {
+        arte: arte.toJSON(), atual, historico: historicoComPresencas, aulasDesdeGraduacao,
+        indicacao_exame: indicacao ? indicacao.toJSON() : null,
+      };
     });
 
     res.json({

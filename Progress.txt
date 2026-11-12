@@ -1744,6 +1744,21 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     da prefeitura — cada linha recebe sugestão pelas palavras Brasileiro,
     Paranaense, Mundial… ("seleção paranaense/brasileira" é ignorado).
     Textos editáveis, contador de caracteres e botão copiar.
+[x] Indicação ao próximo exame de faixa (12/11/2026): na tela do aluno
+    (Graduação Marcial), cada arte tem "Indicar p/ exame" → faixa
+    pretendida = a seguinte à atual (sem graduação: a primeira). Indicado
+    ganha a faixa amarela "INDICADO AO PRÓXIMO EXAME → faixa" com
+    "Cancelar indicação" e "✓ Aprovado" (modal com data + observação; gradua
+    na faixa pretendida pela mesma regra do "+ Graduação": encerra a atual,
+    cria a nova como atual, sincroniza MatriculaAluno). O relatório Exame de
+    Faixa agora lista SÓ os indicados (todos já marcados) e a faixa
+    pretendida vem da indicação; aprovado sai da lista. Model IndicacaoExame
+    (tabela indicacoes_exame, status indicado→aprovado, guarda graduacao_id,
+    sem FK/CASCADE); lógica de graduação extraída pra
+    services/graduacaoService.js. Rotas POST /indicacoes-exame,
+    POST /indicacoes-exame/:id/aprovar, DELETE /indicacoes-exame/:id
+    (admin+professor; professor só aluno de turma dele naquela arte).
+    Testado ponta a ponta numa cópia isolada do banco.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

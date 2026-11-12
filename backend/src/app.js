@@ -45,6 +45,7 @@ app.use('/api/financeiro', require('./routes/financeiro'));
 
 // Graduações e Ocorrências
 app.use('/api/graduacoes', require('./routes/graduacoes'));
+app.use('/api/indicacoes-exame', require('./routes/indicacoesExame'));
 app.use('/api/ocorrencias', require('./routes/ocorrencias'));
 
 // Conquistas (histórico de resultados em competições)
