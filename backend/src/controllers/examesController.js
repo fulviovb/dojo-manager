@@ -3,19 +3,27 @@ const { Op } = require('sequelize');
 const {
   Exame, FaseExame, CriterioExame, CriterioExameFaixa,
   ExameParticipante, AvaliadorExame, AvaliacaoAluno, RespostaCriterio,
-  ArteMarcial, Faixa, Usuario, GraduacaoAluno,
+  ArteMarcial, Faixa, Usuario, GraduacaoAluno, ExamePagamento, ExamePedidoFaixa, ExameHistorico,
 } = require('../models');
+const sequelize = require('../config/database');
 const { calcularNotaFinal } = require('../utils/notaExame');
+const { ErroRegra, responderErro, STATUS_ABERTO, alunosPermitidos, candidatoEmExameAberto } = require('../services/indicacaoExameService');
+const { artesPermitidas, carregarExame, exigirExameInteiro, carregarCandidato } = require('../services/exameAcessoService');
+const { lerGestao, resumosDosExames } = require('./gestaoExameController');
 
 const listar = async (req, res) => {
   try {
+    const artes = await artesPermitidas(req.usuario);
     const exames = await Exame.findAll({
-      where: { escola_id: req.usuario.escola_id },
+      where: { escola_id: req.usuario.escola_id, ...(artes ? { arte_marcial_id: [...artes] } : {}) },
       include: [{ model: ArteMarcial, attributes: ['id', 'nome'] }],
       order: [['data', 'DESC']],
     });
-    res.json(exames);
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+    const permitidosPorArte = new Map();
+    for (const arteId of new Set(exames.map((e) => e.arte_marcial_id))) permitidosPorArte.set(arteId, await alunosPermitidos(req.usuario, arteId));
+    const resumos = await resumosDosExames(exames, permitidosPorArte);
+    res.json(exames.map((e) => ({ ...e.toJSON(), ...resumos.get(e.id) })));
+  } catch (e) { responderErro(res, e); }
 };
 
 // Monta { id, nome, ordem, criterios: [{ id, nome, ordem, faixa_ids }] }
@@ -41,16 +49,13 @@ const buscarFasesDoExame = async (exameId) => {
 
 const detalhar = async (req, res) => {
   try {
-    const exame = await Exame.findOne({
-      where: { id: req.params.id, escola_id: req.usuario.escola_id },
-      include: [{ model: ArteMarcial, attributes: ['id', 'nome'] }],
-    });
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    const arte = await ArteMarcial.findByPk(exame.arte_marcial_id, { attributes: ['id', 'nome'] });
 
     const fases = await buscarFasesDoExame(exame.id);
 
     const participantes = await ExameParticipante.findAll({
-      where: { exame_id: exame.id },
+      where: { exame_id: exame.id, ...(permitidos ? { aluno_id: [...permitidos] } : {}) },
       include: [
         { model: Usuario, as: 'Aluno', attributes: ['id', 'nome'] },
         { model: Faixa, as: 'FaixaAtual', attributes: ['id', 'nome', 'cor'] },
@@ -61,7 +66,7 @@ const detalhar = async (req, res) => {
     const avaliadores = await AvaliadorExame.findAll({ where: { exame_id: exame.id } });
 
     const avaliacoes = await AvaliacaoAluno.findAll({
-      where: { exame_id: exame.id },
+      where: { exame_id: exame.id, exame_participante_id: participantes.map((p) => p.id) },
       include: [
         { model: AvaliadorExame, as: 'Avaliador', attributes: ['id', 'nome'] },
       ],
@@ -69,12 +74,13 @@ const detalhar = async (req, res) => {
 
     res.json({
       ...exame.toJSON(),
+      ArteMarcial: arte,
       fases,
       participantes,
       avaliadores,
       avaliacoes,
     });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // Copia fases/critérios/faixas-aplicáveis de um exame de origem pra um
@@ -121,21 +127,27 @@ const criar = async (req, res) => {
     const { arte_marcial_id, nome, data } = req.body;
     const arte = await ArteMarcial.findOne({ where: { id: arte_marcial_id, escola_id: req.usuario.escola_id } });
     if (!arte) return res.status(404).json({ erro: 'Arte marcial não encontrada' });
+    const artes = await artesPermitidas(req.usuario);
+    if (artes && !artes.has(arte_marcial_id)) throw new ErroRegra(403, 'Sem permissão para esta arte marcial');
+    const gestao = lerGestao(req.body);
 
     const codigo = await gerarCodigoUnico();
     const exame = await Exame.create({
-      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo,
+      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo, ...gestao,
     });
 
-    const exameAnterior = await Exame.findOne({
-      where: { arte_marcial_id, escola_id: req.usuario.escola_id, id: { [Op.ne]: exame.id } },
+    const exameAnterior = exame.usa_avaliacao && await Exame.findOne({
+      where: {
+        arte_marcial_id, escola_id: req.usuario.escola_id, id: { [Op.ne]: exame.id },
+        usa_avaliacao: true, status: { [Op.ne]: 'cancelado' },
+      },
       order: [['data', 'DESC']],
     });
     if (exameAnterior) await copiarRoteiro(exameAnterior.id, exame.id);
 
     const completo = await Exame.findByPk(exame.id, { include: [{ model: ArteMarcial, attributes: ['id', 'nome'] }] });
     res.status(201).json({ ...completo.toJSON(), fases: await buscarFasesDoExame(exame.id) });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // POST /api/exames/comecar-com-roteiro-padrao — cria o exame copiando
@@ -146,6 +158,9 @@ const comecarComRoteiroPadrao = async (req, res) => {
     const { arte_marcial_id, nome, data } = req.body;
     const arte = await ArteMarcial.findOne({ where: { id: arte_marcial_id, escola_id: req.usuario.escola_id } });
     if (!arte) return res.status(404).json({ erro: 'Arte marcial não encontrada' });
+    const artes = await artesPermitidas(req.usuario);
+    if (artes && !artes.has(arte_marcial_id)) throw new ErroRegra(403, 'Sem permissão para esta arte marcial');
+    const gestao = lerGestao(req.body);
 
     const roteiroPadrao = await Exame.findOne({
       where: { arte_marcial_id, escola_id: req.usuario.escola_id, tipo: 'roteiro_padrao' },
@@ -154,45 +169,68 @@ const comecarComRoteiroPadrao = async (req, res) => {
 
     const codigo = await gerarCodigoUnico();
     const exame = await Exame.create({
-      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo,
+      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo, ...gestao,
     });
     await copiarRoteiro(roteiroPadrao.id, exame.id);
 
     const completo = await Exame.findByPk(exame.id, { include: [{ model: ArteMarcial, attributes: ['id', 'nome'] }] });
     res.status(201).json({ ...completo.toJSON(), fases: await buscarFasesDoExame(exame.id) });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 const atualizarStatus = async (req, res) => {
   try {
-    const exame = await Exame.findOne({ where: { id: req.params.id, escola_id: req.usuario.escola_id } });
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
-
     const { status } = req.body;
-    if (!['planejamento', 'em_andamento', 'finalizado'].includes(status)) {
+    if (!['planejamento', 'em_andamento', 'finalizado', 'cancelado'].includes(status)) {
       return res.status(400).json({ erro: 'Status inválido' });
     }
-    await exame.update({ status });
-    res.json(exame);
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+    await sequelize.transaction(async (transaction) => {
+      const { exame, permitidos } = await carregarExame(req, { transaction, lock: true });
+      await exigirExameInteiro(exame, permitidos, { transaction });
+      if (status === exame.status) return;
+      if (status === 'cancelado') {
+        if (exame.tipo !== 'normal') throw new ErroRegra(409, 'Roteiro Padrão não pode ser cancelado');
+        const graduados = await ExameParticipante.count({ where: { exame_id: exame.id, graduacao_aluno_id: { [Op.ne]: null } }, transaction });
+        if (graduados) throw new ErroRegra(409, 'Este exame já graduou alunos e não pode ser cancelado');
+      }
+      // reabrir: nenhuma indicação pode ter ido pra outro exame aberto (RN-02)
+      if (STATUS_ABERTO.includes(status) && !STATUS_ABERTO.includes(exame.status)) {
+        const ps = await ExameParticipante.findAll({
+          where: {
+            exame_id: exame.id, status_inscricao: { [Op.ne]: 'desistiu' },
+            graduacao_aluno_id: null, indicacao_exame_id: { [Op.ne]: null },
+          }, transaction,
+        });
+        for (const p of ps) {
+          const outro = await candidatoEmExameAberto(p.indicacao_exame_id, { exceto_exame_id: exame.id, transaction });
+          if (outro) throw new ErroRegra(409, `Há candidatos que já estão no exame "${outro.Exame.nome}"`);
+        }
+      }
+      await exame.update({ status }, { transaction });
+      await ExameHistorico.create({
+        escola_id: exame.escola_id, exame_id: exame.id, tipo: 'exame', descricao: `Status: ${status}`, usuario_id: req.usuario.id,
+      }, { transaction });
+    });
+    res.json(await Exame.findByPk(req.params.id));
+  } catch (e) { responderErro(res, e); }
 };
-
-const buscarExameDaEscola = (id, escolaId) => Exame.findOne({ where: { id, escola_id: escolaId } });
 
 // PATCH /api/exames/:id/tipo — marca/desmarca um exame como Roteiro Padrão
 // da arte marcial dele. Só um por arte: marcar um novo rebaixa o anterior
 // pra 'normal' automaticamente.
 const marcarComoRoteiroPadrao = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
 
     const { tipo } = req.body;
+    await exigirExameInteiro(exame, permitidos);
     if (!['normal', 'roteiro_padrao'].includes(tipo)) {
       return res.status(400).json({ erro: 'Tipo inválido' });
     }
 
     if (tipo === 'roteiro_padrao') {
+      if (!exame.usa_avaliacao) throw new ErroRegra(409, 'Exame só de gestão não pode ser Roteiro Padrão');
+      if (await ExameParticipante.count({ where: { exame_id: exame.id } })) throw new ErroRegra(409, 'Exame com candidatos não pode ser Roteiro Padrão');
       await Exame.update(
         { tipo: 'normal' },
         { where: { arte_marcial_id: exame.arte_marcial_id, escola_id: req.usuario.escola_id, tipo: 'roteiro_padrao' } }
@@ -200,21 +238,28 @@ const marcarComoRoteiroPadrao = async (req, res) => {
     }
     await exame.update({ tipo });
     res.json(exame);
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // DELETE /api/exames/:id — Roteiro Padrão nunca pode ser excluído (precisa
 // primeiro ser rebaixado pra 'normal' via PATCH .../tipo).
 const remover = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    await exigirExameInteiro(exame, permitidos);
     if (exame.tipo === 'roteiro_padrao') {
       return res.status(400).json({ erro: 'Não é possível excluir o Roteiro Padrão. Desmarque-o primeiro se realmente quiser apagar.' });
     }
 
     const participantes = await ExameParticipante.findAll({ where: { exame_id: exame.id }, attributes: ['id'] });
     const participanteIds = participantes.map((p) => p.id);
+    // RN-17: exame com pagamento (mesmo estornado) ou graduação fica no histórico
+    if (await ExamePagamento.count({ where: { exame_participante_id: participanteIds } })) {
+      throw new ErroRegra(409, 'Exame com pagamentos não pode ser excluído: finalize ou cancele');
+    }
+    if (await ExameParticipante.count({ where: { exame_id: exame.id, graduacao_aluno_id: { [Op.ne]: null } } })) {
+      throw new ErroRegra(409, 'Exame que já graduou alunos não pode ser excluído: finalize');
+    }
     const avaliacoes = await AvaliacaoAluno.findAll({ where: { exame_id: exame.id }, attributes: ['id'] });
     const fases = await FaseExame.findAll({ where: { exame_id: exame.id }, attributes: ['id'] });
     const criterios = await CriterioExame.findAll({ where: { fase_exame_id: fases.map((f) => f.id) }, attributes: ['id'] });
@@ -225,6 +270,8 @@ const remover = async (req, res) => {
     await RespostaCriterio.destroy({ where: { avaliacao_id: avaliacoes.map((a) => a.id) } });
     await AvaliacaoAluno.destroy({ where: { exame_id: exame.id } });
     await AvaliadorExame.destroy({ where: { exame_id: exame.id } });
+    await ExamePedidoFaixa.destroy({ where: { exame_participante_id: participanteIds } });
+    await ExameHistorico.destroy({ where: { exame_id: exame.id } });
     await ExameParticipante.destroy({ where: { exame_id: exame.id } });
     await CriterioExameFaixa.destroy({ where: { criterio_exame_id: criterios.map((c) => c.id) } });
     await CriterioExame.destroy({ where: { fase_exame_id: fases.map((f) => f.id) } });
@@ -232,7 +279,7 @@ const remover = async (req, res) => {
     await exame.destroy();
 
     res.json({ mensagem: 'Exame removido' });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // Roteiro (fases/critérios/faixas aplicáveis) só é editável enquanto o
@@ -248,20 +295,20 @@ const exigirPlanejamento = (exame, res) => {
 
 const criarFase = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    await exigirExameInteiro(exame, permitidos);
     if (!exigirPlanejamento(exame, res)) return;
 
     const { nome, ordem } = req.body;
     const fase = await FaseExame.create({ exame_id: exame.id, nome, ordem: ordem || 0 });
     res.status(201).json({ ...fase.toJSON(), criterios: [] });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 const atualizarFase = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    await exigirExameInteiro(exame, permitidos);
     if (!exigirPlanejamento(exame, res)) return;
 
     const fase = await FaseExame.findOne({ where: { id: req.params.fase_id, exame_id: exame.id } });
@@ -270,13 +317,13 @@ const atualizarFase = async (req, res) => {
     const { nome, ordem } = req.body;
     await fase.update({ nome, ordem });
     res.json(fase);
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 const removerFase = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    await exigirExameInteiro(exame, permitidos);
     if (!exigirPlanejamento(exame, res)) return;
 
     const fase = await FaseExame.findOne({ where: { id: req.params.fase_id, exame_id: exame.id } });
@@ -288,13 +335,13 @@ const removerFase = async (req, res) => {
     await fase.destroy();
 
     res.json({ mensagem: 'Fase removida' });
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 const criarCriterio = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    await exigirExameInteiro(exame, permitidos);
     if (!exigirPlanejamento(exame, res)) return;
 
     const fase = await FaseExame.findOne({ where: { id: req.params.fase_id, exame_id: exame.id } });
@@ -303,7 +350,7 @@ const criarCriterio = async (req, res) => {
     const { nome, ordem } = req.body;
     const criterio = await CriterioExame.create({ fase_exame_id: fase.id, nome, ordem: ordem || 0 });
     res.status(201).json({ ...criterio.toJSON(), faixa_ids: [] });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // Garante que o critério pertence a um exame da escola do usuário logado
@@ -315,8 +362,8 @@ const buscarCriterioDoExame = async (criterioId, exameId) => {
 
 const atualizarCriterio = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    await exigirExameInteiro(exame, permitidos);
     if (!exigirPlanejamento(exame, res)) return;
 
     const criterio = await buscarCriterioDoExame(req.params.criterio_id, exame.id);
@@ -325,13 +372,13 @@ const atualizarCriterio = async (req, res) => {
     const { nome, ordem } = req.body;
     await criterio.update({ nome, ordem });
     res.json(criterio);
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 const removerCriterio = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    await exigirExameInteiro(exame, permitidos);
     if (!exigirPlanejamento(exame, res)) return;
 
     const criterio = await buscarCriterioDoExame(req.params.criterio_id, exame.id);
@@ -340,7 +387,7 @@ const removerCriterio = async (req, res) => {
     await CriterioExameFaixa.destroy({ where: { criterio_exame_id: criterio.id } });
     await criterio.destroy();
     res.json({ mensagem: 'Critério removido' });
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // PUT /api/exames/:id/criterios/:criterio_id/faixas — substitui o conjunto
@@ -348,8 +395,8 @@ const removerCriterio = async (req, res) => {
 // ver telas de Chamadas pro mesmo padrão de "duas listas")
 const definirFaixasAplicaveis = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
+    await exigirExameInteiro(exame, permitidos);
     if (!exigirPlanejamento(exame, res)) return;
 
     const criterio = await buscarCriterioDoExame(req.params.criterio_id, exame.id);
@@ -364,38 +411,7 @@ const definirFaixasAplicaveis = async (req, res) => {
     }
 
     res.json({ faixa_ids: faixa_ids || [] });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
-};
-
-const adicionarParticipante = async (req, res) => {
-  try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
-
-    const { aluno_id, faixa_atual_id, faixa_pretendida_id } = req.body;
-    const [participante, criado] = await ExameParticipante.findOrCreate({
-      where: { exame_id: exame.id, aluno_id },
-      defaults: { faixa_atual_id, faixa_pretendida_id },
-    });
-    res.status(criado ? 201 : 200).json(participante);
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
-};
-
-const removerParticipante = async (req, res) => {
-  try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
-
-    const participante = await ExameParticipante.findOne({ where: { id: req.params.participante_id, exame_id: exame.id } });
-    if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
-
-    const avaliacoes = await AvaliacaoAluno.findAll({ where: { exame_participante_id: participante.id }, attributes: ['id'] });
-    await RespostaCriterio.destroy({ where: { avaliacao_id: avaliacoes.map((a) => a.id) } });
-    await AvaliacaoAluno.destroy({ where: { exame_participante_id: participante.id } });
-    await participante.destroy();
-
-    res.json({ mensagem: 'Participante removido' });
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 const gerarPinUnico = async (exameId) => {
@@ -409,8 +425,7 @@ const gerarPinUnico = async (exameId) => {
 
 const adicionarAvaliador = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame } = await carregarExame(req);
 
     const { nome } = req.body;
     const pin = await gerarPinUnico(exame.id);
@@ -418,22 +433,21 @@ const adicionarAvaliador = async (req, res) => {
       escola_id: req.usuario.escola_id, exame_id: exame.id, nome, pin,
     });
     res.status(201).json(avaliador);
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // Revoga o acesso do avaliador (soft-delete) em vez de apagar — avaliações
 // já feitas por ele continuam íntegras no histórico do exame.
 const revogarAvaliador = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame } = await carregarExame(req);
 
     const avaliador = await AvaliadorExame.findOne({ where: { id: req.params.avaliador_id, exame_id: exame.id } });
     if (!avaliador) return res.status(404).json({ erro: 'Avaliador não encontrado' });
 
     await avaliador.update({ ativo: false });
     res.json({ mensagem: 'Avaliador revogado' });
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // POST /api/exames/:id/sorteio — sorteia um avaliador pra cada aluno na
@@ -444,10 +458,11 @@ const revogarAvaliador = async (req, res) => {
 // disponíveis, cada um fecha com exatamente 1.
 const sortear = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
 
+    if (!exame.usa_avaliacao) throw new ErroRegra(409, 'Este exame não usa avaliação');
     const { fase_exame_id, participante_ids } = req.body;
+    if (!Array.isArray(participante_ids)) throw new ErroRegra(400, 'Selecione ao menos um aluno');
     const fase = await FaseExame.findOne({ where: { id: fase_exame_id, exame_id: exame.id } });
     if (!fase) return res.status(404).json({ erro: 'Fase não encontrada neste exame' });
 
@@ -475,6 +490,11 @@ const sortear = async (req, res) => {
     // escritas concorrentes na mesma tabela, mesmo padrão usado em
     // chamadasController.fecharAula.
     for (const participanteId of participante_ids) {
+      const participante = await carregarCandidato(exame, permitidos, participanteId);
+      if (participante.status_inscricao === 'desistiu' || participante.presenca === 'ausente') {
+        resultado.push({ participante_id: participanteId, erro: 'Desistente ou ausente: fora do sorteio' });
+        continue;
+      }
       const usados = avaliadoresPorParticipante.get(participanteId) || new Set();
       const elegiveis = avaliadoresAtivos.filter((a) => !usados.has(a.id));
 
@@ -507,28 +527,28 @@ const sortear = async (req, res) => {
     }
 
     res.json(resultado);
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // Regra 3.7 — permite corrigir uma avaliação já finalizada
 const reabrirAvaliacao = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
 
     const avaliacao = await AvaliacaoAluno.findOne({ where: { id: req.params.avaliacao_id, exame_id: exame.id } });
     if (!avaliacao) return res.status(404).json({ erro: 'Avaliação não encontrada' });
+    const avaliado = await carregarCandidato(exame, permitidos, avaliacao.exame_participante_id);
+    if (avaliado.graduacao_aluno_id) throw new ErroRegra(409, 'O aluno já foi graduado com esta nota');
 
     await avaliacao.update({ status: 'em_andamento', nota: null, finalizada_em: null });
     res.json(avaliacao);
-  } catch (e) { res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // GET /api/exames/:id/participantes/:participante_id/ficha — regra 3.8
 const fichaParticipante = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
 
     const participante = await ExameParticipante.findOne({
       where: { id: req.params.participante_id, exame_id: exame.id },
@@ -539,6 +559,7 @@ const fichaParticipante = async (req, res) => {
       ],
     });
     if (!participante) return res.status(404).json({ erro: 'Participante não encontrado' });
+    if (permitidos && !permitidos.has(participante.aluno_id)) throw new ErroRegra(403, 'Sem permissão para este aluno');
 
     const fases = await buscarFasesDoExame(exame.id);
     const avaliacoes = await AvaliacaoAluno.findAll({
@@ -585,19 +606,18 @@ const fichaParticipante = async (req, res) => {
       fases: fasesDetalhadas,
       nota_final: notaFinal,
     });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 // GET /api/exames/:id/relatorio — regra 3.9
 const relatorio = async (req, res) => {
   try {
-    const exame = await buscarExameDaEscola(req.params.id, req.usuario.escola_id);
-    if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    const { exame, permitidos } = await carregarExame(req);
 
     const totalFases = await FaseExame.count({ where: { exame_id: exame.id } });
 
     const participantes = await ExameParticipante.findAll({
-      where: { exame_id: exame.id },
+      where: { exame_id: exame.id, ...(permitidos ? { aluno_id: [...permitidos] } : {}) },
       include: [
         { model: Usuario, as: 'Aluno', attributes: ['id', 'nome'] },
         { model: Faixa, as: 'FaixaAtual', attributes: ['id', 'nome', 'cor'] },
@@ -625,7 +645,7 @@ const relatorio = async (req, res) => {
     }
 
     res.json({ exame: { id: exame.id, nome: exame.nome, data: exame.data }, participantes: linhas });
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
+  } catch (e) { responderErro(res, e); }
 };
 
 module.exports = {
@@ -633,7 +653,6 @@ module.exports = {
   marcarComoRoteiroPadrao, remover,
   criarFase, atualizarFase, removerFase,
   criarCriterio, atualizarCriterio, removerCriterio, definirFaixasAplicaveis,
-  adicionarParticipante, removerParticipante,
   adicionarAvaliador, revogarAvaliador,
   sortear, reabrirAvaliacao, fichaParticipante, relatorio,
 };

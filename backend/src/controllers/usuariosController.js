@@ -7,8 +7,11 @@ const { v4: uuidv4 } = require('uuid');
 const { Usuario, MatriculaAluno, Turma, ArteMarcial, Faixa,
         GraduacaoAluno, Ocorrencia, Chamada, Aula,
         Mensalidade, PlanoMensalidade, AssinaturaAluno, CriterioGraduacao,
-        Conquista, Competicao, IndicacaoExame } = require('../models');
+        Conquista, Competicao, IndicacaoExame, ExamePagamento, ExamePedidoFaixa } = require('../models');
 const { gerarFaturasPendentes } = require('../services/faturaService');
+const { candidatoEmExameAberto } = require('../services/indicacaoExameService');
+const { resumoFinanceiro } = require('../utils/pagamentoExame');
+const { dataLocalISO } = require('../utils/data');
 
 const PASTA_FOTOS = path.join(__dirname, '..', '..', 'uploads', 'fotos');
 fs.mkdirSync(PASTA_FOTOS, { recursive: true });
@@ -290,6 +293,20 @@ const perfil = async (req, res) => {
     // se ainda for a atual), `min_aulas` = carência cadastrada pra faixa (se
     // houver) e `percentual_carencia` = quanto disso já foi cumprido — é
     // isso que embasa a decisão de deixar o aluno prestar exame ou não.
+    // candidatura em exame aberto de cada indicação (situação do pagamento na
+    // tarja; "✓ Aprovado" fica bloqueado — RN-16)
+    const exameDaIndicacao = new Map();
+    for (const i of indicacoes) {
+      const cand = await candidatoEmExameAberto(i.id);
+      if (!cand) continue;
+      cand.Pagamentos = await ExamePagamento.findAll({ where: { exame_participante_id: cand.id } });
+      cand.PedidoFaixa = await ExamePedidoFaixa.findOne({ where: { exame_participante_id: cand.id } });
+      exameDaIndicacao.set(i.id, {
+        id: cand.Exame.id, nome: cand.Exame.nome, data: cand.Exame.data,
+        pagamento: resumoFinanceiro(cand, cand.Exame, dataLocalISO()).taxa,
+      });
+    }
+
     const dadosGraduacao = artes.map(arte => {
       const historico = graduacoes.filter(g => g.arte_marcial_id === arte.id);
 
@@ -321,7 +338,7 @@ const perfil = async (req, res) => {
 
       return {
         arte: arte.toJSON(), atual, historico: historicoComPresencas, aulasDesdeGraduacao,
-        indicacao_exame: indicacao ? indicacao.toJSON() : null,
+        indicacao_exame: indicacao ? { ...indicacao.toJSON(), exame: exameDaIndicacao.get(indicacao.id) || null } : null,
       };
     });
 

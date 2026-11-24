@@ -293,6 +293,20 @@ alertas de mais de uma, com dias da semana e data de exame diferentes — daí
 números de "aulas restantes" bem diferentes entre alunos mesmo se parecerem
 estar "na mesma turma"); o card tem um filtro pra ver só uma arte específica.
 
+### Gestão do Exame de Faixa
+
+Camada entre a Indicação e a Graduação (`gestaoExameController.js`,
+`components/exame/`). `Exame` é o evento e `ExameParticipante` o candidato,
+sempre ligado a uma `IndicacaoExame`; uma indicação fica em no máximo um exame
+aberto. Situação de pagamento é sempre calculada de `ExamePagamento`
+(`utils/pagamentoExame.js`), nunca gravada; lançamento só sai por estorno.
+`ExameParticipante.valor_taxa` nulo herda `Exame.taxa_padrao`. O único caminho
+pra graduar candidato é `POST /api/exames/:id/resultado`; `graduacao_aluno_id`
+impede graduar duas vezes. Professor só alcança exames das artes em que tem
+turma e candidatos das turmas dele; ações no evento inteiro exigem que todos
+os candidatos sejam dele (`services/exameAcessoService.js`). Exame com
+pagamento ou graduação não é excluído, só finalizado/cancelado.
+
 ### Módulo de Exame de Faixa
 
 Módulo **opcional** (especificação original em `modulo-exame-faixa.txt`) pra
@@ -350,9 +364,8 @@ resposta em todo critério aplicável. Avaliação finalizada só pode ser
 corrigida via reabertura pelo staff (`PATCH
 /api/exames/:id/avaliacoes/:avid/reabrir`).
 
-O relatório final do exame (`GET /api/exames/:id/relatorio`) tem um botão
-**"Confirmar graduação"** por aluno que grava direto em `GraduacaoAluno`
-(com `nota_exame` preenchida) — sem isso, o exame não altera a graduação
+A aba **Resultado** (Gestão do Exame) tem **"Confirmar graduação"** por
+aluno, que grava em `GraduacaoAluno` (com `nota_exame` preenchida) — sem isso, o exame não altera a graduação
 de ninguém automaticamente.
 
 ### Histórico de frequência (presenças **e** ausências)
@@ -488,7 +501,8 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Relatórios            | `GET /relatorios/alunos-por-graduacao`, `/alunos-por-turma`, `/ficha-cadastral`, `/frequencia-turma`, `/frequencia-aluno`, `/aniversariantes`, `/frequencia-percentual`, `/exame-faixa`, `/financeiro` | autenticado |
 | Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
 | Indicação ao exame    | `POST /indicacoes-exame` (`aluno_id`, `arte_marcial_id`, `faixa_pretendida_id` — obrigatório só se a próxima faixa for `opcional`; sem ele devolve 409 com as `opcoes`), `POST /indicacoes-exame/:id/aprovar` (`data`, `observacao`), `DELETE /indicacoes-exame/:id` | admin+professor (professor: só alunos das turmas dele) |
-| Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `POST,DELETE /exames/:id/participantes(/:id)`, `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
+| Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
+| Exame de Faixa — gestão | `PUT /exames/:id/gestao`, `GET /exames/:id/elegiveis`, `GET,POST,PATCH /exames/:id/candidatos`, `PATCH,DELETE .../candidatos/:pid`, `POST /exames/:id/pagamentos(/lote)`, `DELETE .../pagamentos/:id` (estorno, exige `motivo`), `PUT /exames/:id/pedidos-faixa/:pid`, `POST /exames/:id/resultado`, `GET /exames/:id/historico` | admin+professor (professor: só alunos dele) |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:codigo/login` (PIN, `:codigo` = `Exame.codigo`), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
 | Incentivo ao Esporte  | `GET /incentivo-esporte/catalogos`, `GET,POST,PUT,DELETE /incentivo-esporte/participantes(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/documentos(/:id)`, `PUT /documentos/:id/arquivo`, `GET /incentivo-esporte/anexos`, `POST /incentivo-esporte/documentos/gerar`, `GET,POST,PUT,DELETE /incentivo-esporte/contrapartidas(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/despesas(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/entidades(/:id)`, `GET,PUT,DELETE /incentivo-esporte/participantes/:id/credencial`, `POST .../credencial/revelar` | admin |
@@ -510,6 +524,7 @@ componentes por estado local (sidebar). Três rotas são detectadas por
 | `/relatorio/:tipo`  | `RelatorioPage`      | aberta em nova aba a partir de Relatórios; imprimível |
 | `/exame-avaliador/:codigo` | `AvaliadorExame` | pública de verdade — `:codigo` é `Exame.codigo` (6 caracteres, não o UUID); login por PIN, JWT próprio (ver Exame de Faixa) |
 | `/exame/:exame_id/ficha/:participante_id` | `ExameFichaPage` | aberta em nova aba a partir de Exames; imprimível |
+| `/exame/:exame_id/listas/:tipo` | `ExameListasPage` | `completa`, `chamada`, `pendencias`, `faixas`; nova aba, imprimível |
 | `/exame/:exame_id/relatorio-impressao` | `ExameRelatorioPage` | aberta em nova aba a partir de Exames; imprimível |
 
 `ReciboPage`/`RelatorioPage`/`ExameFichaPage`/`ExameRelatorioPage` reaproveitam o

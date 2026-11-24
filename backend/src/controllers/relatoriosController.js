@@ -4,6 +4,7 @@ const {
   Usuario, Turma, ArteMarcial, Faixa, MatriculaAluno, GraduacaoAluno,
   HorarioTurma, Sala, Aula, Chamada, AssinaturaAluno, PlanoMensalidade, CriterioGraduacao,
   Pagamento, Mensalidade, IndicacaoExame,
+  Exame, ExameParticipante,
 } = require('../models');
 const { ehDonoDaTurma } = require('../middleware/autorizacao');
 const { dataLocalISO } = require('../utils/data');
@@ -275,7 +276,8 @@ const idadeEm = (nascimento, hojeISO) => {
   return ah - an - ((mh < mn || (mh === mn && dh < dn)) ? 1 : 0);
 };
 
-// GET /api/relatorios/exame-faixa?arte_marcial_id=&aluno_ids=id1,id2
+// GET /api/relatorios/exame-faixa?arte_marcial_id=&aluno_ids=id1,id2&exame_id=
+// Com `exame_id`, em vez dos indicados lista os candidatos daquele exame.
 // Alunos ativos da arte marcial (matrícula ativa em turma ativa) com faixa
 // atual, próxima faixa (a seguinte na ordem da arte) e aulas na faixa atual.
 // Só alunos INDICADOS ao próximo exame (IndicacaoExame status 'indicado',
@@ -301,14 +303,19 @@ const exameFaixa = async (req, res) => {
     const whereTurma = { ativa: true, arte_marcial_id, escola_id };
     if (req.usuario.role === 'professor') whereTurma.professor_id = req.usuario.id;
     // Só entra quem foi indicado ao próximo exame na tela do aluno.
-    const indicacoes = await IndicacaoExame.findAll({
-      where: { escola_id, arte_marcial_id, status: 'indicado' },
-      include: [{ model: Faixa, as: 'FaixaPretendida', attributes: ['id', 'nome', 'cor'] }],
-    });
+    let exame = null;
+    if (req.query.exame_id) {
+      exame = await Exame.findOne({ where: { id: req.query.exame_id, escola_id, arte_marcial_id }, attributes: ['id', 'nome', 'data'] });
+      if (!exame) return res.status(404).json({ erro: 'Exame não encontrado' });
+    }
+    const includePretendida = [{ model: Faixa, as: 'FaixaPretendida', attributes: ['id', 'nome', 'cor'] }];
+    const indicacoes = exame
+      ? await ExameParticipante.findAll({ where: { exame_id: exame.id, status_inscricao: ['indicado', 'confirmado'] }, include: includePretendida })
+      : await IndicacaoExame.findAll({ where: { escola_id, arte_marcial_id, status: 'indicado' }, include: includePretendida });
     const indicacaoPorAluno = new Map(indicacoes.map((i) => [i.aluno_id, i]));
     let idsPermitidos = [...indicacaoPorAluno.keys()];
     if (idsSelecionados) idsPermitidos = idsPermitidos.filter((id) => idsSelecionados.has(id));
-    if (!idsPermitidos.length) return res.json({ arte_marcial: arte, gerado_em: dataLocalISO(new Date()), alunos: [] });
+    if (!idsPermitidos.length) return res.json({ arte_marcial: arte, exame, gerado_em: dataLocalISO(new Date()), alunos: [] });
     const whereAluno = { escola_id, role: 'aluno', ativo: true, id: idsPermitidos };
 
     const matriculas = await MatriculaAluno.findAll({
@@ -363,7 +370,7 @@ const exameFaixa = async (req, res) => {
     const ordem = (a) => (a.faixa_atual ? a.faixa_atual.ordem : Infinity);
     alunos.sort((a, b) => ordem(a) - ordem(b) || a.nome.localeCompare(b.nome, 'pt-BR'));
 
-    res.json({ arte_marcial: arte, gerado_em: hoje, alunos });
+    res.json({ arte_marcial: arte, exame, gerado_em: hoje, alunos });
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
 };
 

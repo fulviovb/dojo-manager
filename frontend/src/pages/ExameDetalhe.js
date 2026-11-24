@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { corDaFaixa } from '../utils/faixaCores';
+import { AbaCandidatos, AbaFaixas, AbaFinanceiro, AbaChamada, AbaResultado, Sobreposicoes } from '../components/exame/GestaoExame';
+import { Modal, Campo, CamposGestao, camposGestaoDe } from '../components/exame/ui';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -8,7 +10,9 @@ const btnLink = (cor) => ({ background: 'none', border: 'none', color: cor, curs
 const cardEstilo = { background: '#fff', borderRadius: 8, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 16 };
 const thEstilo = { padding: '8px 12px', textAlign: 'left', fontSize: 12, color: '#888', textTransform: 'uppercase' };
 
-const STATUS_LABEL = { planejamento: 'Planejamento', em_andamento: 'Em andamento', finalizado: 'Finalizado' };
+const STATUS_LABEL = { planejamento: 'Planejamento', em_andamento: 'Em andamento', finalizado: 'Finalizado', cancelado: 'Cancelado' };
+const ABAS_GESTAO = [['candidatos', 'Candidatos'], ['faixas', 'Faixas'], ['financeiro', 'Financeiro'], ['chamada', 'Lista de chamada'], ['resultado', 'Resultado']];
+const ABAS_AVALIACAO = [['roteiro', 'Roteiro'], ['avaliadores', 'Avaliadores'], ['sorteio', 'Sorteio'], ['progresso', 'Progresso']];
 const STATUS_AVALIACAO_LABEL = { pendente: 'Pendente', em_andamento: 'Em andamento', finalizada: 'Finalizada' };
 const STATUS_AVALIACAO_COR = { pendente: '#888', em_andamento: '#1565c0', finalizada: '#2e7d32' };
 
@@ -31,45 +35,56 @@ function estiloChipFaixa(faixa, ativo) {
   };
 }
 
-function FaixaBadge({ faixa }) {
-  if (!faixa) return <span style={{ color: '#aaa', fontSize: 12 }}>—</span>;
-  const cor = corDaFaixa(faixa.nome, faixa.cor);
-  const textoEscuro = ['branca', 'amarela'].some((k) => faixa.nome?.toLowerCase().includes(k));
-  return (
-    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 12, background: cor, color: textoEscuro ? '#333' : '#fff', border: textoEscuro ? '1px solid #ddd' : 'none' }}>
-      {faixa.nome}
-    </span>
-  );
-}
-
 export default function ExameDetalhe({ exameId, onVoltar }) {
   const [exame, setExame] = useState(null);
-  const [relatorio, setRelatorio] = useState(null);
-  const [alunos, setAlunos] = useState([]);
+  const [dados, setDados] = useState(null); // gestão: candidatos + totais
+  const [aba, setAba] = useState('candidatos');
+  const [candidatoAberto, setCandidatoAberto] = useState(null); // { id, pagamento }
+  const [adicionando, setAdicionando] = useState(false);
+  const [formGestao, setFormGestao] = useState(null);
   const [faixasArte, setFaixasArte] = useState([]);
-  const [formParticipante, setFormParticipante] = useState({ aluno_id: '', faixa_atual_id: '', faixa_pretendida_id: '' });
   const [formAvaliadorNome, setFormAvaliadorNome] = useState('');
   const [faseSorteioId, setFaseSorteioId] = useState('');
   const [participantesSelecionados, setParticipantesSelecionados] = useState([]);
   const [resultadoSorteio, setResultadoSorteio] = useState(null);
-  const [confirmadas, setConfirmadas] = useState([]);
   const [erro, setErro] = useState('');
   const [formFase, setFormFase] = useState({ nome: '', ordem: 1 });
   const [faseEditandoId, setFaseEditandoId] = useState(null);
   const [edicaoFase, setEdicaoFase] = useState({ nome: '', ordem: 1 });
   const [formCriterioPorFase, setFormCriterioPorFase] = useState({});
 
-  const carregar = () => {
-    axios.get(`/exames/${exameId}`).then((r) => setExame(r.data));
-    axios.get(`/exames/${exameId}/relatorio`).then((r) => setRelatorio(r.data));
-  };
-  useEffect(carregar, [exameId]);
-  useEffect(() => { axios.get('/usuarios?role=aluno').then((r) => setAlunos(r.data)); }, []);
+  const carregar = useCallback(async () => {
+    try {
+      const [e, g] = await Promise.all([axios.get(`/exames/${exameId}`), axios.get(`/exames/${exameId}/candidatos`)]);
+      setExame(e.data); setDados(g.data);
+    } catch (ex) { setErro(ex.response?.data?.erro || 'Não foi possível carregar o exame.'); }
+  }, [exameId]);
+  useEffect(() => { carregar(); }, [carregar]);
   useEffect(() => {
     if (exame?.arte_marcial_id) axios.get(`/faixas?arte_marcial_id=${exame.arte_marcial_id}`).then((r) => setFaixasArte(r.data));
   }, [exame?.arte_marcial_id]);
 
-  if (!exame) return <p style={{ color: '#888' }}>Carregando...</p>;
+  if (!exame || !dados) return erro ? <p style={{ color: '#c62828' }}>{erro}</p> : <p style={{ color: '#888' }}>Carregando...</p>;
+
+  const normal = exame.tipo === 'normal';
+  const abas = [...(normal ? ABAS_GESTAO : []), ...(!normal ? ABAS_AVALIACAO.slice(0, 1) : exame.usa_avaliacao ? ABAS_AVALIACAO : [])];
+  const abaAtiva = abas.some(([id]) => id === aba) ? aba : abas[0][0];
+  const abrirCandidato = (id, pagamento) => setCandidatoAberto({ id, pagamento: !!pagamento });
+
+  const salvarGestao = async (e) => {
+    e.preventDefault(); setErro('');
+    try { await axios.put(`/exames/${exameId}/gestao`, formGestao); setFormGestao(null); carregar(); }
+    catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao salvar'); }
+  };
+
+  const cancelarExame = () => {
+    if (window.confirm(`Cancelar o exame "${exame.nome}"? As indicações ficam livres e os pagamentos continuam registrados.`)) mudarStatus('cancelado');
+  };
+
+  // Sorteio: com presença marcada, só os presentes; antes disso, todos os não desistentes
+  const naoDesistiu = (exame.participantes || []).filter((p) => p.status_inscricao !== 'desistiu');
+  const presentes = naoDesistiu.filter((p) => p.presenca === 'presente');
+  const sorteaveis = presentes.length ? presentes : naoDesistiu.filter((p) => p.presenca !== 'ausente');
 
   const roteiroEditavel = exame.status === 'planejamento';
 
@@ -148,40 +163,6 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
     catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao excluir exame'); }
   };
 
-  // Ao escolher o aluno, já puxa a faixa atual dele (GraduacaoAluno com
-  // atual=true nessa arte marcial) e sugere a próxima faixa da sequência
-  // como pretendida — o professor só ajusta se for um caso fora do padrão.
-  const selecionarAluno = async (alunoId) => {
-    setFormParticipante({ aluno_id: alunoId, faixa_atual_id: '', faixa_pretendida_id: '' });
-    if (!alunoId) return;
-    try {
-      const { data } = await axios.get(`/graduacoes?aluno_id=${alunoId}`);
-      const atual = data.find((g) => g.arte_marcial_id === exame.arte_marcial_id && g.atual);
-      const faixaAtualId = atual?.faixa_id || '';
-      const ordenadas = [...faixasArte].sort((a, b) => a.ordem - b.ordem);
-      const idxAtual = ordenadas.findIndex((f) => f.id === faixaAtualId);
-      const faixaPretendidaId = faixaAtualId
-        ? (ordenadas[idxAtual + 1]?.id || '')
-        : (ordenadas[0]?.id || '');
-      setFormParticipante({ aluno_id: alunoId, faixa_atual_id: faixaAtualId, faixa_pretendida_id: faixaPretendidaId });
-    } catch (ex) { /* prefill é só conveniência — se falhar, professor escolhe manualmente */ }
-  };
-
-  const addParticipante = async (e) => {
-    e.preventDefault(); setErro('');
-    try {
-      await axios.post(`/exames/${exameId}/participantes`, formParticipante);
-      setFormParticipante({ aluno_id: '', faixa_atual_id: '', faixa_pretendida_id: '' });
-      carregar();
-    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro'); }
-  };
-
-  const removerParticipante = async (p) => {
-    if (!window.confirm(`Remover ${p.Aluno?.nome} do exame?`)) return;
-    await axios.delete(`/exames/${exameId}/participantes/${p.id}`);
-    carregar();
-  };
-
   const addAvaliador = async (e) => {
     e.preventDefault(); setErro('');
     try {
@@ -203,9 +184,10 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
 
   const sortear = async () => {
     setErro(''); setResultadoSorteio(null);
-    if (!faseSorteioId || participantesSelecionados.length === 0) { setErro('Selecione a fase e ao menos um aluno.'); return; }
+    const ids = participantesSelecionados.filter((id) => sorteaveis.some((p) => p.id === id));
+    if (!faseSorteioId || ids.length === 0) { setErro('Selecione a fase e ao menos um aluno.'); return; }
     try {
-      const { data } = await axios.post(`/exames/${exameId}/sorteio`, { fase_exame_id: faseSorteioId, participante_ids: participantesSelecionados });
+      const { data } = await axios.post(`/exames/${exameId}/sorteio`, { fase_exame_id: faseSorteioId, participante_ids: ids });
       setResultadoSorteio(data);
       carregar();
     } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao sortear'); }
@@ -217,23 +199,6 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
     carregar();
   };
 
-  const confirmarGraduacao = async (linha) => {
-    setErro('');
-    try {
-      await axios.post('/graduacoes', {
-        aluno_id: linha.aluno.id,
-        arte_marcial_id: exame.arte_marcial_id,
-        faixa_id: linha.faixa_pretendida.id,
-        data_inicio: exame.data,
-        atual: true,
-        observacao: `Confirmado via Exame de Faixa: ${exame.nome}`,
-        exame_participante_id: linha.participante_id,
-        nota_exame: linha.nota_final,
-      });
-      setConfirmadas((c) => [...c, linha.participante_id]);
-    } catch (ex) { setErro(ex.response?.data?.erro || 'Erro ao confirmar graduação'); }
-  };
-
   const avaliacaoDe = (faseId, participanteId) => (exame.avaliacoes || [])
     .find((a) => a.fase_exame_id === faseId && a.exame_participante_id === participanteId);
 
@@ -243,7 +208,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
         ← Voltar para Exames
       </button>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <div>
           <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
             {exame.nome}
@@ -253,16 +218,20 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           </h2>
           <div style={{ color: '#555', fontSize: 13, marginTop: 4 }}>
             {exame.ArteMarcial?.nome} · {new Date(exame.data + 'T00:00:00').toLocaleDateString('pt-BR')} · {STATUS_LABEL[exame.status]}
+            {exame.horario && ` · ${exame.horario.slice(0, 5)}`}{exame.local && ` · ${exame.local}`}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {exame.status !== 'cancelado' && <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => { setErro(''); setFormGestao({ nome: exame.nome, data: exame.data, ...camposGestaoDe(exame) }); }}>Editar dados</button>}
           {exame.tipo === 'roteiro_padrao'
             ? <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('normal')}>Desmarcar como Roteiro Padrão</button>
-            : <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('roteiro_padrao')}>🌟 Marcar como Roteiro Padrão</button>}
-          {exame.status === 'planejamento' && <button style={estiloBtnPrimario} onClick={() => mudarStatus('em_andamento')}>Iniciar exame</button>}
+            : exame.usa_avaliacao && !dados.candidatos.length && <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('roteiro_padrao')}>🌟 Marcar como Roteiro Padrão</button>}
+          {normal && exame.status === 'planejamento' && <button style={estiloBtnPrimario} onClick={() => mudarStatus('em_andamento')}>Iniciar exame</button>}
           {exame.status === 'em_andamento' && <button style={{ ...estiloBtnPrimario, background: '#2e7d32' }} onClick={() => mudarStatus('finalizado')}>Finalizar exame</button>}
           {exame.status === 'finalizado' && <button style={{ ...estiloBtnPrimario, background: '#888' }} onClick={() => mudarStatus('em_andamento')}>Reabrir exame</button>}
-          {exame.tipo !== 'roteiro_padrao' && (
+          {exame.status === 'cancelado' && <button style={{ ...estiloBtnPrimario, background: '#888' }} onClick={() => mudarStatus('planejamento')}>Reabrir exame</button>}
+          {normal && ['planejamento', 'em_andamento'].includes(exame.status) && <button style={{ background: 'none', border: '1px solid #ef6c00', color: '#ef6c00', padding: '8px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={cancelarExame}>Cancelar exame</button>}
+          {exame.tipo !== 'roteiro_padrao' && !dados.candidatos.some((c) => c.pagamentos.length || c.graduado) && (
             <button title="Excluir exame" style={{ background: 'none', border: '1px solid #c62828', color: '#c62828', padding: '8px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={excluirExame}>
               Excluir
             </button>
@@ -272,6 +241,38 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
 
       {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
 
+      <div role="tablist" style={{ display: 'flex', gap: 4, overflowX: 'auto', borderBottom: '1px solid #ddd', marginBottom: 16 }}>
+        {abas.map(([id, rotulo]) => (
+          <button key={id} role="tab" aria-selected={abaAtiva === id} onClick={() => setAba(id)}
+            style={{ background: 'none', border: 'none', borderBottom: abaAtiva === id ? '3px solid #1565c0' : '3px solid transparent', color: abaAtiva === id ? '#1565c0' : '#555', fontWeight: abaAtiva === id ? 700 : 400, padding: '10px 12px', cursor: 'pointer', fontSize: 14, whiteSpace: 'nowrap' }}>
+            {rotulo}
+          </button>
+        ))}
+      </div>
+
+      {abaAtiva === 'candidatos' && <AbaCandidatos dados={dados} recarregar={carregar} onAbrir={abrirCandidato} onAdicionar={() => setAdicionando(true)} />}
+      {abaAtiva === 'faixas' && <AbaFaixas dados={dados} recarregar={carregar} onAbrir={abrirCandidato} />}
+      {abaAtiva === 'financeiro' && <AbaFinanceiro dados={dados} onAbrir={abrirCandidato} />}
+      {abaAtiva === 'chamada' && <AbaChamada dados={dados} recarregar={carregar} />}
+      {abaAtiva === 'resultado' && <AbaResultado dados={dados} recarregar={carregar} />}
+      <Sobreposicoes dados={dados} recarregar={carregar} aberto={candidatoAberto} setAberto={setCandidatoAberto} adicionando={adicionando} setAdicionando={setAdicionando} />
+
+      {formGestao && (
+        <Modal titulo="Dados do exame" onFechar={() => setFormGestao(null)}>
+          <form onSubmit={salvarGestao}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 10 }}>
+              <Campo rotulo="Nome"><input required value={formGestao.nome} onChange={(e) => setFormGestao((f) => ({ ...f, nome: e.target.value }))} style={estiloInput} /></Campo>
+              <Campo rotulo="Data"><input required type="date" value={formGestao.data} onChange={(e) => setFormGestao((f) => ({ ...f, data: e.target.value }))} style={estiloInput} /></Campo>
+            </div>
+            <CamposGestao form={formGestao} set={(v) => setFormGestao((f) => ({ ...f, ...v }))} />
+            <p style={{ fontSize: 12, color: '#888' }}>Mudar a taxa padrão vale para todos os candidatos sem taxa própria.</p>
+            {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
+            <button type="submit" style={estiloBtnPrimario}>Salvar</button>
+          </form>
+        </Modal>
+      )}
+
+      {abaAtiva === 'roteiro' && (
       <div style={cardEstilo}>
         <h3 style={{ marginTop: 0 }}>Roteiro do Exame</h3>
         <p style={{ fontSize: 12, color: '#888', marginTop: -8, marginBottom: 16 }}>
@@ -376,54 +377,9 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           </div>
         ))}
       </div>
+      )}
 
-      <div style={cardEstilo}>
-        <h3 style={{ marginTop: 0 }}>Participantes</h3>
-        <form onSubmit={addParticipante} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'flex-end' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Aluno</label>
-            <select required value={formParticipante.aluno_id} onChange={(e) => selecionarAluno(e.target.value)} style={{ ...estiloInput, width: 200 }}>
-              <option value="">Selecione...</option>
-              {alunos.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Faixa atual</label>
-            <select value={formParticipante.faixa_atual_id} onChange={(e) => setFormParticipante((f) => ({ ...f, faixa_atual_id: e.target.value }))} style={{ ...estiloInput, width: 140 }}>
-              <option value="">—</option>
-              {faixasArte.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Faixa pretendida</label>
-            <select required value={formParticipante.faixa_pretendida_id} onChange={(e) => setFormParticipante((f) => ({ ...f, faixa_pretendida_id: e.target.value }))} style={{ ...estiloInput, width: 140 }}>
-              <option value="">Selecione...</option>
-              {faixasArte.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-            </select>
-          </div>
-          <button type="submit" style={estiloBtnPrimario}>Adicionar</button>
-        </form>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr style={{ background: '#f9f9f9' }}>
-            <th style={thEstilo}>Aluno</th><th style={thEstilo}>Faixa atual</th><th style={thEstilo}>Faixa pretendida</th><th style={thEstilo}></th>
-          </tr></thead>
-          <tbody>
-            {(exame.participantes || []).length === 0 && <tr><td colSpan={4} style={{ padding: 12, color: '#888', fontSize: 13 }}>Nenhum participante ainda.</td></tr>}
-            {(exame.participantes || []).map((p) => (
-              <tr key={p.id} style={{ borderTop: '1px solid #f0f0f0' }}>
-                <td style={{ padding: '8px 12px', fontSize: 14 }}>{p.Aluno?.nome}</td>
-                <td style={{ padding: '8px 12px' }}><FaixaBadge faixa={p.FaixaAtual} /></td>
-                <td style={{ padding: '8px 12px' }}><FaixaBadge faixa={p.FaixaPretendida} /></td>
-                <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                  <button onClick={() => window.open(`/exame/${exameId}/ficha/${p.id}`, '_blank')} style={btnLink('#1565c0')}>Ficha</button>
-                  <button onClick={() => removerParticipante(p)} style={btnLink('#c62828')}>Remover</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
+      {abaAtiva === 'avaliadores' && (
       <div style={cardEstilo}>
         <h3 style={{ marginTop: 0 }}>Avaliadores</h3>
         <p style={{ fontSize: 12, color: '#888', marginTop: -8 }}>
@@ -442,7 +398,9 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           ))}
         </div>
       </div>
+      )}
 
+      {abaAtiva === 'sorteio' && (
       <div style={cardEstilo}>
         <h3 style={{ marginTop: 0 }}>Sorteio de avaliadores</h3>
         <div style={{ marginBottom: 12 }}>
@@ -453,9 +411,9 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           </select>
         </div>
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Alunos sendo avaliados neste momento</label>
+          <label style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>Alunos sendo avaliados neste momento{presentes.length > 0 ? ' (presentes na chamada)' : ''}</label>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {(exame.participantes || []).map((p) => {
+            {sorteaveis.map((p) => {
               const faixa = p.FaixaAtual || p.FaixaPretendida;
               const selecionado = participantesSelecionados.includes(p.id);
               return (
@@ -485,7 +443,9 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           </ul>
         )}
       </div>
+      )}
 
+      {abaAtiva === 'progresso' && (
       <div style={cardEstilo}>
         <h3 style={{ marginTop: 0 }}>Progresso</h3>
         <div style={{ overflowX: 'auto' }}>
@@ -495,7 +455,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
               {(exame.fases || []).map((f) => <th key={f.id} style={thEstilo}>{f.nome}</th>)}
             </tr></thead>
             <tbody>
-              {(exame.participantes || []).map((p) => (
+              {naoDesistiu.map((p) => (
                 <tr key={p.id} style={{ borderTop: '1px solid #f0f0f0' }}>
                   <td style={{ padding: '8px 12px', fontSize: 14 }}>{p.Aluno?.nome}</td>
                   {(exame.fases || []).map((f) => {
@@ -515,35 +475,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           </table>
         </div>
       </div>
-
-      <div style={cardEstilo}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0 }}>Relatório final</h3>
-          <button onClick={() => window.open(`/exame/${exameId}/relatorio-impressao`, '_blank')} style={{ ...estiloBtnPrimario, fontSize: 12, padding: '6px 12px' }}>Imprimir</button>
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 12 }}>
-          <thead><tr style={{ background: '#f9f9f9' }}>
-            <th style={thEstilo}>Aluno</th><th style={thEstilo}>Faixa atual → pretendida</th><th style={thEstilo}>Fases</th><th style={thEstilo}>Nota final</th><th style={thEstilo}></th>
-          </tr></thead>
-          <tbody>
-            {(relatorio?.participantes || []).map((linha) => (
-              <tr key={linha.participante_id} style={{ borderTop: '1px solid #f0f0f0' }}>
-                <td style={{ padding: '8px 12px', fontSize: 14 }}>{linha.aluno?.nome}</td>
-                <td style={{ padding: '8px 12px' }}><FaixaBadge faixa={linha.faixa_atual} /> → <FaixaBadge faixa={linha.faixa_pretendida} /></td>
-                <td style={{ padding: '8px 12px', fontSize: 13 }}>{linha.fases_finalizadas}/{linha.fases_total}</td>
-                <td style={{ padding: '8px 12px', fontSize: 14, fontWeight: 600 }}>{linha.nota_final != null ? linha.nota_final : '—'}</td>
-                <td style={{ padding: '8px 12px' }}>
-                  {linha.completo && linha.nota_final != null && (
-                    confirmadas.includes(linha.participante_id)
-                      ? <span style={{ color: '#2e7d32', fontSize: 12 }}>Confirmado ✓</span>
-                      : <button onClick={() => confirmarGraduacao(linha)} style={btnLink('#2e7d32')}>Confirmar graduação</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      )}
     </div>
   );
 }

@@ -40,6 +40,9 @@ const LocalTreinoIncentivo = require('./LocalTreinoIncentivo');
 const LocalTreino = require('./LocalTreino');
 const FichaEvolucaoInfantil = require('./FichaEvolucaoInfantil');
 const IndicacaoExame = require('./IndicacaoExame');
+const ExamePagamento = require('./ExamePagamento');
+const ExamePedidoFaixa = require('./ExamePedidoFaixa');
+const ExameHistorico = require('./ExameHistorico');
 
 // Escola
 Escola.hasMany(Usuario, { foreignKey: 'escola_id' });
@@ -288,6 +291,17 @@ IndicacaoExame.belongsTo(ArteMarcial, { foreignKey: 'arte_marcial_id', constrain
 IndicacaoExame.belongsTo(Faixa, { foreignKey: 'faixa_atual_id', as: 'FaixaAtual', constraints: false });
 IndicacaoExame.belongsTo(Faixa, { foreignKey: 'faixa_pretendida_id', as: 'FaixaPretendida', constraints: false });
 
+// Gestão do Exame. constraints: false pelo mesmo motivo da indicação: nada
+// de ON DELETE CASCADE implícito (pagamento nunca some junto com candidato).
+ExameParticipante.belongsTo(IndicacaoExame, { foreignKey: 'indicacao_exame_id', as: 'Indicacao', constraints: false });
+ExameParticipante.belongsTo(Turma, { foreignKey: 'turma_id', as: 'Turma', constraints: false });
+ExameParticipante.hasMany(ExamePagamento, { foreignKey: 'exame_participante_id', as: 'Pagamentos', constraints: false });
+ExamePagamento.belongsTo(ExameParticipante, { foreignKey: 'exame_participante_id', as: 'Participante', constraints: false });
+ExamePagamento.belongsTo(Usuario, { foreignKey: 'registrado_por', as: 'RegistradoPor', constraints: false });
+ExameParticipante.hasOne(ExamePedidoFaixa, { foreignKey: 'exame_participante_id', as: 'PedidoFaixa', constraints: false });
+ExamePedidoFaixa.belongsTo(Faixa, { foreignKey: 'faixa_id', constraints: false });
+ExameHistorico.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'Usuario', constraints: false });
+
 module.exports = {
   Escola, Usuario, ArteMarcial, Faixa, CriterioGraduacao,
   GraduacaoAluno, Ocorrencia,
@@ -301,4 +315,5 @@ module.exports = {
   CredencialIncentivo, EntidadeFederativa, EsporteIncentivo,
   ObjetivoIncentivo, CompeticaoPrevistaIncentivo, LocalTreinoIncentivo, LocalTreino,
   FichaEvolucaoInfantil, IndicacaoExame,
+  ExamePagamento, ExamePedidoFaixa, ExameHistorico,
 };

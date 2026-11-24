@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { SITUACAO, moeda } from '../utils/gestaoExame';
 import { SERVER_ORIGIN } from '../components/Avatar';
 import { EvolucaoAluno } from '../components/EvolucaoInfantil';
 
@@ -298,10 +299,19 @@ function SecaoGraduacao({ dadosGraduacao, alunoId, escolaId, onRefresh }) {
                   → <FaixaChip nome={indicacao.FaixaPretendida?.nome || ''} />
                   <span style={{ color: '#888' }}>desde {formatData(indicacao.data_indicacao)}</span>
                 </span>
-                <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                {indicacao.exame && (
+                  <span style={{ fontSize: 12, color: '#555', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    {indicacao.exame.nome} ({formatData(indicacao.exame.data)}) · taxa:
+                    <strong style={{ color: SITUACAO[indicacao.exame.pagamento.situacao].cor }}>{SITUACAO[indicacao.exame.pagamento.situacao].label}</strong>
+                    {indicacao.exame.pagamento.saldo > 0 && <>(falta {moeda(indicacao.exame.pagamento.saldo)})</>}
+                  </span>
+                )}
+                {indicacao.exame ? (
+                  <span style={{ fontSize: 11, color: '#8d6e00', marginLeft: 'auto' }}>Resultado e desistência: registre pelo exame.</span>
+                ) : <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
                   <button style={btnCinza} disabled={processandoArte === arte.id} onClick={() => cancelarIndicacao(arte.id, indicacao.id)}>Cancelar indicação</button>
                   <button style={btnVerde} disabled={processandoArte === arte.id} onClick={() => abrirAprovar(arte, indicacao)}>✓ Aprovado</button>
-                </div>
+                </div>}
               </div>
             )}
           </div>

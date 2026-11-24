@@ -320,7 +320,7 @@ function ExameFaixa({ dados }) {
   return (
     <div>
       <div style={{ marginBottom: 12, fontSize: 13, color: '#555' }}>
-        <div><strong>{dados.arte_marcial.nome}</strong></div>
+        <div><strong>{dados.arte_marcial.nome}</strong>{dados.exame && <> · {dados.exame.nome} ({formatData(dados.exame.data)})</>}</div>
         <div>{dados.alunos.length} aluno{dados.alunos.length !== 1 ? 's' : ''} · gerado em {formatData(dados.gerado_em)}</div>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>

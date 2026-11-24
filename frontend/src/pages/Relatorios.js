@@ -289,6 +289,9 @@ function CardAlunosSemTurma() {
 // aulas na faixa atual.
 function CardExameFaixa({ artes }) {
   const [arteId, setArteId] = useState('');
+  const [exames, setExames] = useState([]);
+  const [exameId, setExameId] = useState('');
+  useEffect(() => { axios.get('/exames').then(r => setExames(r.data.filter(e => e.tipo === 'normal'))).catch(() => {}); }, []);
   const [aberto, setAberto] = useState(false);
   const [alunos, setAlunos] = useState(null);
   const [erro, setErro] = useState('');
@@ -298,7 +301,7 @@ function CardExameFaixa({ artes }) {
   const abrir = () => {
     setAberto(true); setAlunos(null); setErro(''); setMarcados(new Set()); setBusca('');
     // a lista já vem só com os indicados ao exame — todos marcados de saída
-    axios.get(`/relatorios/exame-faixa?arte_marcial_id=${arteId}`)
+    axios.get('/relatorios/exame-faixa', { params: { arte_marcial_id: arteId, exame_id: exameId || undefined } })
       .then(r => { setAlunos(r.data.alunos); setMarcados(new Set(r.data.alunos.map(a => a.id))); })
       .catch(ex => setErro(ex.response?.data?.erro || 'Não foi possível carregar os alunos.'));
   };
@@ -318,7 +321,7 @@ function CardExameFaixa({ artes }) {
   const gerar = () => {
     // mantém a ordem da lista (por graduação)
     const ids = (alunos || []).filter(a => marcados.has(a.id)).map(a => a.id);
-    abrirRelatorio('exame-faixa', { arte_marcial_id: arteId, aluno_ids: ids.join(',') });
+    abrirRelatorio('exame-faixa', { arte_marcial_id: arteId, aluno_ids: ids.join(','), ...(exameId ? { exame_id: exameId } : {}) });
   };
   const btnLink = { background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', fontSize: 12, padding: 0 };
 
@@ -326,9 +329,16 @@ function CardExameFaixa({ artes }) {
     <Card titulo="Exame de Faixa">
       <div>
         <span style={rotulo}>Programa Marcial</span>
-        <select value={arteId} onChange={e => setArteId(e.target.value)} style={estiloInput}>
+        <select value={arteId} onChange={e => { setArteId(e.target.value); setExameId(''); }} style={estiloInput}>
           <option value="">Selecione...</option>
           {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+        </select>
+      </div>
+      <div>
+        <span style={rotulo}>Exame (opcional)</span>
+        <select value={exameId} onChange={e => setExameId(e.target.value)} style={estiloInput}>
+          <option value="">Todos os indicados</option>
+          {exames.filter(e => e.arte_marcial_id === arteId).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
         </select>
       </div>
       <p style={{ fontSize: 12, color: '#888', margin: 0 }}>Lista os alunos indicados ao próximo exame (botão "Indicar p/ exame" na tela do aluno): nome, idade, graduação atual e pretendida e aulas na faixa atual.</p>

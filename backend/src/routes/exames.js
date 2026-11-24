@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { autenticar } = require('../middleware/autenticacao');
 const { autorizarRole } = require('../middleware/autorizacao');
 const ctrl = require('../controllers/examesController');
+const gestao = require('../controllers/gestaoExameController');
 
 const staff = autorizarRole(['admin', 'professor']);
 
@@ -21,8 +22,6 @@ router.put('/:id/criterios/:criterio_id', autenticar, staff, ctrl.atualizarCrite
 router.delete('/:id/criterios/:criterio_id', autenticar, staff, ctrl.removerCriterio);
 router.put('/:id/criterios/:criterio_id/faixas', autenticar, staff, ctrl.definirFaixasAplicaveis);
 
-router.post('/:id/participantes', autenticar, staff, ctrl.adicionarParticipante);
-router.delete('/:id/participantes/:participante_id', autenticar, staff, ctrl.removerParticipante);
 router.get('/:id/participantes/:participante_id/ficha', autenticar, staff, ctrl.fichaParticipante);
 
 router.post('/:id/avaliadores', autenticar, staff, ctrl.adicionarAvaliador);
@@ -30,6 +29,21 @@ router.delete('/:id/avaliadores/:avaliador_id', autenticar, staff, ctrl.revogarA
 
 router.post('/:id/sorteio', autenticar, staff, ctrl.sortear);
 router.patch('/:id/avaliacoes/:avaliacao_id/reabrir', autenticar, staff, ctrl.reabrirAvaliacao);
+
+// Gestão do exame (candidatos, taxa, pedido de faixa, resultado)
+router.put('/:id/gestao', autenticar, staff, gestao.atualizarGestao);
+router.get('/:id/candidatos', autenticar, staff, gestao.listarCandidatos);
+router.get('/:id/elegiveis', autenticar, staff, gestao.listarElegiveis);
+router.post('/:id/candidatos', autenticar, staff, gestao.incluirCandidatos);
+router.patch('/:id/candidatos', autenticar, staff, gestao.atualizarEmMassa);
+router.patch('/:id/candidatos/:pid', autenticar, staff, gestao.atualizarCandidato);
+router.delete('/:id/candidatos/:pid', autenticar, staff, gestao.removerCandidato);
+router.post('/:id/pagamentos', autenticar, staff, gestao.registrarPagamento);
+router.post('/:id/pagamentos/lote', autenticar, staff, gestao.pagarEmMassa);
+router.delete('/:id/pagamentos/:pagamento_id', autenticar, staff, gestao.estornarPagamento);
+router.put('/:id/pedidos-faixa/:pid', autenticar, staff, gestao.salvarPedido);
+router.post('/:id/resultado', autenticar, staff, gestao.gravarResultado);
+router.get('/:id/historico', autenticar, staff, gestao.listarHistorico);
 
 router.get('/:id/relatorio', autenticar, staff, ctrl.relatorio);
 

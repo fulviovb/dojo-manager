@@ -1777,6 +1777,30 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     FaixaChip da tela do aluno (escolha da faixa do exame, graduação atual,
     histórico, tarja de indicação).
 
+[x] Gestão do Exame de Faixa (24/11/2026, spec em
+    modulo-gestao-exame/especificacao-gestao-exames-faixa.md, RF-01 a RF-18):
+    Exame vira o evento (local, horário, taxa, preço da faixa, prazos,
+    usa_avaliacao, inscricoes_fechadas, status cancelado) e
+    ExameParticipante vira o candidato (sempre com IndicacaoExame).
+    ExameDetalhe em abas: Candidatos, Faixas, Financeiro, Lista de chamada,
+    Resultado (+ Roteiro/Avaliadores/Sorteio/Progresso se usa avaliação).
+    Inclusão por indicados (lote), turma ou avulso; taxa/desconto/isenção;
+    pagamentos parciais e em lote com estorno (nunca apaga); pedido de faixa
+    consolidado; CSV e impressões (/exame/:id/listas/:tipo); cobrança pra
+    copiar no WhatsApp; histórico. Tabelas novas: exame_pagamentos,
+    exame_pedidos_faixa, exame_historico (sem FK/CASCADE). Migração:
+    backend/src/scripts/2026-11-gestao-exame.js (só adiciona, idempotente).
+    Graduar candidato só por POST /exames/:id/resultado (transação, trava por
+    graduacao_aluno_id); "✓ Aprovado" e cancelar indicação bloqueados em exame
+    aberto; POST/DELETE /graduacoes exigem admin/professor (só alunos dele);
+    professor só vê exames/candidatos das artes/turmas dele.
+    Decisões: valor_taxa null herda a taxa do exame; taxa 0/nula = "Sem taxa";
+    desistente sai do previsto/pendente; data_proximo_exame segue manual.
+    Testado em cópia isolada do banco: 122 checagens de API (inclui
+    concorrência e permissões) + Chrome headless (desktop e celular).
+    Fora do escopo, ainda pendentes: Branca/Cinza fora do roteiro, nota NaN na
+    ficha individual, nota não exibida no histórico do aluno, PIN revogado.
+
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
 - GitHub: github.com/fulviovb/dojo-manager (branch padrão: master). O repo já
