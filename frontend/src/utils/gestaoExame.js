@@ -9,7 +9,7 @@ export const SITUACAO = {
   parcial: { label: 'Parcial', cor: '#1565c0' },
   pago: { label: 'Pago', cor: '#2e7d32' },
   atrasado: { label: 'Atrasado', cor: '#c62828' },
-  sem_taxa: { label: 'Sem taxa', cor: '#888' },
+  sem_taxa: { label: 'Sem taxa', cor: '#ad1457' },
   nao_pediu: { label: '—', cor: '#888' },
 };
 export const INSCRICAO = {
@@ -41,6 +41,9 @@ export const textoCarencia = (c) => {
 export const textoPedido = (c) => (c.quer_comprar === 'sim' ? [c.pedido.tamanho, c.pedido.tipo].filter(Boolean).join(' · ') : c.quer_comprar === 'nao' ? 'não' : '—');
 
 export const ativos = (lista) => lista.filter((c) => c.status_inscricao !== 'desistiu');
+// Faixas pretendidas com candidato e sem taxa definida no exame
+export const faixasSemTaxa = (lista) => [...new Map(ativos(lista).filter((c) => c.financeiro.taxa.situacao === 'sem_taxa').map((c) => [c.faixa_pretendida?.id, c.faixa_pretendida])).values()]
+  .filter(Boolean).sort((a, b) => a.ordem - b.ordem);
 export const saldoTotal = (c) => c.financeiro.taxa.saldo + c.financeiro.faixa.saldo;
 export const pendentes = (lista) => ativos(lista).filter((c) => saldoTotal(c) > 0);
 export const diasAtraso = (exame, hoje) => (exame.prazo_pagamento && hoje > exame.prazo_pagamento

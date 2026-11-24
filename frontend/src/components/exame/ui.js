@@ -63,7 +63,6 @@ export function CamposGestao({ form, set }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
         {campo('local', 'Local')}
         {campo('horario', 'Horário', { type: 'time' })}
-        {campo('taxa_padrao', 'Taxa padrão (R$)', { type: 'number', min: 0, step: '0.01', inputMode: 'decimal' })}
         {campo('preco_faixa_padrao', 'Preço padrão da faixa (R$)', { type: 'number', min: 0, step: '0.01', inputMode: 'decimal' })}
         {campo('prazo_pagamento', 'Prazo de pagamento', { type: 'date' })}
         {campo('prazo_pedido_faixa', 'Prazo do pedido de faixa', { type: 'date' })}
@@ -77,19 +76,25 @@ export function CamposGestao({ form, set }) {
 }
 
 export const camposGestaoDe = (e = {}) => ({
-  local: e.local || '', horario: (e.horario || '').slice(0, 5), taxa_padrao: e.taxa_padrao ?? '', preco_faixa_padrao: e.preco_faixa_padrao ?? '',
+  local: e.local || '', horario: (e.horario || '').slice(0, 5), preco_faixa_padrao: e.preco_faixa_padrao ?? '',
   prazo_pagamento: e.prazo_pagamento || '', prazo_pedido_faixa: e.prazo_pedido_faixa || '', usa_avaliacao: e.usa_avaliacao ?? true,
 });
-export const camposPrecosDe = (e) => ({ taxas_por_faixa: { ...(e.taxas_por_faixa || {}) }, tipos_faixa: [...(e.tipos_faixa || [])] });
+// `faixas`: descarta taxa de faixa que não existe mais
+export const camposPrecosDe = (e, faixas) => ({ taxas_por_faixa: Object.fromEntries(Object.entries(e.taxas_por_faixa || {}).filter(([id]) => faixas.some((f) => f.id === id))), tipos_faixa: [...(e.tipos_faixa || [])] });
 
 // Taxa por faixa pretendida e tipos (qualidades) de faixa — edição do exame
 export function PrecosExame({ form, set, faixas }) {
+  const [todas, setTodas] = useState('');
   const num = { type: 'number', min: 0, step: '0.01', inputMode: 'decimal' };
   const mudarTipo = (i, v) => set({ tipos_faixa: form.tipos_faixa.map((t, j) => (j === i ? { ...t, ...v } : t)) });
   return (
     <>
       <h4 style={{ margin: '14px 0 4px', fontSize: 14 }}>Taxa por faixa pretendida</h4>
-      <p style={{ fontSize: 11, color: '#888', margin: '0 0 8px' }}>Em branco, vale a taxa padrão.</p>
+      <p style={{ fontSize: 11, color: '#888', margin: '0 0 8px' }}>Faixa em branco: o candidato aparece como "Sem taxa". Zero: exame gratuito.</p>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10, maxWidth: 300 }}>
+        <input {...num} aria-label="Valor para todas as faixas" placeholder="R$ para todas" value={todas} onChange={(e) => setTodas(e.target.value)} style={estiloInput} />
+        <button type="button" style={{ ...btnCinza, whiteSpace: 'nowrap' }} disabled={todas === ''} onClick={() => set({ taxas_por_faixa: Object.fromEntries(faixas.map((f) => [f.id, todas])) })}>Aplicar a todas</button>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
         {faixas.map((f) => (
           <Campo key={f.id} rotulo={<Faixa faixa={f} />}>

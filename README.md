@@ -301,7 +301,7 @@ sempre ligado a uma `IndicacaoExame`; uma indicação fica em no máximo um exam
 aberto. Situação de pagamento é sempre calculada de `ExamePagamento`
 (`utils/pagamentoExame.js`), nunca gravada; lançamento só sai por estorno.
 `ExameParticipante.valor_taxa` nulo herda `Exame.taxas_por_faixa[faixa
-pretendida]` e, sem ela, `Exame.taxa_padrao`. `Exame.tipos_faixa` é a lista
+pretendida]`; faixa sem valor = "Sem taxa" (avisado na tela), 0 = gratuito. `Exame.tipos_faixa` é a lista
 livre de qualidades de faixa com preço. `aluno_id` nulo = candidato externo
 (`externo_*`, só admin): use `participante.pessoa()` em vez de `.Aluno`; não
 tem indicação e o resultado não gera graduação. O único caminho

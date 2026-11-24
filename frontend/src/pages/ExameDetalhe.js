@@ -72,6 +72,8 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
   const abaAtiva = abas.some(([id]) => id === aba) ? aba : abas[0][0];
   const abrirCandidato = (id, pagamento) => setCandidatoAberto({ id, pagamento: !!pagamento });
 
+  const abrirDados = () => { setErro(''); setFormGestao({ nome: exame.nome, data: exame.data, ...camposGestaoDe(exame), ...(normal ? camposPrecosDe(exame, faixasArte) : {}) }); };
+
   const salvarGestao = async (e) => {
     e.preventDefault(); setErro('');
     try { await axios.put(`/exames/${exameId}/gestao`, formGestao); setFormGestao(null); carregar(); }
@@ -223,7 +225,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {exame.status !== 'cancelado' && <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => { setErro(''); setFormGestao({ nome: exame.nome, data: exame.data, ...camposGestaoDe(exame), ...(exame.tipo === 'normal' ? camposPrecosDe(exame) : {}) }); }}>Editar dados</button>}
+          {exame.status !== 'cancelado' && <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={abrirDados}>Editar dados</button>}
           {exame.tipo === 'roteiro_padrao'
             ? <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('normal')}>Desmarcar como Roteiro Padrão</button>
             : exame.usa_avaliacao && !dados.candidatos.length && <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('roteiro_padrao')}>🌟 Marcar como Roteiro Padrão</button>}
@@ -251,9 +253,9 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
         ))}
       </div>
 
-      {abaAtiva === 'candidatos' && <AbaCandidatos dados={dados} recarregar={carregar} onAbrir={abrirCandidato} onAdicionar={() => setAdicionando(true)} />}
+      {abaAtiva === 'candidatos' && <AbaCandidatos onDefinirTaxas={abrirDados} dados={dados} recarregar={carregar} onAbrir={abrirCandidato} onAdicionar={() => setAdicionando(true)} />}
       {abaAtiva === 'faixas' && <AbaFaixas dados={dados} recarregar={carregar} onAbrir={abrirCandidato} />}
-      {abaAtiva === 'financeiro' && <AbaFinanceiro dados={dados} onAbrir={abrirCandidato} />}
+      {abaAtiva === 'financeiro' && <AbaFinanceiro onDefinirTaxas={abrirDados} dados={dados} onAbrir={abrirCandidato} />}
       {abaAtiva === 'chamada' && <AbaChamada dados={dados} recarregar={carregar} />}
       {abaAtiva === 'resultado' && <AbaResultado dados={dados} recarregar={carregar} />}
       <Sobreposicoes admin={admin} faixas={faixasArte} dados={dados} recarregar={carregar} aberto={candidatoAberto} setAberto={setCandidatoAberto} adicionando={adicionando} setAdicionando={setAdicionando} />

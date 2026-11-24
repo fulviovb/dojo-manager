@@ -10,7 +10,7 @@ const { calcularNotaFinal } = require('../utils/notaExame');
 const { ErroRegra, responderErro, STATUS_ABERTO, alunosPermitidos, candidatoEmExameAberto } = require('../services/indicacaoExameService');
 const { artesPermitidas, carregarExame, exigirExameInteiro, carregarCandidato } = require('../services/exameAcessoService');
 const { buscarFasesDoExame, copiarRoteiro } = require('../services/roteiroExameService');
-const { lerGestao, resumosDosExames, tiposDoExameAnterior } = require('./gestaoExameController');
+const { lerGestao, resumosDosExames, precosDoExameAnterior, conferirFaixas } = require('./gestaoExameController');
 
 const listar = async (req, res) => {
   try {
@@ -89,12 +89,12 @@ const criar = async (req, res) => {
     const artes = await artesPermitidas(req.usuario);
     if (artes && !artes.has(arte_marcial_id)) throw new ErroRegra(403, 'Sem permissão para esta arte marcial');
     const gestao = lerGestao(req.body);
-    delete gestao.taxas_por_faixa; // só na edição, que confere a arte das faixas
-    if (!gestao.tipos_faixa) gestao.tipos_faixa = await tiposDoExameAnterior(req.usuario.escola_id, arte_marcial_id);
+    if (gestao.taxas_por_faixa) await conferirFaixas(gestao.taxas_por_faixa, arte_marcial_id);
+    const precos = await precosDoExameAnterior(req.usuario.escola_id, arte_marcial_id);
 
     const codigo = await gerarCodigoUnico();
     const exame = await Exame.create({
-      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo, ...gestao,
+      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo, ...precos, ...gestao,
     });
 
     const exameAnterior = exame.usa_avaliacao && await Exame.findOne({
@@ -122,8 +122,8 @@ const comecarComRoteiroPadrao = async (req, res) => {
     const artes = await artesPermitidas(req.usuario);
     if (artes && !artes.has(arte_marcial_id)) throw new ErroRegra(403, 'Sem permissão para esta arte marcial');
     const gestao = lerGestao(req.body);
-    delete gestao.taxas_por_faixa; // só na edição, que confere a arte das faixas
-    if (!gestao.tipos_faixa) gestao.tipos_faixa = await tiposDoExameAnterior(req.usuario.escola_id, arte_marcial_id);
+    if (gestao.taxas_por_faixa) await conferirFaixas(gestao.taxas_por_faixa, arte_marcial_id);
+    const precos = await precosDoExameAnterior(req.usuario.escola_id, arte_marcial_id);
 
     const roteiroPadrao = await Exame.findOne({
       where: { arte_marcial_id, escola_id: req.usuario.escola_id, tipo: 'roteiro_padrao' },
@@ -132,7 +132,7 @@ const comecarComRoteiroPadrao = async (req, res) => {
 
     const codigo = await gerarCodigoUnico();
     const exame = await Exame.create({
-      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo, ...gestao,
+      escola_id: req.usuario.escola_id, arte_marcial_id, nome, data, status: 'planejamento', codigo, ...precos, ...gestao,
     });
     await copiarRoteiro(roteiroPadrao.id, exame.id);
 

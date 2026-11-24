@@ -4,7 +4,7 @@ import AdicionarCandidatos from './AdicionarCandidatos';
 import FichaCandidato from './FichaCandidato';
 import { Faixa, Selo, Modal, Campo, useCelular, btnPrimario, btnVerde, btnCinza, btnLink, cardEstilo, estiloInput, thEstilo, tdEstilo } from './ui';
 import {
-  moeda, formatData, SITUACAO, INSCRICAO, PEDIDO, FORMAS, FILTROS_VAZIOS, filtrar, textoCarencia, textoPedido, ativos, pendentes, saldoTotal,
+  moeda, formatData, SITUACAO, INSCRICAO, PEDIDO, FORMAS, FILTROS_VAZIOS, filtrar, textoCarencia, textoPedido, ativos, pendentes, saldoTotal, faixasSemTaxa,
   diasAtraso, consolidarFaixas, csvCandidatos, csvFaixas, textoCobranca, copiarTexto,
 } from '../../utils/gestaoExame';
 
@@ -19,6 +19,18 @@ function Total({ rotulo, valor, sub, cor = '#1e2a38' }) {
       <div style={{ fontSize: 11, color: '#888' }}>{rotulo}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: cor }}>{valor}</div>
       {sub && <div style={{ fontSize: 11, color: '#888' }}>{sub}</div>}
+    </div>
+  );
+}
+
+function AvisoSemTaxa({ candidatos, onDefinir }) {
+  const faixas = faixasSemTaxa(candidatos);
+  if (!faixas.length) return null;
+  const n = ativos(candidatos).filter((c) => c.financeiro.taxa.situacao === 'sem_taxa').length;
+  return (
+    <div role="alert" style={{ background: '#fce4ec', border: '1px solid #ad1457', borderRadius: 6, padding: '10px 14px', marginBottom: 14, fontSize: 13 }}>
+      <strong>{n} candidato(s) sem taxa.</strong> Faixas sem valor: {faixas.map((f) => f.nome).join(', ')}.{' '}
+      <button style={btnLink('#ad1457')} onClick={onDefinir}><u>Definir taxas</u></button>
     </div>
   );
 }
@@ -64,7 +76,7 @@ function Filtros({ candidatos, f, setF }) {
 
 const corCarencia = (c) => (c?.situacao === 'abaixo' ? '#c62828' : c?.situacao === 'ok' ? '#2e7d32' : '#888');
 
-export function AbaCandidatos({ dados, recarregar, onAbrir, onAdicionar }) {
+export function AbaCandidatos({ dados, recarregar, onAbrir, onAdicionar, onDefinirTaxas }) {
   const { exame, candidatos, totais } = dados;
   const [f, setF] = useState(FILTROS_VAZIOS);
   const [marcados, setMarcados] = useState(new Set());
@@ -96,6 +108,7 @@ export function AbaCandidatos({ dados, recarregar, onAbrir, onAdicionar }) {
 
   return (
     <>
+      <AvisoSemTaxa candidatos={candidatos} onDefinir={onDefinirTaxas} />
       <Totais t={totais} />
       <div style={cardEstilo}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12, alignItems: 'center' }}>
@@ -225,13 +238,14 @@ export function AbaFaixas({ dados, recarregar, onAbrir }) {
   );
 }
 
-export function AbaFinanceiro({ dados, onAbrir }) {
+export function AbaFinanceiro({ dados, onAbrir, onDefinirTaxas }) {
   const { exame, candidatos, totais, hoje } = dados;
   const [copiado, setCopiado] = useState(null);
   const lista = pendentes(candidatos);
   const atraso = diasAtraso(exame, hoje);
   return (
     <>
+      <AvisoSemTaxa candidatos={candidatos} onDefinir={onDefinirTaxas} />
       <Totais t={totais} />
       <div style={cardEstilo}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>

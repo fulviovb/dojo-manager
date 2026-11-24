@@ -3,8 +3,8 @@
 const cent = (v) => Math.round(Number(v || 0) * 100);
 const real = (c) => c / 100;
 
-// Taxa da faixa pretendida; sem preço próprio, a taxa padrão do exame
-const taxaHerdada = (participante, exame) => exame.taxas_por_faixa?.[participante.faixa_pretendida_id] ?? exame.taxa_padrao;
+// Taxa da faixa pretendida no exame; null = faixa ainda sem taxa
+const taxaHerdada = (participante, exame) => exame.taxas_por_faixa?.[participante.faixa_pretendida_id] ?? null;
 
 const situacaoDe = ({ devido, pago, prazo, hoje }) => {
   if (pago >= devido) return 'pago';
@@ -23,12 +23,13 @@ function resumoFinanceiro(participante, exame, hoje) {
   const validos = (participante.Pagamentos || []).filter((p) => !p.estornado_em);
   const somar = (ref) => validos.filter((p) => p.referente === ref).reduce((s, p) => s + cent(p.valor), 0);
 
-  const bruto = cent(participante.valor_taxa ?? taxaHerdada(participante, exame));
+  const taxaBase = participante.valor_taxa ?? taxaHerdada(participante, exame);
+  const bruto = cent(taxaBase);
   const devidoTaxa = participante.isento ? 0 : Math.max(0, bruto - cent(participante.desconto));
   const pagoTaxa = somar('taxa');
   let sitTaxa;
   if (participante.isento) sitTaxa = 'isento';
-  else if (bruto === 0) sitTaxa = 'sem_taxa'; // taxa ainda não definida
+  else if (taxaBase == null) sitTaxa = 'sem_taxa'; // 0 digitado é taxa definida
   else sitTaxa = situacaoDe({ devido: devidoTaxa, pago: pagoTaxa, prazo: exame.prazo_pagamento, hoje });
 
   const pedido = participante.PedidoFaixa;

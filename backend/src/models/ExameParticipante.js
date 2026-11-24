@@ -16,7 +16,7 @@ const ExameParticipante = sequelize.define('ExameParticipante', {
   // Gestão do Exame: o participante é o candidato.
   indicacao_exame_id: { type: DataTypes.UUID },
   turma_id: { type: DataTypes.UUID },
-  // null = herda Exame.taxa_padrao (mudar a taxa do exame vale pra todos)
+  // null = herda a taxa da faixa pretendida (Exame.taxas_por_faixa)
   valor_taxa: { type: DataTypes.DECIMAL(10, 2) },
   desconto: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 },
   motivo_desconto: { type: DataTypes.STRING },

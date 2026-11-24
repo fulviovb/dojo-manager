@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { CamposGestao, camposGestaoDe } from '../components/exame/ui';
+import { CamposGestao, camposGestaoDe, PrecosExame, camposPrecosDe } from '../components/exame/ui';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -35,13 +35,36 @@ export default function Exames({ onVerExame }) {
   useEffect(() => { carregar(); }, []);
   useEffect(() => { axios.get('/artes-marciais').then(r => setArtes(r.data)); }, []);
 
-  const abrirModal = (tipo) => { setModalTipo(tipo); setErro(''); setForm({ arte_marcial_id: '', nome: '', data: '', ...camposGestaoDe() }); };
+  const [faixas, setFaixas] = useState([]);
+  const arteAtual = useRef('');
+  // Ao escolher a arte: faixas dela + taxas e tipos do último exame que tenha
+  const escolherArte = async (arteId) => {
+    arteAtual.current = arteId;
+    setErro(''); setFaixas([]);
+    setForm(f => ({ ...f, arte_marcial_id: arteId, taxas_por_faixa: {}, tipos_faixa: [] }));
+    if (!arteId) return;
+    try {
+      const { data } = await axios.get(`/faixas?arte_marcial_id=${arteId}`);
+      const anteriores = exames.filter(e => e.arte_marcial_id === arteId && e.tipo === 'normal' && e.status !== 'cancelado')
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      const precos = camposPrecosDe({
+        taxas_por_faixa: anteriores.find(e => Object.keys(e.taxas_por_faixa || {}).length)?.taxas_por_faixa,
+        tipos_faixa: anteriores.find(e => e.tipos_faixa?.length)?.tipos_faixa,
+      }, data);
+      if (arteAtual.current !== arteId) return; // trocou de arte enquanto carregava
+      setFaixas(data); setForm(f => ({ ...f, ...precos }));
+    } catch (ex) { setErro('Não foi possível carregar as faixas desta arte.'); }
+  };
+
+  const abrirModal = (tipo) => { setModalTipo(tipo); setErro(''); setFaixas([]); setForm({ arte_marcial_id: '', nome: '', data: '', ...camposGestaoDe() }); };
 
   const salvar = async (e) => {
     e.preventDefault(); setErro('');
     const endpoint = modalTipo === 'roteiro-padrao' ? '/exames/comecar-com-roteiro-padrao' : '/exames';
+    const { taxas_por_faixa, tipos_faixa, ...resto } = form;
+    const dados = faixas.length ? form : resto; // sem faixas carregadas, o backend copia os preços do exame anterior
     try {
-      const { data } = await axios.post(endpoint, modalTipo === 'roteiro-padrao' ? { ...form, usa_avaliacao: true } : form);
+      const { data } = await axios.post(endpoint, modalTipo === 'roteiro-padrao' ? { ...dados, usa_avaliacao: true } : dados);
       setModalTipo(null);
       carregar();
       onVerExame?.(data.id);
@@ -97,7 +120,7 @@ export default function Exames({ onVerExame }) {
           <form onSubmit={salvar}>
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Arte Marcial</label>
-              <select required value={form.arte_marcial_id} onChange={e => setForm(f => ({ ...f, arte_marcial_id: e.target.value }))} style={estiloInput}>
+              <select required value={form.arte_marcial_id} onChange={e => escolherArte(e.target.value)} style={estiloInput}>
                 <option value="">Selecione...</option>
                 {artes.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
               </select>
@@ -113,6 +136,7 @@ export default function Exames({ onVerExame }) {
             {modalTipo === 'roteiro-padrao'
               ? <CamposGestao form={{ ...form, usa_avaliacao: true }} set={(v) => { const { usa_avaliacao, ...r } = v; setForm(f => ({ ...f, ...r })); }} />
               : <CamposGestao form={form} set={(v) => setForm(f => ({ ...f, ...v }))} />}
+            {faixas.length > 0 && <PrecosExame form={form} set={(v) => setForm(f => ({ ...f, ...v }))} faixas={faixas} />}
             {form.usa_avaliacao && <p style={{ fontSize: 12, color: '#888' }}>
               {modalTipo === 'roteiro-padrao'
                 ? 'O roteiro (fases/critérios) do Roteiro Padrão dessa arte marcial será copiado pra cá — dá pra ajustar livremente depois.'

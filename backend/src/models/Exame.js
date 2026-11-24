@@ -29,9 +29,9 @@ const Exame = sequelize.define('Exame', {
   usa_avaliacao: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   local: { type: DataTypes.STRING },
   horario: { type: DataTypes.TIME },
-  taxa_padrao: { type: DataTypes.DECIMAL(10, 2) },
   preco_faixa_padrao: { type: DataTypes.DECIMAL(10, 2) },
-  // { faixa_id: valor } — taxa por faixa pretendida; sem entrada = taxa_padrao
+  // { faixa_id: valor } — taxa por faixa pretendida; sem entrada = "Sem taxa"
+  // (a coluna antiga taxa_padrao continua no banco, sem uso)
   taxas_por_faixa: { type: DataTypes.JSON },
   // [{ nome, preco }] — qualidades de faixa à venda neste exame
   tipos_faixa: { type: DataTypes.JSON },

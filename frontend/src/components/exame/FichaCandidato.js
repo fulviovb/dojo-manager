@@ -159,7 +159,7 @@ export default function FichaCandidato({ exame, candidato: c, faixas, hoje, admi
           <div style={secao}>
             <h4 style={h4}>Taxa</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-              <Campo rotulo="Taxa (R$)"><input type="number" inputMode="decimal" min="0" step="0.01" placeholder={`do exame: ${moeda(c.taxa_herdada)}`} value={taxa.valor_taxa} onChange={(e) => setTaxa({ ...taxa, valor_taxa: e.target.value })} style={estiloInput} /></Campo>
+              <Campo rotulo="Taxa (R$)"><input type="number" inputMode="decimal" min="0" step="0.01" placeholder={c.taxa_herdada == null ? 'faixa sem taxa' : `da faixa: ${moeda(c.taxa_herdada)}`} value={taxa.valor_taxa} onChange={(e) => setTaxa({ ...taxa, valor_taxa: e.target.value })} style={estiloInput} /></Campo>
               <Campo rotulo="Desconto (R$)"><input type="number" inputMode="decimal" min="0" step="0.01" value={taxa.desconto} onChange={(e) => setTaxa({ ...taxa, desconto: e.target.value })} style={estiloInput} /></Campo>
             </div>
             <label style={{ fontSize: 13, display: 'block', marginBottom: 8 }}><input type="checkbox" checked={taxa.isento} onChange={(e) => setTaxa({ ...taxa, isento: e.target.checked })} /> Isento</label>

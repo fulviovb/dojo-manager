@@ -66,7 +66,6 @@ const lerGestao = (b) => {
     d.horario = b.horario || null;
     if (d.horario && !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(d.horario)) throw new ErroRegra(400, 'Horário inválido');
   }
-  if (tem(b, 'taxa_padrao')) d.taxa_padrao = dinheiro(b.taxa_padrao, 'Taxa');
   if (tem(b, 'preco_faixa_padrao')) d.preco_faixa_padrao = dinheiro(b.preco_faixa_padrao, 'Preço da faixa');
   if (tem(b, 'taxas_por_faixa')) {
     const t = b.taxas_por_faixa || {};
@@ -95,13 +94,25 @@ const lerGestao = (b) => {
   return d;
 };
 
-// Lista de tipos do último exame da arte que tenha algum (ponto de partida)
-const tiposDoExameAnterior = async (escola_id, arte_marcial_id) => {
+// Todas as faixas da tabela de taxas precisam ser da arte do exame
+const conferirFaixas = async (taxas, arte_marcial_id, transaction) => {
+  const ids = Object.keys(taxas);
+  const n = await Faixa.count({ where: { id: ids, arte_marcial_id }, transaction });
+  if (n !== ids.length) throw new ErroRegra(400, 'Faixa inválida');
+};
+
+// Taxas e tipos de faixa do último exame da arte que tenha (ponto de partida)
+const precosDoExameAnterior = async (escola_id, arte_marcial_id) => {
   const es = await Exame.findAll({
     where: { escola_id, arte_marcial_id, tipo: 'normal', status: { [Op.ne]: 'cancelado' } },
-    attributes: ['tipos_faixa'], order: [['created_at', 'DESC']],
+    attributes: ['tipos_faixa', 'taxas_por_faixa'], order: [['created_at', 'DESC']],
   });
-  return es.find((e) => e.tipos_faixa?.length)?.tipos_faixa || [];
+  const taxas = es.find((e) => Object.keys(e.taxas_por_faixa || {}).length)?.taxas_por_faixa || {};
+  const faixas = new Set((await Faixa.findAll({ where: { arte_marcial_id }, attributes: ['id'] })).map((f) => f.id));
+  return {
+    tipos_faixa: es.find((e) => e.tipos_faixa?.length)?.tipos_faixa || [],
+    taxas_por_faixa: Object.fromEntries(Object.entries(taxas).filter(([id]) => faixas.has(id))),
+  };
 };
 
 // PUT /api/exames/:id/gestao
@@ -125,11 +136,7 @@ const atualizarGestao = async (req, res) => {
         const n = await AvaliacaoAluno.count({ where: { exame_id: exame.id }, transaction });
         if (n) throw new ErroRegra(409, 'Este exame já tem avaliações sorteadas');
       }
-      if (dados.taxas_por_faixa) {
-        const ids = Object.keys(dados.taxas_por_faixa);
-        const n = await Faixa.count({ where: { id: ids, arte_marcial_id: exame.arte_marcial_id }, transaction });
-        if (n !== ids.length) throw new ErroRegra(400, 'Faixa inválida');
-      }
+      if (dados.taxas_por_faixa) await conferirFaixas(dados.taxas_por_faixa, exame.arte_marcial_id, transaction);
       // passou a usar avaliação e ainda não tem roteiro: copia o Roteiro Padrão
       if (dados.usa_avaliacao && !exame.usa_avaliacao && !(await buscarFasesDoExame(exame.id, { transaction })).length) {
         const padrao = await Exame.findOne({
@@ -215,7 +222,7 @@ const listarCandidatos = async (req, res) => {
         faixa_pretendida: resumoFaixa(p.FaixaPretendida),
         // graduado já começou a contar na faixa nova: a carência do exame deixou de valer
         carencia: externo ? { aulas: null, min_aulas: null, situacao: 'externo' } : p.graduacao_aluno_id ? null : { aulas: c.aulas, min_aulas: c.min_aulas, situacao: c.situacao },
-        taxa_herdada: Number(taxaHerdada(p, exame) || 0),
+        taxa_herdada: taxaHerdada(p, exame),
         taxa_propria: p.valor_taxa == null ? null : Number(p.valor_taxa),
         desconto: Number(p.desconto), motivo_desconto: p.motivo_desconto, isento: p.isento,
         status_inscricao: p.status_inscricao, presenca: p.presenca, resultado: p.resultado,
@@ -819,5 +826,5 @@ const resumosDosExames = async (exames, permitidosPorArte) => {
 module.exports = {
   atualizarGestao, listarCandidatos, listarElegiveis, incluirCandidatos, atualizarCandidato, atualizarEmMassa, removerCandidato,
   registrarPagamento, pagarEmMassa, estornarPagamento, salvarPedido, gravarResultado, listarHistorico,
-  incluirExterno, atualizarExterno, lerGestao, resumosDosExames, tiposDoExameAnterior,
+  incluirExterno, atualizarExterno, lerGestao, resumosDosExames, precosDoExameAnterior, conferirFaixas,
 };

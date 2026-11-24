@@ -1814,6 +1814,11 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     backend/src/scripts/2026-11-exame-precos-externos.js. Jiu-jitsu segue
     manual ("+ Graduação") por decisão do Fulvio; sem recibo.
     Testado em cópia isolada: 122 + 87 checagens de API e Chrome headless.
+[x] Taxa padrão removida do exame (24/11/2026, pedido do Fulvio): só a tabela
+    por faixa, também na criação, com "Aplicar a todas" e taxas copiadas do
+    exame anterior da arte. Faixa em branco = "Sem taxa" com aviso em
+    Candidatos/Financeiro; 0 = gratuito (pago). Coluna exames.taxa_padrao
+    fica no banco sem uso (sem migração).
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md
