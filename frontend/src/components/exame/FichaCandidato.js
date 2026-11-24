@@ -98,7 +98,8 @@ export default function FichaCandidato({ exame, candidato: c, faixas, hoje, admi
           {c.pagamentos.map((p) => (
             <div key={p.id} style={{ fontSize: 12, padding: '6px 0', borderTop: '1px solid #f5f5f5', color: p.estornado_em ? '#999' : '#333' }}>
               <span style={{ textDecoration: p.estornado_em ? 'line-through' : 'none' }}>{formatData(p.data)} · {p.referente} · {FORMAS[p.forma]} · <strong>{moeda(p.valor)}</strong></span>
-              {' '}{!p.estornado_em && <button style={btnLink('#c62828')} onClick={() => setEstorno({ id: p.id, motivo: '' })}>estornar</button>}
+              {' '}{!p.estornado_em && p.referente === 'taxa' && <button style={btnLink()} onClick={() => window.open(`/exame/${exame.id}/recibo/${p.id}`, '_blank')}>recibo</button>}
+              {!p.estornado_em && <button style={btnLink('#c62828')} onClick={() => setEstorno({ id: p.id, motivo: '' })}>estornar</button>}
               <div style={{ color: '#888' }}>por {p.registrado_por || '—'}{p.observacao && ` · ${p.observacao}`}{p.comprovante_url && <> · <a href={p.comprovante_url} target="_blank" rel="noreferrer">comprovante</a></>}{p.estornado_em && ` · estornado: ${p.motivo_estorno}`}</div>
               {estorno?.id === p.id && (
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>

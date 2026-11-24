@@ -1821,6 +1821,9 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     fica no banco sem uso (sem migração).
 [x] Lista de candidatos do exame ordenável pelo cabeçalho (24/11/2026), vale
     também pro CSV e pra impressão. Carência ordena pelo % cumprido.
+[x] Recibo de pagamento da taxa do exame (24/11/2026): link "recibo" em cada
+    pagamento de taxa na ficha do candidato → /exame/:id/recibo/:pagamento_id
+    (imprimível, assinatura da escola, saldo se parcial). Estornado não gera.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

@@ -19,6 +19,7 @@ import ExameDetalhe from './pages/ExameDetalhe';
 import AvaliadorExame from './pages/AvaliadorExame';
 import ExameFichaPage from './pages/ExameFichaPage';
 import ExameRelatorioPage from './pages/ExameRelatorioPage';
+import ReciboExamePage from './pages/ReciboExamePage';
 import ExameListasPage from './pages/ExameListasPage';
 import IncentivoEsporte from './pages/IncentivoEsporte';
 import ParticipanteIncentivoDetalhe from './pages/ParticipanteIncentivoDetalhe';
@@ -78,6 +79,8 @@ export default function App() {
   if (fichaMatch) return <ExameFichaPage exameId={fichaMatch[1]} participanteId={fichaMatch[2]} />;
   const relatorioExameMatch = window.location.pathname.match(/^\/exame\/([^/]+)\/relatorio-impressao/);
   if (relatorioExameMatch) return <ExameRelatorioPage exameId={relatorioExameMatch[1]} />;
+  const reciboExameMatch = window.location.pathname.match(/^\/exame\/([^/]+)\/recibo\/([^/]+)/);
+  if (reciboExameMatch) return <ReciboExamePage exameId={reciboExameMatch[1]} pagamentoId={reciboExameMatch[2]} />;
   const listasExameMatch = window.location.pathname.match(/^\/exame\/([^/]+)\/listas\/([^/]+)/);
   if (listasExameMatch) return <ExameListasPage exameId={listasExameMatch[1]} tipo={listasExameMatch[2]} />;
   const fichaEvolucaoMatch = window.location.pathname.match(/^\/evolucao-infantil\/ficha\/([^/]+)/);

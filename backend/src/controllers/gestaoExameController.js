@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const {
   Exame, ExameParticipante, ExamePagamento, ExamePedidoFaixa, ExameHistorico, IndicacaoExame, AvaliacaoAluno, FaseExame,
-  Usuario, Faixa, Turma, MatriculaAluno, GraduacaoAluno, ArteMarcial,
+  Usuario, Faixa, Turma, MatriculaAluno, GraduacaoAluno, ArteMarcial, Escola,
 } = require('../models');
 const {
   ErroRegra, responderErro, opcoesDeFaixa, resumoFaixa, obterOuCriarIndicacao, candidatoEmExameAberto, STATUS_ABERTO,
@@ -176,6 +176,17 @@ const idadeEm = (nasc, hoje) => {
   return ah - a - ((mh < m || (mh === m && dh < d)) ? 1 : 0);
 };
 
+// Aluno ou externo + quem responde por ele (pais de menor; senão o próprio)
+const dadosDaPessoa = (p, hoje) => {
+  const externo = !p.aluno_id;
+  const a = externo
+    ? { id: null, nome: p.externo_nome, data_nascimento: p.externo_nascimento, telefone: p.externo_telefone, mae: p.externo_responsavel }
+    : p.Aluno;
+  const idade = idadeEm(a.data_nascimento, hoje);
+  const pais = [a.mae, a.pai].filter(Boolean);
+  return { a, idade, responsavel: (externo || idade == null || idade < 18) && pais.length ? pais.join(' / ') : a.nome };
+};
+
 const pagamentoJson = (p) => ({
   id: p.id, referente: p.referente, data: p.data, valor: Number(p.valor), forma: p.forma,
   comprovante_url: p.comprovante_url, observacao: p.observacao, registrado_por: p.RegistradoPor?.nome || null,
@@ -204,19 +215,15 @@ const listarCandidatos = async (req, res) => {
 
     const candidatos = participantes.map((p) => {
       const externo = !p.aluno_id;
-      const a = externo
-        ? { id: null, nome: p.externo_nome, data_nascimento: p.externo_nascimento, telefone: p.externo_telefone, mae: p.externo_responsavel }
-        : p.Aluno;
-      const idade = idadeEm(a.data_nascimento, hoje);
+      const { a, idade, responsavel } = dadosDaPessoa(p, hoje);
       const ns = notas.mapa.get(p.id) || [];
       const completo = notas.total > 0 && ns.length === notas.total;
-      const pais = [a.mae, a.pai].filter(Boolean);
       const c = carencias.get(p.aluno_id);
       return {
         id: p.id,
         aluno: { id: a.id, nome: a.nome, foto_url: a.foto_url, idade, telefone: a.telefone },
         externo: externo ? { nascimento: p.externo_nascimento, responsavel: p.externo_responsavel, origem: p.externo_origem } : null,
-        responsavel: (externo || idade == null || idade < 18) && pais.length ? pais.join(' / ') : a.nome,
+        responsavel,
         turma: externo ? { id: 'externo', nome: 'Externos' } : p.Turma ? { id: p.Turma.id, nome: nomeTurma(p.Turma) } : null,
         faixa_atual: resumoFaixa(p.FaixaAtual),
         faixa_pretendida: resumoFaixa(p.FaixaPretendida),
@@ -673,6 +680,40 @@ const estornarPagamento = async (req, res) => {
   } catch (e) { responderErro(res, e); }
 };
 
+// GET /api/exames/:id/pagamentos/:pagamento_id/recibo — só taxa, não estornado
+const reciboTaxa = async (req, res) => {
+  try {
+    const { exame, permitidos } = await carregarExame(req);
+    const pag = await ExamePagamento.findOne({ where: { id: req.params.pagamento_id, escola_id: exame.escola_id } });
+    if (!pag) throw new ErroRegra(404, 'Pagamento não encontrado');
+    await carregarCandidato(exame, permitidos, pag.exame_participante_id);
+    if (pag.estornado_em) throw new ErroRegra(409, 'Pagamento estornado não gera recibo');
+    if (pag.referente !== 'taxa') throw new ErroRegra(409, 'O recibo é só da taxa do exame');
+    const [p, escola, arte] = await Promise.all([
+      ExameParticipante.findByPk(pag.exame_participante_id, {
+        include: [
+          { model: Usuario, as: 'Aluno', attributes: ['id', 'nome', 'data_nascimento', 'mae', 'pai'] },
+          { model: Faixa, as: 'FaixaPretendida', attributes: ['nome'] },
+          ...includeFinanceiro,
+        ],
+      }),
+      Escola.findByPk(exame.escola_id),
+      ArteMarcial.findByPk(exame.arte_marcial_id, { attributes: ['nome'] }),
+    ]);
+    const hoje = dataLocalISO();
+    const { a, responsavel } = dadosDaPessoa(p, hoje);
+    const { taxa } = resumoFinanceiro(p, exame, hoje);
+    res.json({
+      numero: pag.id.slice(0, 8).toUpperCase(), hoje,
+      pagador: responsavel, aluno_nome: a.nome,
+      valor: Number(pag.valor), forma: pag.forma, data_pagamento: pag.data,
+      parcial: cent(pag.valor) < cent(taxa.devido), saldo: p.status_inscricao === 'desistiu' ? 0 : taxa.saldo,
+      exame_nome: exame.nome, exame_data: exame.data, arte_marcial: arte?.nome || '', faixa_pretendida: p.FaixaPretendida?.nome || '',
+      escola_nome: escola?.nome || '', escola_assinatura_url: escola?.assinatura_url || null,
+    });
+  } catch (e) { responderErro(res, e); }
+};
+
 // PUT /api/exames/:id/pedidos-faixa/:pid
 const salvarPedido = async (req, res) => {
   try {
@@ -825,6 +866,6 @@ const resumosDosExames = async (exames, permitidosPorArte) => {
 
 module.exports = {
   atualizarGestao, listarCandidatos, listarElegiveis, incluirCandidatos, atualizarCandidato, atualizarEmMassa, removerCandidato,
-  registrarPagamento, pagarEmMassa, estornarPagamento, salvarPedido, gravarResultado, listarHistorico,
+  registrarPagamento, pagarEmMassa, estornarPagamento, reciboTaxa, salvarPedido, gravarResultado, listarHistorico,
   incluirExterno, atualizarExterno, lerGestao, resumosDosExames, precosDoExameAnterior, conferirFaixas,
 };

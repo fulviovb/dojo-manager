@@ -42,6 +42,7 @@ router.post('/:id/externos', autenticar, staff, gestao.incluirExterno);
 router.put('/:id/externos/:pid', autenticar, staff, gestao.atualizarExterno);
 router.post('/:id/pagamentos', autenticar, staff, gestao.registrarPagamento);
 router.post('/:id/pagamentos/lote', autenticar, staff, gestao.pagarEmMassa);
+router.get('/:id/pagamentos/:pagamento_id/recibo', autenticar, staff, gestao.reciboTaxa);
 router.delete('/:id/pagamentos/:pagamento_id', autenticar, staff, gestao.estornarPagamento);
 router.put('/:id/pedidos-faixa/:pid', autenticar, staff, gestao.salvarPedido);
 router.post('/:id/resultado', autenticar, staff, gestao.gravarResultado);
