@@ -40,6 +40,31 @@ export const textoCarencia = (c) => {
 };
 export const textoPedido = (c) => (c.quer_comprar === 'sim' ? [c.pedido.tamanho, c.pedido.tipo].filter(Boolean).join(' · ') : c.quer_comprar === 'nao' ? 'não' : '—');
 
+// Ordenação da lista de candidatos (clique no cabeçalho). Valor vazio vai
+// sempre pro fim, nos dois sentidos; empate por nome.
+const VALOR_ORDEM = {
+  aluno: (c) => c.aluno.nome,
+  turma: (c) => c.turma?.nome,
+  faixa: (c) => (c.faixa_pretendida ? c.faixa_pretendida.ordem * 1000 + (c.faixa_atual?.ordem ?? 0) : null),
+  carencia: (c) => (c.carencia?.min_aulas ? c.carencia.aulas / c.carencia.min_aulas : null), // % cumprido
+  taxa: (c) => (c.financeiro.taxa.situacao === 'sem_taxa' ? null : c.financeiro.taxa.devido),
+  pago: (c) => c.financeiro.taxa.pago,
+  situacao: (c) => SITUACAO[c.financeiro.taxa.situacao].label,
+  pedido: (c) => (c.quer_comprar === 'sem_resposta' ? null : textoPedido(c)),
+  inscricao: (c) => INSCRICAO[c.status_inscricao].label,
+};
+export const ordenar = (lista, coluna, desc) => {
+  const valor = VALOR_ORDEM[coluna];
+  if (!valor) return lista;
+  const texto = (a, b) => a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
+  return [...lista].sort((x, y) => {
+    const [a, b] = [valor(x) ?? null, valor(y) ?? null];
+    if ((a === null) !== (b === null)) return a === null ? 1 : -1;
+    const r = a === null ? 0 : typeof a === 'string' ? texto(a, b) : a - b;
+    return (desc ? -r : r) || texto(x.aluno.nome, y.aluno.nome);
+  });
+};
+
 export const ativos = (lista) => lista.filter((c) => c.status_inscricao !== 'desistiu');
 // Faixas pretendidas com candidato e sem taxa definida no exame
 export const faixasSemTaxa = (lista) => [...new Map(ativos(lista).filter((c) => c.financeiro.taxa.situacao === 'sem_taxa').map((c) => [c.faixa_pretendida?.id, c.faixa_pretendida])).values()]

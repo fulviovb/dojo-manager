@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Faixa, btnPrimario } from '../components/exame/ui';
 import {
-  moeda, formatData, filtrar, FILTROS_VAZIOS, SITUACAO, INSCRICAO, textoCarencia, textoPedido, ativos, pendentes, saldoTotal, diasAtraso, consolidarFaixas,
+  moeda, formatData, filtrar, ordenar, FILTROS_VAZIOS, SITUACAO, INSCRICAO, textoCarencia, textoPedido, ativos, pendentes, saldoTotal, diasAtraso, consolidarFaixas,
 } from '../utils/gestaoExame';
 
 const TITULOS = { completa: 'Lista de candidatos', chamada: 'Lista de chamada', pendencias: 'Pendências de pagamento', faixas: 'Pedido de faixas' };
@@ -38,7 +38,7 @@ function conteudo(tipo, d, filtros) {
       rodape={['Total', '', '', g.reduce((s, x) => s + x.quantidade, 0), moeda(g.reduce((s, x) => s + x.total, 0))]} />;
   }
   return <Tabela colunas={['#', 'Aluno', 'Turma', 'Atual → pretendida', 'Carência', 'Taxa', 'Pago', 'Situação', 'Faixa', 'Inscrição']}
-    linhas={filtrar(candidatos, filtros).map((c, i) => [i + 1, c.aluno.nome, c.externo ? `Externo${c.externo.origem ? ` (${c.externo.origem})` : ''}` : c.turma?.nome || '—', <><Faixa faixa={c.faixa_atual} /> → <Faixa faixa={c.faixa_pretendida} /></>, textoCarencia(c.carencia), moeda(c.financeiro.taxa.devido), moeda(c.financeiro.taxa.pago), SITUACAO[c.financeiro.taxa.situacao].label, textoPedido(c), INSCRICAO[c.status_inscricao].label])} />;
+    linhas={ordenar(filtrar(candidatos, filtros), filtros.ordem, filtros.desc).map((c, i) => [i + 1, c.aluno.nome, c.externo ? `Externo${c.externo.origem ? ` (${c.externo.origem})` : ''}` : c.turma?.nome || '—', <><Faixa faixa={c.faixa_atual} /> → <Faixa faixa={c.faixa_pretendida} /></>, textoCarencia(c.carencia), moeda(c.financeiro.taxa.devido), moeda(c.financeiro.taxa.pago), SITUACAO[c.financeiro.taxa.situacao].label, textoPedido(c), INSCRICAO[c.status_inscricao].label])} />;
 }
 
 // Impressões da Gestão do Exame (nova aba, sem sidebar — mesmo padrão de

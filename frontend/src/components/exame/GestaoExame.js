@@ -4,7 +4,7 @@ import AdicionarCandidatos from './AdicionarCandidatos';
 import FichaCandidato from './FichaCandidato';
 import { Faixa, Selo, Modal, Campo, useCelular, btnPrimario, btnVerde, btnCinza, btnLink, cardEstilo, estiloInput, thEstilo, tdEstilo } from './ui';
 import {
-  moeda, formatData, SITUACAO, INSCRICAO, PEDIDO, FORMAS, FILTROS_VAZIOS, filtrar, textoCarencia, textoPedido, ativos, pendentes, saldoTotal, faixasSemTaxa,
+  moeda, formatData, SITUACAO, INSCRICAO, PEDIDO, FORMAS, FILTROS_VAZIOS, filtrar, ordenar, textoCarencia, textoPedido, ativos, pendentes, saldoTotal, faixasSemTaxa,
   diasAtraso, consolidarFaixas, csvCandidatos, csvFaixas, textoCobranca, copiarTexto,
 } from '../../utils/gestaoExame';
 
@@ -74,6 +74,8 @@ function Filtros({ candidatos, f, setF }) {
   );
 }
 
+const COLUNAS = [['aluno', 'Aluno'], ['turma', 'Turma'], ['faixa', 'Faixa atual → pretendida'], ['carencia', 'Carência'], ['taxa', 'Taxa'], ['pago', 'Pago'], ['situacao', 'Situação'], ['pedido', 'Faixa'], ['inscricao', 'Inscrição']];
+
 const corCarencia = (c) => (c?.situacao === 'abaixo' ? '#c62828' : c?.situacao === 'ok' ? '#2e7d32' : '#888');
 
 export function AbaCandidatos({ dados, recarregar, onAbrir, onAdicionar, onDefinirTaxas }) {
@@ -85,7 +87,9 @@ export function AbaCandidatos({ dados, recarregar, onAbrir, onAdicionar, onDefin
   const [aviso, setAviso] = useState('');
   const [salvando, setSalvando] = useState(false);
   const celular = useCelular();
-  const visiveis = filtrar(candidatos, f);
+  const [ordem, setOrdem] = useState({ coluna: 'faixa', desc: false });
+  const clicarColuna = (coluna) => setOrdem((o) => ({ coluna, desc: o.coluna === coluna ? !o.desc : false }));
+  const visiveis = ordenar(filtrar(candidatos, f), ordem.coluna, ordem.desc);
   // só vale o que está visível: filtro nunca esconde um item marcado
   const sel = visiveis.filter((c) => marcados.has(c.id));
   const aberto = ['planejamento', 'em_andamento'].includes(exame.status);
@@ -115,7 +119,7 @@ export function AbaCandidatos({ dados, recarregar, onAbrir, onAdicionar, onDefin
           {aberto && <button style={{ ...btnVerde, opacity: exame.inscricoes_fechadas ? 0.5 : 1 }} disabled={exame.inscricoes_fechadas} onClick={onAdicionar}>+ Adicionar candidatos</button>}
           {aberto && <button style={btnCinza} disabled={salvando} onClick={alternarFechadas}>{exame.inscricoes_fechadas ? 'Reabrir inscrições' : 'Fechar inscrições'}</button>}
           <button style={btnCinza} onClick={() => csvCandidatos(exame, visiveis)}>CSV</button>
-          <button style={btnCinza} onClick={() => abrirImpressao(exame.id, 'completa', f)}>Imprimir / PDF</button>
+          <button style={btnCinza} onClick={() => abrirImpressao(exame.id, 'completa', { ...f, ordem: ordem.coluna, desc: ordem.desc ? '1' : '' })}>Imprimir / PDF</button>
           <button style={btnCinza} onClick={() => window.open(`/relatorio/exame-faixa?arte_marcial_id=${exame.arte_marcial_id}&exame_id=${exame.id}`, '_blank')}>Relatório de carência</button>
           {exame.inscricoes_fechadas && <Selo cor="#c62828">Inscrições fechadas</Selo>}
         </div>
@@ -147,7 +151,17 @@ export function AbaCandidatos({ dados, recarregar, onAbrir, onAdicionar, onDefin
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr style={{ background: '#f9f9f9' }}>
                 <th style={thEstilo}><input type="checkbox" aria-label="Marcar todos" checked={visiveis.length > 0 && sel.length === visiveis.length} onChange={(e) => setMarcados(e.target.checked ? new Set(visiveis.map((c) => c.id)) : new Set())} /></th>
-                {['Aluno', 'Turma', 'Faixa atual → pretendida', 'Carência', 'Taxa', 'Pago', 'Situação', 'Faixa', 'Inscrição', ''].map((h, i) => <th key={i} style={thEstilo}>{h}</th>)}
+                {COLUNAS.map(([id, rotulo]) => {
+                  const ativa = ordem.coluna === id;
+                  return (
+                    <th key={id} style={thEstilo} aria-sort={ativa ? (ordem.desc ? 'descending' : 'ascending') : 'none'}>
+                      <button onClick={() => clicarColuna(id)} title="Clique para ordenar" style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', textTransform: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', color: ativa ? '#1565c0' : 'inherit', fontWeight: ativa ? 700 : 'inherit' }}>
+                        {rotulo} <span aria-hidden="true" style={{ opacity: ativa ? 1 : 0.35 }}>{ativa ? (ordem.desc ? '▼' : '▲') : '↕'}</span>
+                      </button>
+                    </th>
+                  );
+                })}
+                <th style={thEstilo} />
               </tr></thead>
               <tbody>
                 {visiveis.map((c) => (
