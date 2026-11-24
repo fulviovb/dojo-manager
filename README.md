@@ -300,7 +300,11 @@ Camada entre a Indicação e a Graduação (`gestaoExameController.js`,
 sempre ligado a uma `IndicacaoExame`; uma indicação fica em no máximo um exame
 aberto. Situação de pagamento é sempre calculada de `ExamePagamento`
 (`utils/pagamentoExame.js`), nunca gravada; lançamento só sai por estorno.
-`ExameParticipante.valor_taxa` nulo herda `Exame.taxa_padrao`. O único caminho
+`ExameParticipante.valor_taxa` nulo herda `Exame.taxas_por_faixa[faixa
+pretendida]` e, sem ela, `Exame.taxa_padrao`. `Exame.tipos_faixa` é a lista
+livre de qualidades de faixa com preço. `aluno_id` nulo = candidato externo
+(`externo_*`, só admin): use `participante.pessoa()` em vez de `.Aluno`; não
+tem indicação e o resultado não gera graduação. O único caminho
 pra graduar candidato é `POST /api/exames/:id/resultado`; `graduacao_aluno_id`
 impede graduar duas vezes. Professor só alcança exames das artes em que tem
 turma e candidatos das turmas dele; ações no evento inteiro exigem que todos
@@ -502,7 +506,7 @@ Prefixo base: `/api`. Todas as rotas exigem `Authorization: Bearer <token>` exce
 | Graduações            | `GET,POST,DELETE /graduacoes` (`POST` aceita `exame_participante_id`/`nota_exame` opcionais) | autenticado |
 | Indicação ao exame    | `POST /indicacoes-exame` (`aluno_id`, `arte_marcial_id`, `faixa_pretendida_id` — obrigatório só se a próxima faixa for `opcional`; sem ele devolve 409 com as `opcoes`), `POST /indicacoes-exame/:id/aprovar` (`data`, `observacao`), `DELETE /indicacoes-exame/:id` | admin+professor (professor: só alunos das turmas dele) |
 | Exame de Faixa — exames | `GET,POST /exames`, `POST /exames/comecar-com-roteiro-padrao`, `GET,DELETE /exames/:id`, `PATCH /exames/:id/status`, `PATCH /exames/:id/tipo`, `POST,PUT,DELETE /exames/:id/fases(/:id)`, `POST,PUT,DELETE .../criterios(/:id)`, `PUT .../criterios/:id/faixas` (roteiro, só com exame em planejamento), `GET /exames/:id/participantes/:id/ficha`, `POST,DELETE /exames/:id/avaliadores(/:id)`, `POST /exames/:id/sorteio`, `PATCH /exames/:id/avaliacoes/:id/reabrir`, `GET /exames/:id/relatorio` | autenticado / admin+professor |
-| Exame de Faixa — gestão | `PUT /exames/:id/gestao`, `GET /exames/:id/elegiveis`, `GET,POST,PATCH /exames/:id/candidatos`, `PATCH,DELETE .../candidatos/:pid`, `POST /exames/:id/pagamentos(/lote)`, `DELETE .../pagamentos/:id` (estorno, exige `motivo`), `PUT /exames/:id/pedidos-faixa/:pid`, `POST /exames/:id/resultado`, `GET /exames/:id/historico` | admin+professor (professor: só alunos dele) |
+| Exame de Faixa — gestão | `PUT /exames/:id/gestao`, `GET /exames/:id/elegiveis`, `GET,POST,PATCH /exames/:id/candidatos`, `PATCH,DELETE .../candidatos/:pid`, `POST,PUT /exames/:id/externos(/:pid)` (admin), `POST /exames/:id/pagamentos(/lote)`, `DELETE .../pagamentos/:id` (estorno, exige `motivo`), `PUT /exames/:id/pedidos-faixa/:pid`, `POST /exames/:id/resultado`, `GET /exames/:id/historico` | admin+professor (professor: só alunos dele) |
 | Exame de Faixa — avaliador | `POST /avaliacao-publica/exames/:codigo/login` (PIN, `:codigo` = `Exame.codigo`), `GET /avaliacao-publica/minhas-avaliacoes`, `GET /avaliacao-publica/avaliacoes/:id`, `PUT .../criterios/:id`, `POST .../finalizar` | público (login) / JWT de avaliador |
 | Ocorrências           | `GET,POST,DELETE /ocorrencias`                                                         | autenticado             |
 | Incentivo ao Esporte  | `GET /incentivo-esporte/catalogos`, `GET,POST,PUT,DELETE /incentivo-esporte/participantes(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/documentos(/:id)`, `PUT /documentos/:id/arquivo`, `GET /incentivo-esporte/anexos`, `POST /incentivo-esporte/documentos/gerar`, `GET,POST,PUT,DELETE /incentivo-esporte/contrapartidas(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/despesas(/:id)`, `GET,POST,PUT,DELETE /incentivo-esporte/entidades(/:id)`, `GET,PUT,DELETE /incentivo-esporte/participantes/:id/credencial`, `POST .../credencial/revelar` | admin |

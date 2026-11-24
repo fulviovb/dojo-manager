@@ -31,6 +31,10 @@ const Exame = sequelize.define('Exame', {
   horario: { type: DataTypes.TIME },
   taxa_padrao: { type: DataTypes.DECIMAL(10, 2) },
   preco_faixa_padrao: { type: DataTypes.DECIMAL(10, 2) },
+  // { faixa_id: valor } — taxa por faixa pretendida; sem entrada = taxa_padrao
+  taxas_por_faixa: { type: DataTypes.JSON },
+  // [{ nome, preco }] — qualidades de faixa à venda neste exame
+  tipos_faixa: { type: DataTypes.JSON },
   prazo_pagamento: { type: DataTypes.DATEONLY },
   prazo_pedido_faixa: { type: DataTypes.DATEONLY },
   inscricoes_fechadas: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

@@ -4,7 +4,13 @@ const sequelize = require('../config/database');
 const ExameParticipante = sequelize.define('ExameParticipante', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   exame_id: { type: DataTypes.UUID, allowNull: false },
-  aluno_id: { type: DataTypes.UUID, allowNull: false },
+  // null = candidato externo (sem cadastro de aluno): dados em externo_*
+  aluno_id: { type: DataTypes.UUID },
+  externo_nome: { type: DataTypes.STRING },
+  externo_nascimento: { type: DataTypes.DATEONLY },
+  externo_responsavel: { type: DataTypes.STRING },
+  externo_telefone: { type: DataTypes.STRING(40) },
+  externo_origem: { type: DataTypes.STRING },
   faixa_atual_id: { type: DataTypes.UUID },
   faixa_pretendida_id: { type: DataTypes.UUID, allowNull: false },
   // Gestão do Exame: o participante é o candidato.
@@ -25,5 +31,10 @@ const ExameParticipante = sequelize.define('ExameParticipante', {
   tableName: 'exame_participantes',
   indexes: [{ unique: true, fields: ['exame_id', 'aluno_id'] }],
 });
+
+// Quem presta o exame, aluno ou externo (precisa do include `Aluno`)
+ExameParticipante.prototype.pessoa = function pessoa() {
+  return this.aluno_id ? this.Aluno : { id: null, nome: this.externo_nome, externo: true };
+};
 
 module.exports = ExameParticipante;

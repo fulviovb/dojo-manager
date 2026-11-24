@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import AdicionarCandidatos from './AdicionarCandidatos';
 import FichaCandidato from './FichaCandidato';
@@ -141,7 +141,7 @@ export function AbaCandidatos({ dados, recarregar, onAbrir, onAdicionar }) {
                   <tr key={c.id} style={{ opacity: c.status_inscricao === 'desistiu' ? 0.5 : 1, background: c.carencia?.situacao === 'abaixo' ? '#fffaf5' : undefined }}>
                     <td style={tdEstilo}><input type="checkbox" aria-label={`Marcar ${c.aluno.nome}`} checked={marcados.has(c.id)} onChange={() => alternar(c.id)} /></td>
                     <td style={tdEstilo}><button style={{ ...btnLink(), fontSize: 13, textAlign: 'left' }} onClick={() => onAbrir(c.id)}>{c.aluno.nome}</button></td>
-                    <td style={{ ...tdEstilo, fontSize: 12, color: '#666' }}>{c.turma?.nome || '—'}</td>
+                    <td style={{ ...tdEstilo, fontSize: 12, color: '#666' }}>{c.externo ? `Externo${c.externo.origem ? ` (${c.externo.origem})` : ''}` : c.turma?.nome || '—'}</td>
                     <td style={{ ...tdEstilo, whiteSpace: 'nowrap' }}><Faixa faixa={c.faixa_atual} /> → <Faixa faixa={c.faixa_pretendida} /></td>
                     <td style={{ ...tdEstilo, color: corCarencia(c.carencia), fontWeight: c.carencia?.situacao === 'abaixo' ? 700 : 400, whiteSpace: 'nowrap' }}>{textoCarencia(c.carencia)}</td>
                     <td style={{ ...tdEstilo, whiteSpace: 'nowrap' }}>{moeda(c.financeiro.taxa.devido)}</td>
@@ -193,10 +193,10 @@ export function AbaFaixas({ dados, recarregar, onAbrir }) {
         {exame.prazo_pedido_faixa && <p style={{ fontSize: 12, color: dados.hoje > exame.prazo_pedido_faixa ? '#c62828' : '#888' }}>Prazo do pedido: {formatData(exame.prazo_pedido_faixa)}</p>}
         {!grupos.length ? <p style={{ color: '#888', fontSize: 13 }}>Nenhum pedido de faixa ainda.</p> : (
           <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
-            <thead><tr style={{ background: '#f9f9f9' }}>{['Cor', 'Tamanho', 'Quantidade', 'Entregues', 'Total'].map((h) => <th key={h} style={thEstilo}>{h}</th>)}</tr></thead>
+            <thead><tr style={{ background: '#f9f9f9' }}>{['Cor', 'Tamanho', 'Tipo', 'Quantidade', 'Entregues', 'Total'].map((h) => <th key={h} style={thEstilo}>{h}</th>)}</tr></thead>
             <tbody>
-              {grupos.map((g) => <tr key={`${g.faixa?.id}${g.tamanho}`}><td style={tdEstilo}><Faixa faixa={g.faixa} /></td><td style={tdEstilo}>{g.tamanho}</td><td style={tdEstilo}>{g.quantidade}</td><td style={tdEstilo}>{g.entregues}</td><td style={tdEstilo}>{moeda(g.total)}</td></tr>)}
-              <tr style={{ fontWeight: 700 }}><td style={tdEstilo} colSpan={2}>Total</td><td style={tdEstilo}>{pedidos.length}</td><td style={tdEstilo}>{pedidos.filter((c) => c.pedido.entregue).length}</td><td style={tdEstilo}>{moeda(grupos.reduce((s, g) => s + g.total, 0))}</td></tr>
+              {grupos.map((g) => <tr key={`${g.faixa?.id}${g.tamanho}${g.tipo}`}><td style={tdEstilo}><Faixa faixa={g.faixa} /></td><td style={tdEstilo}>{g.tamanho}</td><td style={tdEstilo}>{g.tipo || '—'}</td><td style={tdEstilo}>{g.quantidade}</td><td style={tdEstilo}>{g.entregues}</td><td style={tdEstilo}>{moeda(g.total)}</td></tr>)}
+              <tr style={{ fontWeight: 700 }}><td style={tdEstilo} colSpan={3}>Total</td><td style={tdEstilo}>{pedidos.length}</td><td style={tdEstilo}>{pedidos.filter((c) => c.pedido.entregue).length}</td><td style={tdEstilo}>{moeda(grupos.reduce((s, g) => s + g.total, 0))}</td></tr>
             </tbody>
           </table>
         )}
@@ -208,7 +208,7 @@ export function AbaFaixas({ dados, recarregar, onAbrir }) {
           {pedidos.map((c) => (
             <div key={c.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', borderTop: '1px solid #f0f0f0', padding: '8px 0', fontSize: 13 }}>
               <label style={{ flex: '1 1 200px' }}><input type="checkbox" disabled={exame.status === 'cancelado'} checked={c.pedido.entregue} onChange={(e) => entregar(c, e.target.checked)} /> {c.aluno.nome}</label>
-              <Faixa faixa={c.pedido.faixa} /><span>tam. {c.pedido.tamanho}</span>
+              <Faixa faixa={c.pedido.faixa} /><span>tam. {c.pedido.tamanho}{c.pedido.tipo && ` · ${c.pedido.tipo}`}</span>
               <Selo cor={SITUACAO[c.financeiro.faixa.situacao].cor}>{SITUACAO[c.financeiro.faixa.situacao].label}</Selo>
               {c.pedido.entregue_em && <span style={{ color: '#888', fontSize: 12 }}>entregue em {formatData(c.pedido.entregue_em)}</span>}
             </div>
@@ -334,8 +334,8 @@ export function AbaResultado({ dados, recarregar }) {
               <span><Faixa faixa={c.faixa_atual} /> → <Faixa faixa={c.faixa_pretendida} /></span>
               {exame.usa_avaliacao && <span style={{ minWidth: 110, color: '#555' }}>{c.nota_final != null ? <>Nota <strong>{c.nota_final}</strong></> : `${c.fases_finalizadas}/${c.fases_total} fases`}</span>}
               {exame.usa_avaliacao && <button style={btnLink()} onClick={() => window.open(`/exame/${exame.id}/ficha/${c.id}`, '_blank')}>Ficha</button>}
-              {c.graduado ? <Selo cor="#2e7d32">Aprovado e graduado ✓</Selo> : c.resultado === 'nao_aprovado' ? (
-                <><Selo cor="#c62828">Não aprovado</Selo><button style={btnLink()} disabled={travado} onClick={() => gravar(c, null)}>desfazer</button></>
+              {c.graduado ? <Selo cor="#2e7d32">Aprovado e graduado ✓</Selo> : c.resultado ? (
+                <><Selo cor={c.resultado === 'aprovado' ? '#2e7d32' : '#c62828'}>{c.resultado === 'aprovado' ? 'Aprovado (externo)' : 'Não aprovado'}</Selo><button style={btnLink()} disabled={travado} onClick={() => gravar(c, null)}>desfazer</button></>
               ) : (
                 <span style={{ display: 'flex', gap: 6 }}>
                   <button style={{ ...btnVerde, opacity: travado || !c.pode_aprovar ? 0.45 : 1 }} disabled={travado || !c.pode_aprovar} title={c.pode_aprovar ? '' : 'Há fases não finalizadas'} onClick={() => setConfirmando(c.id)}>{salvando === c.id ? '...' : 'Aprovado'}</button>
@@ -345,9 +345,9 @@ export function AbaResultado({ dados, recarregar }) {
             </div>
             {confirmando === c.id && (
               <div style={{ background: '#e8f5e9', padding: 10, borderRadius: 6, marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span>Graduar {c.aluno.nome} na faixa <strong>{c.faixa_pretendida?.nome}</strong>?</span>
+                <span>{c.externo ? 'Aprovar' : 'Graduar'} {c.aluno.nome} na faixa <strong>{c.faixa_pretendida?.nome}</strong>?{c.externo && ' Externo: não gera graduação no sistema.'}</span>
                 <button style={btnCinza} onClick={() => setConfirmando(null)}>Voltar</button>
-                <button style={btnPrimario} onClick={() => gravar(c, 'aprovado')}>Confirmar graduação</button>
+                <button style={btnPrimario} onClick={() => gravar(c, 'aprovado')}>{c.externo ? 'Confirmar aprovação' : 'Confirmar graduação'}</button>
               </div>
             )}
           </div>
@@ -358,15 +358,12 @@ export function AbaResultado({ dados, recarregar }) {
 }
 
 // Janela de inclusão + painel do candidato, por cima de qualquer aba
-export function Sobreposicoes({ dados, recarregar, aberto, setAberto, adicionando, setAdicionando }) {
-  const [faixas, setFaixas] = useState([]);
-  const arteId = dados.exame.arte_marcial_id;
-  useEffect(() => { axios.get(`/faixas?arte_marcial_id=${arteId}`).then((r) => setFaixas(r.data)).catch(() => {}); }, [arteId]);
+export function Sobreposicoes({ dados, recarregar, admin, faixas, aberto, setAberto, adicionando, setAdicionando }) {
   const candidato = aberto && dados.candidatos.find((c) => c.id === aberto.id);
   return (
     <>
-      {adicionando && <AdicionarCandidatos exameId={dados.exame.id} onFechar={() => setAdicionando(false)} onIncluido={recarregar} />}
-      {candidato && <FichaCandidato key={candidato.id} exame={dados.exame} candidato={candidato} faixas={faixas} hoje={dados.hoje} abrirPagamento={aberto.pagamento} onFechar={() => setAberto(null)} onMudou={recarregar} />}
+      {adicionando && <AdicionarCandidatos exameId={dados.exame.id} faixasArte={faixas} admin={admin} onFechar={() => setAdicionando(false)} onIncluido={recarregar} />}
+      {candidato && <FichaCandidato key={candidato.id} admin={admin} exame={dados.exame} candidato={candidato} faixas={faixas} hoje={dados.hoje} abrirPagamento={aberto.pagamento} onFechar={() => setAberto(null)} onMudou={recarregar} />}
     </>
   );
 }

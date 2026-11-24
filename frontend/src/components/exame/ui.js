@@ -64,7 +64,7 @@ export function CamposGestao({ form, set }) {
         {campo('local', 'Local')}
         {campo('horario', 'Horário', { type: 'time' })}
         {campo('taxa_padrao', 'Taxa padrão (R$)', { type: 'number', min: 0, step: '0.01', inputMode: 'decimal' })}
-        {campo('preco_faixa_padrao', 'Preço da faixa (R$)', { type: 'number', min: 0, step: '0.01', inputMode: 'decimal' })}
+        {campo('preco_faixa_padrao', 'Preço padrão da faixa (R$)', { type: 'number', min: 0, step: '0.01', inputMode: 'decimal' })}
         {campo('prazo_pagamento', 'Prazo de pagamento', { type: 'date' })}
         {campo('prazo_pedido_faixa', 'Prazo do pedido de faixa', { type: 'date' })}
       </div>
@@ -80,3 +80,59 @@ export const camposGestaoDe = (e = {}) => ({
   local: e.local || '', horario: (e.horario || '').slice(0, 5), taxa_padrao: e.taxa_padrao ?? '', preco_faixa_padrao: e.preco_faixa_padrao ?? '',
   prazo_pagamento: e.prazo_pagamento || '', prazo_pedido_faixa: e.prazo_pedido_faixa || '', usa_avaliacao: e.usa_avaliacao ?? true,
 });
+export const camposPrecosDe = (e) => ({ taxas_por_faixa: { ...(e.taxas_por_faixa || {}) }, tipos_faixa: [...(e.tipos_faixa || [])] });
+
+// Taxa por faixa pretendida e tipos (qualidades) de faixa — edição do exame
+export function PrecosExame({ form, set, faixas }) {
+  const num = { type: 'number', min: 0, step: '0.01', inputMode: 'decimal' };
+  const mudarTipo = (i, v) => set({ tipos_faixa: form.tipos_faixa.map((t, j) => (j === i ? { ...t, ...v } : t)) });
+  return (
+    <>
+      <h4 style={{ margin: '14px 0 4px', fontSize: 14 }}>Taxa por faixa pretendida</h4>
+      <p style={{ fontSize: 11, color: '#888', margin: '0 0 8px' }}>Em branco, vale a taxa padrão.</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+        {faixas.map((f) => (
+          <Campo key={f.id} rotulo={<Faixa faixa={f} />}>
+            <input {...num} aria-label={`Taxa ${f.nome}`} value={form.taxas_por_faixa[f.id] ?? ''} onChange={(e) => set({ taxas_por_faixa: { ...form.taxas_por_faixa, [f.id]: e.target.value } })} style={estiloInput} />
+          </Campo>
+        ))}
+      </div>
+      <h4 style={{ margin: '16px 0 4px', fontSize: 14 }}>Tipos de faixa à venda</h4>
+      <p style={{ fontSize: 11, color: '#888', margin: '0 0 8px' }}>Opcional. Ex.: Simples, Bordada, Premium. Sem tipos, vale o preço padrão da faixa.</p>
+      {form.tipos_faixa.map((t, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+          <input required aria-label="Nome do tipo" placeholder="Nome" maxLength={60} value={t.nome} onChange={(e) => mudarTipo(i, { nome: e.target.value })} style={{ ...estiloInput, flex: 2 }} />
+          <input required {...num} aria-label="Preço do tipo" placeholder="R$" value={t.preco} onChange={(e) => mudarTipo(i, { preco: e.target.value })} style={{ ...estiloInput, flex: 1 }} />
+          <button type="button" aria-label="Remover tipo" onClick={() => set({ tipos_faixa: form.tipos_faixa.filter((_, j) => j !== i) })} style={btnLink('#c62828')}>remover</button>
+        </div>
+      ))}
+      <button type="button" style={{ ...btnCinza, marginBottom: 12 }} onClick={() => set({ tipos_faixa: [...form.tipos_faixa, { nome: '', preco: '' }] })}>+ Tipo de faixa</button>
+    </>
+  );
+}
+
+// Formulário do candidato externo — inclusão e edição
+export function FormExterno({ inicial, faixas, onSalvar, rotulo, salvando }) {
+  const [f, setF] = useState({ ...inicial });
+  const campo = (k, r, props) => <Campo rotulo={r}><input maxLength={255} value={f[k] || ''} onChange={(e) => setF({ ...f, [k]: e.target.value })} style={estiloInput} {...props} /></Campo>;
+  const faixa = (k, r, props) => (
+    <Campo rotulo={r}><select value={f[k] || ''} onChange={(e) => setF({ ...f, [k]: e.target.value })} style={estiloInput} {...props}>
+      <option value="">{props?.required ? 'Selecione...' : 'Sem faixa'}</option>
+      {faixas.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+    </select></Campo>
+  );
+  return (
+    <form onSubmit={async (e) => { e.preventDefault(); if (await onSalvar(f) && !inicial) setF({ origem: f.origem }); }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 12 }}>
+        {campo('nome', 'Nome *', { required: true })}
+        {campo('nascimento', 'Nascimento', { type: 'date' })}
+        {campo('responsavel', 'Responsável')}
+        {campo('telefone', 'Telefone', { maxLength: 40, inputMode: 'tel' })}
+        {campo('origem', 'Academia / professor de origem')}
+        {faixa('faixa_atual_id', 'Faixa atual')}
+        {faixa('faixa_pretendida_id', 'Faixa pretendida *', { required: true })}
+      </div>
+      <button type="submit" disabled={salvando} style={btnVerde}>{rotulo}</button>
+    </form>
+  );
+}

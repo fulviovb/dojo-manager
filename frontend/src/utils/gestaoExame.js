@@ -35,9 +35,10 @@ export const filtrar = (lista, f) => lista.filter((c) => (
 
 export const textoCarencia = (c) => {
   if (!c) return '—';
+  if (c.situacao === 'externo') return 'externo';
   return c.min_aulas == null ? `${c.aulas} (sem critério)` : `${c.aulas}/${c.min_aulas}`;
 };
-export const textoPedido = (c) => (c.quer_comprar === 'sim' ? c.pedido.tamanho : c.quer_comprar === 'nao' ? 'não' : '—');
+export const textoPedido = (c) => (c.quer_comprar === 'sim' ? [c.pedido.tamanho, c.pedido.tipo].filter(Boolean).join(' · ') : c.quer_comprar === 'nao' ? 'não' : '—');
 
 export const ativos = (lista) => lista.filter((c) => c.status_inscricao !== 'desistiu');
 export const saldoTotal = (c) => c.financeiro.taxa.saldo + c.financeiro.faixa.saldo;
@@ -45,18 +46,18 @@ export const pendentes = (lista) => ativos(lista).filter((c) => saldoTotal(c) > 
 export const diasAtraso = (exame, hoje) => (exame.prazo_pagamento && hoje > exame.prazo_pagamento
   ? Math.round((new Date(hoje) - new Date(exame.prazo_pagamento)) / 86400000) : 0);
 
-// Pedido consolidado: cor × tamanho
+// Pedido consolidado: cor × tamanho × tipo
 export const consolidarFaixas = (lista) => {
   const grupos = new Map();
   for (const c of ativos(lista).filter((x) => x.quer_comprar === 'sim')) {
-    const chave = `${c.pedido.faixa?.id}|${c.pedido.tamanho.toUpperCase()}`;
-    if (!grupos.has(chave)) grupos.set(chave, { faixa: c.pedido.faixa, tamanho: c.pedido.tamanho.toUpperCase(), quantidade: 0, entregues: 0, total: 0 });
+    const chave = `${c.pedido.faixa?.id}|${c.pedido.tamanho.toUpperCase()}|${c.pedido.tipo || ''}`;
+    if (!grupos.has(chave)) grupos.set(chave, { faixa: c.pedido.faixa, tamanho: c.pedido.tamanho.toUpperCase(), tipo: c.pedido.tipo || '', quantidade: 0, entregues: 0, total: 0 });
     const g = grupos.get(chave);
     g.quantidade += 1;
     g.entregues += c.pedido.entregue ? 1 : 0;
     g.total = Math.round((g.total + c.pedido.valor) * 100) / 100;
   }
-  return [...grupos.values()].sort((a, b) => (a.faixa?.ordem ?? 99) - (b.faixa?.ordem ?? 99) || a.tamanho.localeCompare(b.tamanho, 'pt-BR', { numeric: true }));
+  return [...grupos.values()].sort((a, b) => (a.faixa?.ordem ?? 99) - (b.faixa?.ordem ?? 99) || a.tamanho.localeCompare(b.tamanho, 'pt-BR', { numeric: true }) || a.tipo.localeCompare(b.tipo, 'pt-BR'));
 };
 
 // CSV pro Excel em português: BOM + ';'. Texto começando com =,+,-,@ ganha
@@ -77,24 +78,24 @@ export const baixarCSV = (nome, cabecalho, linhas) => {
 };
 
 export const csvCandidatos = (exame, lista) => baixarCSV(`candidatos ${exame.nome}`,
-  ['Aluno', 'Idade', 'Responsável', 'Telefone', 'Turma', 'Faixa atual', 'Faixa pretendida', 'Aulas na faixa', 'Mínimo', 'Inscrição',
-    'Taxa', 'Desconto', 'Motivo', 'Devido', 'Pago', 'Saldo', 'Situação', 'Quer faixa', 'Cor', 'Tamanho', 'Valor faixa', 'Pago faixa', 'Entregue', 'Presença', 'Resultado', 'Observações'],
-  lista.map((c) => [c.aluno.nome, c.aluno.idade ?? '', c.responsavel, c.aluno.telefone, c.turma?.nome, c.faixa_atual?.nome, c.faixa_pretendida?.nome,
+  ['Aluno', 'Idade', 'Responsável', 'Telefone', 'Turma', 'Origem (externo)', 'Faixa atual', 'Faixa pretendida', 'Aulas na faixa', 'Mínimo', 'Inscrição',
+    'Taxa', 'Desconto', 'Motivo', 'Devido', 'Pago', 'Saldo', 'Situação', 'Quer faixa', 'Cor', 'Tamanho', 'Tipo', 'Valor faixa', 'Pago faixa', 'Entregue', 'Presença', 'Resultado', 'Observações'],
+  lista.map((c) => [c.aluno.nome, c.aluno.idade ?? '', c.responsavel, c.aluno.telefone, c.turma?.nome, c.externo?.origem, c.faixa_atual?.nome, c.faixa_pretendida?.nome,
     c.carencia?.aulas ?? '', c.carencia?.min_aulas ?? '', INSCRICAO[c.status_inscricao].label,
     c.financeiro.valor_taxa, c.desconto, c.motivo_desconto, c.financeiro.taxa.devido, c.financeiro.taxa.pago, c.financeiro.taxa.saldo, SITUACAO[c.financeiro.taxa.situacao].label,
-    PEDIDO[c.quer_comprar], c.quer_comprar === 'sim' ? c.pedido.faixa?.nome : '', c.quer_comprar === 'sim' ? c.pedido.tamanho : '', c.financeiro.faixa.devido, c.financeiro.faixa.pago, c.pedido?.entregue ? 'Sim' : '',
+    PEDIDO[c.quer_comprar], c.quer_comprar === 'sim' ? c.pedido.faixa?.nome : '', c.quer_comprar === 'sim' ? c.pedido.tamanho : '', c.quer_comprar === 'sim' ? c.pedido.tipo : '', c.financeiro.faixa.devido, c.financeiro.faixa.pago, c.pedido?.entregue ? 'Sim' : '',
     c.presenca || '', c.resultado === 'nao_aprovado' ? 'não aprovado' : c.resultado || '', c.observacoes]));
 
 export const csvFaixas = (exame, lista) => baixarCSV(`pedido de faixas ${exame.nome}`,
-  ['Cor', 'Tamanho', 'Quantidade', 'Total'],
-  consolidarFaixas(lista).map((g) => [g.faixa?.nome, g.tamanho, g.quantidade, g.total]));
+  ['Cor', 'Tamanho', 'Tipo', 'Quantidade', 'Total'],
+  consolidarFaixas(lista).map((g) => [g.faixa?.nome, g.tamanho, g.tipo, g.quantidade, g.total]));
 
 // Cobrança pra colar no WhatsApp (RF-17)
 export const textoCobranca = (exame, c) => {
   const { taxa, faixa } = c.financeiro;
   const partes = [];
   if (taxa.saldo > 0) partes.push(`• Taxa do exame: ${moeda(taxa.saldo)}${taxa.pago > 0 ? ` (já pago ${moeda(taxa.pago)})` : ''}`);
-  if (faixa.saldo > 0) partes.push(`• Faixa ${c.pedido?.faixa?.nome || ''} tamanho ${c.pedido?.tamanho || ''}: ${moeda(faixa.saldo)}${faixa.pago > 0 ? ` (já pago ${moeda(faixa.pago)})` : ''}`);
+  if (faixa.saldo > 0) partes.push(`• Faixa ${c.pedido?.faixa?.nome || ''} tamanho ${c.pedido?.tamanho || ''}${c.pedido?.tipo ? ` (${c.pedido.tipo})` : ''}: ${moeda(faixa.saldo)}${faixa.pago > 0 ? ` (já pago ${moeda(faixa.pago)})` : ''}`);
   return [
     `Olá${c.responsavel ? `, ${c.responsavel}` : ''}! 🥋`,
     `Sobre o ${exame.nome} (${formatData(exame.data)}) — ${c.aluno.nome}, faixa ${c.faixa_pretendida?.nome}:`,

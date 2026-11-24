@@ -310,7 +310,7 @@ const exameFaixa = async (req, res) => {
     }
     const includePretendida = [{ model: Faixa, as: 'FaixaPretendida', attributes: ['id', 'nome', 'cor'] }];
     const indicacoes = exame
-      ? await ExameParticipante.findAll({ where: { exame_id: exame.id, status_inscricao: ['indicado', 'confirmado'] }, include: includePretendida })
+      ? await ExameParticipante.findAll({ where: { exame_id: exame.id, aluno_id: { [Op.ne]: null }, status_inscricao: ['indicado', 'confirmado'] }, include: includePretendida })
       : await IndicacaoExame.findAll({ where: { escola_id, arte_marcial_id, status: 'indicado' }, include: includePretendida });
     const indicacaoPorAluno = new Map(indicacoes.map((i) => [i.aluno_id, i]));
     let idsPermitidos = [...indicacaoPorAluno.keys()];

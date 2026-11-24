@@ -12,7 +12,8 @@ const {
 } = require('../services/exameAcessoService');
 const { carenciaEmLote } = require('../services/carenciaService');
 const { registrarGraduacao } = require('../services/graduacaoService');
-const { resumoFinanceiro, totaisDoExame, cent } = require('../utils/pagamentoExame');
+const { buscarFasesDoExame, copiarRoteiro } = require('../services/roteiroExameService');
+const { resumoFinanceiro, totaisDoExame, taxaHerdada, cent } = require('../utils/pagamentoExame');
 const { calcularNotaFinal } = require('../utils/notaExame');
 const { dataLocalISO } = require('../utils/data');
 
@@ -67,12 +68,40 @@ const lerGestao = (b) => {
   }
   if (tem(b, 'taxa_padrao')) d.taxa_padrao = dinheiro(b.taxa_padrao, 'Taxa');
   if (tem(b, 'preco_faixa_padrao')) d.preco_faixa_padrao = dinheiro(b.preco_faixa_padrao, 'Preço da faixa');
+  if (tem(b, 'taxas_por_faixa')) {
+    const t = b.taxas_por_faixa || {};
+    if (typeof t !== 'object' || Array.isArray(t)) throw new ErroRegra(400, 'Taxas por faixa inválidas');
+    d.taxas_por_faixa = {};
+    for (const [id, v] of Object.entries(t)) {
+      const valor = dinheiro(v, 'Taxa');
+      if (valor != null) d.taxas_por_faixa[id] = valor;
+    }
+  }
+  if (tem(b, 'tipos_faixa')) {
+    if (!Array.isArray(b.tipos_faixa) || b.tipos_faixa.length > 30) throw new ErroRegra(400, 'Tipos de faixa inválidos');
+    d.tipos_faixa = b.tipos_faixa.map((t) => {
+      const nome = texto(t?.nome, 60);
+      const preco = dinheiro(t?.preco, 'Preço do tipo de faixa');
+      if (!nome || preco == null) throw new ErroRegra(400, 'Cada tipo de faixa precisa de nome e preço');
+      return { nome, preco };
+    });
+    if (new Set(d.tipos_faixa.map((t) => t.nome.toLowerCase())).size !== d.tipos_faixa.length) throw new ErroRegra(400, 'Há tipos de faixa com o mesmo nome');
+  }
   for (const c of ['prazo_pagamento', 'prazo_pedido_faixa']) {
     if (!tem(b, c)) continue;
     d[c] = b[c] || null;
     if (d[c] && !ehData(d[c])) throw new ErroRegra(400, 'Prazo inválido');
   }
   return d;
+};
+
+// Lista de tipos do último exame da arte que tenha algum (ponto de partida)
+const tiposDoExameAnterior = async (escola_id, arte_marcial_id) => {
+  const es = await Exame.findAll({
+    where: { escola_id, arte_marcial_id, tipo: 'normal', status: { [Op.ne]: 'cancelado' } },
+    attributes: ['tipos_faixa'], order: [['created_at', 'DESC']],
+  });
+  return es.find((e) => e.tipos_faixa?.length)?.tipos_faixa || [];
 };
 
 // PUT /api/exames/:id/gestao
@@ -96,10 +125,23 @@ const atualizarGestao = async (req, res) => {
         const n = await AvaliacaoAluno.count({ where: { exame_id: exame.id }, transaction });
         if (n) throw new ErroRegra(409, 'Este exame já tem avaliações sorteadas');
       }
-      const mudou = Object.keys(dados).filter((k) => String(exame[k] ?? '') !== String(dados[k] ?? ''));
+      if (dados.taxas_por_faixa) {
+        const ids = Object.keys(dados.taxas_por_faixa);
+        const n = await Faixa.count({ where: { id: ids, arte_marcial_id: exame.arte_marcial_id }, transaction });
+        if (n !== ids.length) throw new ErroRegra(400, 'Faixa inválida');
+      }
+      // passou a usar avaliação e ainda não tem roteiro: copia o Roteiro Padrão
+      if (dados.usa_avaliacao && !exame.usa_avaliacao && !(await buscarFasesDoExame(exame.id, { transaction })).length) {
+        const padrao = await Exame.findOne({
+          where: { escola_id: exame.escola_id, arte_marcial_id: exame.arte_marcial_id, tipo: 'roteiro_padrao' }, transaction,
+        });
+        if (padrao) await copiarRoteiro(padrao.id, exame.id, { transaction });
+      }
+      const txt = (v) => (v == null ? '' : typeof v === 'object' ? JSON.stringify(Object.entries(v).sort()) : String(v));
+      const mudou = Object.keys(dados).filter((k) => txt(exame[k]) !== txt(dados[k]));
       await exame.update(dados, { transaction });
       if (mudou.length) {
-        await historico(req, exame, null, 'exame', `Alterado: ${mudou.map((k) => `${k} = ${dados[k] ?? 'vazio'}`).join('; ')}`, { transaction });
+        await historico(req, exame, null, 'exame', `Alterado: ${mudou.map((k) => `${k} = ${dados[k] == null ? 'vazio' : typeof dados[k] === 'object' ? JSON.stringify(dados[k]) : dados[k]}`).join('; ')}`, { transaction });
       }
     });
     res.json(await Exame.findByPk(req.params.id));
@@ -149,25 +191,31 @@ const listarCandidatos = async (req, res) => {
     });
     const hoje = dataLocalISO();
     const [carencias, notas] = await Promise.all([
-      carenciaEmLote(exame.escola_id, exame.arte_marcial_id, participantes.map((p) => p.aluno_id)),
+      carenciaEmLote(exame.escola_id, exame.arte_marcial_id, participantes.filter((p) => p.aluno_id).map((p) => p.aluno_id)),
       notasPorParticipante(exame),
     ]);
 
     const candidatos = participantes.map((p) => {
-      const idade = idadeEm(p.Aluno.data_nascimento, hoje);
+      const externo = !p.aluno_id;
+      const a = externo
+        ? { id: null, nome: p.externo_nome, data_nascimento: p.externo_nascimento, telefone: p.externo_telefone, mae: p.externo_responsavel }
+        : p.Aluno;
+      const idade = idadeEm(a.data_nascimento, hoje);
       const ns = notas.mapa.get(p.id) || [];
       const completo = notas.total > 0 && ns.length === notas.total;
-      const pais = [p.Aluno.mae, p.Aluno.pai].filter(Boolean);
+      const pais = [a.mae, a.pai].filter(Boolean);
       const c = carencias.get(p.aluno_id);
       return {
         id: p.id,
-        aluno: { id: p.Aluno.id, nome: p.Aluno.nome, foto_url: p.Aluno.foto_url, idade, telefone: p.Aluno.telefone },
-        responsavel: (idade == null || idade < 18) && pais.length ? pais.join(' / ') : p.Aluno.nome,
-        turma: p.Turma ? { id: p.Turma.id, nome: nomeTurma(p.Turma) } : null,
+        aluno: { id: a.id, nome: a.nome, foto_url: a.foto_url, idade, telefone: a.telefone },
+        externo: externo ? { nascimento: p.externo_nascimento, responsavel: p.externo_responsavel, origem: p.externo_origem } : null,
+        responsavel: (externo || idade == null || idade < 18) && pais.length ? pais.join(' / ') : a.nome,
+        turma: externo ? { id: 'externo', nome: 'Externos' } : p.Turma ? { id: p.Turma.id, nome: nomeTurma(p.Turma) } : null,
         faixa_atual: resumoFaixa(p.FaixaAtual),
         faixa_pretendida: resumoFaixa(p.FaixaPretendida),
         // graduado já começou a contar na faixa nova: a carência do exame deixou de valer
-        carencia: p.graduacao_aluno_id ? null : { aulas: c.aulas, min_aulas: c.min_aulas, situacao: c.situacao },
+        carencia: externo ? { aulas: null, min_aulas: null, situacao: 'externo' } : p.graduacao_aluno_id ? null : { aulas: c.aulas, min_aulas: c.min_aulas, situacao: c.situacao },
+        taxa_herdada: Number(taxaHerdada(p, exame) || 0),
         taxa_propria: p.valor_taxa == null ? null : Number(p.valor_taxa),
         desconto: Number(p.desconto), motivo_desconto: p.motivo_desconto, isento: p.isento,
         status_inscricao: p.status_inscricao, presenca: p.presenca, resultado: p.resultado,
@@ -176,7 +224,7 @@ const listarCandidatos = async (req, res) => {
         financeiro: resumoFinanceiro(p, exame, hoje),
         quer_comprar: p.PedidoFaixa?.quer_comprar || 'sem_resposta',
         pedido: p.PedidoFaixa ? {
-          faixa: resumoFaixa(p.PedidoFaixa.Faixa), tamanho: p.PedidoFaixa.tamanho,
+          faixa: resumoFaixa(p.PedidoFaixa.Faixa), tamanho: p.PedidoFaixa.tamanho, tipo: p.PedidoFaixa.tipo,
           valor: p.PedidoFaixa.valor == null ? null : Number(p.PedidoFaixa.valor),
           entregue: p.PedidoFaixa.entregue, entregue_em: p.PedidoFaixa.entregue_em,
         } : null,
@@ -368,6 +416,73 @@ const incluirCandidatos = async (req, res) => {
   } catch (e) { responderErro(res, e); }
 };
 
+// Candidato externo (sem cadastro de aluno): só admin
+const lerExterno = async (exame, b, transaction) => {
+  const nome = texto(b.nome);
+  if (!nome) throw new ErroRegra(400, 'Informe o nome');
+  if (b.nascimento && (!ehData(b.nascimento) || b.nascimento > dataLocalISO())) throw new ErroRegra(400, 'Data de nascimento inválida');
+  const faixas = await Faixa.findAll({ where: { arte_marcial_id: exame.arte_marcial_id }, transaction });
+  const pretendida = faixas.find((f) => f.id === b.faixa_pretendida_id);
+  const atual = b.faixa_atual_id ? faixas.find((f) => f.id === b.faixa_atual_id) : null;
+  if (!pretendida || (b.faixa_atual_id && !atual)) throw new ErroRegra(400, 'Escolha a faixa pretendida');
+  if (atual && atual.ordem >= pretendida.ordem) throw new ErroRegra(400, 'A faixa pretendida precisa ser acima da atual');
+  return {
+    externo_nome: nome, externo_nascimento: b.nascimento || null, externo_responsavel: texto(b.responsavel),
+    externo_telefone: texto(b.telefone, 40), externo_origem: texto(b.origem),
+    faixa_atual_id: atual?.id || null, faixa_pretendida_id: pretendida.id,
+  };
+};
+
+const exigirAdmin = (req) => {
+  if (req.usuario.role !== 'admin') throw new ErroRegra(403, 'Só o administrador gerencia candidatos externos');
+};
+
+const exigirNomeLivre = async (exame, nome, exceto, transaction) => {
+  const p = await ExameParticipante.findOne({
+    where: { exame_id: exame.id, aluno_id: null, externo_nome: nome, ...(exceto ? { id: { [Op.ne]: exceto } } : {}) }, transaction,
+  });
+  if (p) throw new ErroRegra(409, 'Já existe um externo com este nome neste exame');
+};
+
+// POST /api/exames/:id/externos
+const incluirExterno = async (req, res) => {
+  try {
+    exigirAdmin(req);
+    const id = await sequelize.transaction(async (transaction) => {
+      const { exame } = await carregarExame(req, { transaction, lock: true });
+      exigirInscricoesAbertas(exame);
+      const dados = await lerExterno(exame, req.body, transaction);
+      await exigirNomeLivre(exame, dados.externo_nome, null, transaction);
+      const p = await ExameParticipante.create({ exame_id: exame.id, aluno_id: null, ...dados }, { transaction });
+      await historico(req, exame, p, 'inscricao', 'Entrou na lista (externo)', { transaction });
+      return p.id;
+    });
+    res.status(201).json({ id });
+  } catch (e) { responderErro(res, e); }
+};
+
+// PUT /api/exames/:id/externos/:pid
+const atualizarExterno = async (req, res) => {
+  try {
+    exigirAdmin(req);
+    await sequelize.transaction(async (transaction) => {
+      const { exame, permitidos } = await carregarExame(req, { transaction, lock: true });
+      exigirNaoCancelado(exame);
+      const p = await carregarCandidato(exame, permitidos, req.params.pid, { transaction });
+      if (p.aluno_id) throw new ErroRegra(409, 'Este candidato não é externo');
+      const dados = await lerExterno(exame, req.body, transaction);
+      await exigirNomeLivre(exame, dados.externo_nome, p.id, transaction);
+      if (dados.faixa_pretendida_id !== p.faixa_pretendida_id) {
+        const avs = await AvaliacaoAluno.count({ where: { exame_participante_id: p.id }, transaction });
+        if (avs || p.resultado) throw new ErroRegra(409, 'Com avaliação ou resultado, a faixa pretendida não pode mudar');
+      }
+      await p.update(dados, { transaction });
+      await historico(req, exame, p, 'inscricao', 'Dados do externo alterados', { transaction });
+    });
+    res.json({ ok: true });
+  } catch (e) { responderErro(res, e); }
+};
+
 const ROTULO = {
   indicado: 'Indicado', confirmado: 'Confirmado', desistiu: 'Desistiu', presente: 'Presente', ausente: 'Ausente',
 };
@@ -383,7 +498,7 @@ const alterarCandidato = async (req, exame, p, b, transaction) => {
   if (tem(b, 'observacoes')) d.observacoes = texto(b.observacoes, 5000);
   const f = { ...p.toJSON(), ...d };
   if (['valor_taxa', 'desconto', 'isento', 'motivo_desconto'].some((k) => tem(d, k))) {
-    const taxa = f.valor_taxa ?? exame.taxa_padrao;
+    const taxa = f.valor_taxa ?? taxaHerdada(p, exame);
     if (cent(f.desconto) > cent(taxa)) throw new ErroRegra(400, 'O desconto não pode ser maior que a taxa');
     if ((f.isento || cent(f.desconto) > 0) && !f.motivo_desconto) throw new ErroRegra(400, 'Informe o motivo do desconto ou da isenção');
     const mudouTaxa = cent(f.valor_taxa) !== cent(p.valor_taxa) || (f.valor_taxa == null) !== (p.valor_taxa == null)
@@ -394,7 +509,8 @@ const alterarCandidato = async (req, exame, p, b, transaction) => {
     umDe(b.status_inscricao, ['indicado', 'confirmado', 'desistiu'], 'Inscrição');
     if (p.graduacao_aluno_id) throw new ErroRegra(409, 'Candidato já graduado');
     if (!STATUS_ABERTO.includes(exame.status)) throw new ErroRegra(409, 'O exame não está aberto');
-    if (p.status_inscricao === 'desistiu') throw new ErroRegra(409, 'Para voltar ao exame, inclua o aluno de novo em "Adicionar candidatos"');
+    if (p.status_inscricao === 'desistiu' && !p.aluno_id) exigirInscricoesAbertas(exame);
+    else if (p.status_inscricao === 'desistiu') throw new ErroRegra(409, 'Para voltar ao exame, inclua o aluno de novo em "Adicionar candidatos"');
     d.status_inscricao = b.status_inscricao;
     if (b.status_inscricao === 'desistiu') { d.presenca = null; d.resultado = null; }
     notas.push(['inscricao', ROTULO[b.status_inscricao]]);
@@ -462,7 +578,7 @@ const removerCandidato = async (req, res) => {
       if (pags || avs || p.resultado || p.graduacao_aluno_id) {
         throw new ErroRegra(409, 'Candidato com pagamento, avaliação ou resultado não pode ser removido: registre a desistência');
       }
-      const aluno = await Usuario.findByPk(p.aluno_id, { attributes: ['nome'], transaction });
+      const aluno = p.aluno_id ? await Usuario.findByPk(p.aluno_id, { attributes: ['nome'], transaction }) : { nome: p.externo_nome };
       await historico(req, exame, null, 'inscricao', `Removido da lista: ${aluno?.nome}`, { transaction });
       await ExamePedidoFaixa.destroy({ where: { exame_participante_id: p.id }, transaction });
       await p.destroy({ transaction });
@@ -559,17 +675,28 @@ const salvarPedido = async (req, res) => {
       exigirNaoCancelado(exame);
       const p = await carregarCandidato(exame, permitidos, req.params.pid, { transaction });
       let ped = await ExamePedidoFaixa.findOne({ where: { exame_participante_id: p.id }, transaction });
-      const base = ped ? ped.toJSON() : { quer_comprar: 'sem_resposta', faixa_id: p.faixa_pretendida_id, tamanho: null, valor: null, entregue: false, entregue_em: null };
+      const base = ped ? ped.toJSON() : { quer_comprar: 'sem_resposta', faixa_id: p.faixa_pretendida_id, tamanho: null, tipo: null, valor: null, entregue: false, entregue_em: null };
       const n = { ...base };
       if (tem(b, 'quer_comprar')) n.quer_comprar = umDe(b.quer_comprar, ['sim', 'nao', 'sem_resposta'], 'Quer comprar');
       if (tem(b, 'tamanho')) n.tamanho = texto(b.tamanho, 30);
+      const tipos = exame.tipos_faixa || [];
+      let precoTipo = null;
+      if (tem(b, 'tipo')) {
+        n.tipo = texto(b.tipo, 60);
+        const t = tipos.find((x) => x.nome === n.tipo);
+        // tipo já gravado continua valendo mesmo que saia da lista do exame
+        if (n.tipo && !t && n.tipo !== base.tipo) throw new ErroRegra(400, 'Tipo de faixa inválido');
+        precoTipo = t ? t.preco : null;
+        if (n.tipo !== base.tipo && precoTipo != null && !tem(b, 'valor')) n.valor = precoTipo;
+      }
       if (tem(b, 'valor')) n.valor = dinheiro(b.valor, 'Valor da faixa');
       if (tem(b, 'faixa_id')) {
         n.faixa_id = b.faixa_id || p.faixa_pretendida_id;
         if (!(await Faixa.count({ where: { id: n.faixa_id, arte_marcial_id: exame.arte_marcial_id }, transaction }))) throw new ErroRegra(400, 'Faixa inválida');
       }
       if (n.quer_comprar === 'sim') {
-        if (n.valor == null) n.valor = exame.preco_faixa_padrao;
+        if (tem(b, 'quer_comprar') && tipos.length && !n.tipo) throw new ErroRegra(400, 'Escolha o tipo da faixa');
+        if (n.valor == null) n.valor = precoTipo ?? exame.preco_faixa_padrao;
         if (!n.tamanho) throw new ErroRegra(400, 'Informe o tamanho da faixa');
         if (n.valor == null) throw new ErroRegra(400, 'Informe o valor da faixa');
       }
@@ -579,14 +706,14 @@ const salvarPedido = async (req, res) => {
       }
       if (n.entregue && n.quer_comprar !== 'sim') throw new ErroRegra(409, 'Faixa já entregue: desmarque a entrega antes');
       const dados = {
-        quer_comprar: n.quer_comprar, faixa_id: n.faixa_id, tamanho: n.tamanho, valor: n.valor, entregue: n.entregue, entregue_em: n.entregue_em,
+        quer_comprar: n.quer_comprar, faixa_id: n.faixa_id, tamanho: n.tamanho, tipo: n.tipo, valor: n.valor, entregue: n.entregue, entregue_em: n.entregue_em,
       };
       if (ped) await ped.update(dados, { transaction });
       else ped = await ExamePedidoFaixa.create({ escola_id: exame.escola_id, exame_participante_id: p.id, ...dados }, { transaction });
       const entregaMudou = !!base.entregue !== n.entregue;
       await historico(req, exame, p, 'pedido_faixa', entregaMudou
         ? (n.entregue ? 'Faixa entregue' : 'Entrega da faixa desmarcada')
-        : n.quer_comprar === 'sim' ? `Quer comprar faixa, tamanho ${n.tamanho}, ${moeda(n.valor)}` : n.quer_comprar === 'nao' ? 'Não quer comprar faixa' : 'Pedido de faixa sem resposta', { transaction });
+        : n.quer_comprar === 'sim' ? `Quer comprar faixa${n.tipo ? ` ${n.tipo}` : ''}, tamanho ${n.tamanho}, ${moeda(n.valor)}` : n.quer_comprar === 'nao' ? 'Não quer comprar faixa' : 'Pedido de faixa sem resposta', { transaction });
     });
     res.json({ ok: true });
   } catch (e) { responderErro(res, e); }
@@ -619,6 +746,13 @@ const gravarResultado = async (req, res) => {
         const avs = await AvaliacaoAluno.findAll({ where: { exame_participante_id: p.id, status: 'finalizada' }, attributes: ['nota'], transaction });
         if (!total || avs.length !== total) throw new ErroRegra(409, `Avaliação incompleta: ${avs.length} de ${total} fases finalizadas`);
         nota = calcularNotaFinal(avs.map((a) => Number(a.nota)));
+      }
+
+      // externo: o resultado fica só no exame (não há aluno pra graduar)
+      if (!p.aluno_id) {
+        await p.update({ resultado: 'aprovado', presenca: 'presente' }, { transaction });
+        await historico(req, exame, p, 'resultado', `Aprovado (externo)${nota != null ? `, nota ${nota}` : ''}`, { transaction });
+        return;
       }
 
       const ind = p.indicacao_exame_id && await IndicacaoExame.findOne({
@@ -685,5 +819,5 @@ const resumosDosExames = async (exames, permitidosPorArte) => {
 module.exports = {
   atualizarGestao, listarCandidatos, listarElegiveis, incluirCandidatos, atualizarCandidato, atualizarEmMassa, removerCandidato,
   registrarPagamento, pagarEmMassa, estornarPagamento, salvarPedido, gravarResultado, listarHistorico,
-  lerGestao, resumosDosExames,
+  incluirExterno, atualizarExterno, lerGestao, resumosDosExames, tiposDoExameAnterior,
 };

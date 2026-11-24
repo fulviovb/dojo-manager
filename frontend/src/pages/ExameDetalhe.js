@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { corDaFaixa } from '../utils/faixaCores';
 import { AbaCandidatos, AbaFaixas, AbaFinanceiro, AbaChamada, AbaResultado, Sobreposicoes } from '../components/exame/GestaoExame';
-import { Modal, Campo, CamposGestao, camposGestaoDe } from '../components/exame/ui';
+import { Modal, Campo, CamposGestao, camposGestaoDe, PrecosExame, camposPrecosDe } from '../components/exame/ui';
 
 const estiloInput = { width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
 const estiloBtnPrimario = { background: '#1e2a38', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
@@ -66,6 +66,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
 
   if (!exame || !dados) return erro ? <p style={{ color: '#c62828' }}>{erro}</p> : <p style={{ color: '#888' }}>Carregando...</p>;
 
+  const admin = JSON.parse(localStorage.getItem('usuario') || 'null')?.role === 'admin';
   const normal = exame.tipo === 'normal';
   const abas = [...(normal ? ABAS_GESTAO : []), ...(!normal ? ABAS_AVALIACAO.slice(0, 1) : exame.usa_avaliacao ? ABAS_AVALIACAO : [])];
   const abaAtiva = abas.some(([id]) => id === aba) ? aba : abas[0][0];
@@ -222,7 +223,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {exame.status !== 'cancelado' && <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => { setErro(''); setFormGestao({ nome: exame.nome, data: exame.data, ...camposGestaoDe(exame) }); }}>Editar dados</button>}
+          {exame.status !== 'cancelado' && <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => { setErro(''); setFormGestao({ nome: exame.nome, data: exame.data, ...camposGestaoDe(exame), ...(exame.tipo === 'normal' ? camposPrecosDe(exame) : {}) }); }}>Editar dados</button>}
           {exame.tipo === 'roteiro_padrao'
             ? <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('normal')}>Desmarcar como Roteiro Padrão</button>
             : exame.usa_avaliacao && !dados.candidatos.length && <button style={{ background: 'none', border: '1px solid #ddd', color: '#555', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }} onClick={() => mudarTipo('roteiro_padrao')}>🌟 Marcar como Roteiro Padrão</button>}
@@ -255,7 +256,7 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
       {abaAtiva === 'financeiro' && <AbaFinanceiro dados={dados} onAbrir={abrirCandidato} />}
       {abaAtiva === 'chamada' && <AbaChamada dados={dados} recarregar={carregar} />}
       {abaAtiva === 'resultado' && <AbaResultado dados={dados} recarregar={carregar} />}
-      <Sobreposicoes dados={dados} recarregar={carregar} aberto={candidatoAberto} setAberto={setCandidatoAberto} adicionando={adicionando} setAdicionando={setAdicionando} />
+      <Sobreposicoes admin={admin} faixas={faixasArte} dados={dados} recarregar={carregar} aberto={candidatoAberto} setAberto={setCandidatoAberto} adicionando={adicionando} setAdicionando={setAdicionando} />
 
       {formGestao && (
         <Modal titulo="Dados do exame" onFechar={() => setFormGestao(null)}>
@@ -265,7 +266,8 @@ export default function ExameDetalhe({ exameId, onVoltar }) {
               <Campo rotulo="Data"><input required type="date" value={formGestao.data} onChange={(e) => setFormGestao((f) => ({ ...f, data: e.target.value }))} style={estiloInput} /></Campo>
             </div>
             <CamposGestao form={formGestao} set={(v) => setFormGestao((f) => ({ ...f, ...v }))} />
-            <p style={{ fontSize: 12, color: '#888' }}>Mudar a taxa padrão vale para todos os candidatos sem taxa própria.</p>
+            {normal && <PrecosExame form={formGestao} set={(v) => setFormGestao((f) => ({ ...f, ...v }))} faixas={faixasArte} />}
+            <p style={{ fontSize: 12, color: '#888' }}>Mudar as taxas vale para todos os candidatos sem taxa individual. Pedidos de faixa já feitos mantêm o valor.</p>
             {erro && <p style={{ color: 'red', fontSize: 13 }}>{erro}</p>}
             <button type="submit" style={estiloBtnPrimario}>Salvar</button>
           </form>

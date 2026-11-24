@@ -9,7 +9,8 @@ const sequelize = require('../config/database');
 const { calcularNotaFinal } = require('../utils/notaExame');
 const { ErroRegra, responderErro, STATUS_ABERTO, alunosPermitidos, candidatoEmExameAberto } = require('../services/indicacaoExameService');
 const { artesPermitidas, carregarExame, exigirExameInteiro, carregarCandidato } = require('../services/exameAcessoService');
-const { lerGestao, resumosDosExames } = require('./gestaoExameController');
+const { buscarFasesDoExame, copiarRoteiro } = require('../services/roteiroExameService');
+const { lerGestao, resumosDosExames, tiposDoExameAnterior } = require('./gestaoExameController');
 
 const listar = async (req, res) => {
   try {
@@ -24,27 +25,6 @@ const listar = async (req, res) => {
     const resumos = await resumosDosExames(exames, permitidosPorArte);
     res.json(exames.map((e) => ({ ...e.toJSON(), ...resumos.get(e.id) })));
   } catch (e) { responderErro(res, e); }
-};
-
-// Monta { id, nome, ordem, criterios: [{ id, nome, ordem, faixa_ids }] }
-// a partir das FaseExame/CriterioExame já criadas (instância do exame).
-const buscarFasesDoExame = async (exameId) => {
-  const fases = await FaseExame.findAll({
-    where: { exame_id: exameId },
-    include: [{ model: CriterioExame, include: [{ model: CriterioExameFaixa, attributes: ['faixa_id'] }] }],
-    order: [['ordem', 'ASC'], [CriterioExame, 'ordem', 'ASC']],
-  });
-  return fases.map((fase) => ({
-    id: fase.id,
-    nome: fase.nome,
-    ordem: fase.ordem,
-    criterios: fase.CriterioExames.map((c) => ({
-      id: c.id,
-      nome: c.nome,
-      ordem: c.ordem,
-      faixa_ids: c.CriterioExameFaixas.map((f) => f.faixa_id),
-    })),
-  }));
 };
 
 const detalhar = async (req, res) => {
@@ -76,32 +56,11 @@ const detalhar = async (req, res) => {
       ...exame.toJSON(),
       ArteMarcial: arte,
       fases,
-      participantes,
+      participantes: participantes.map((p) => ({ ...p.toJSON(), Aluno: p.pessoa() })),
       avaliadores,
       avaliacoes,
     });
   } catch (e) { responderErro(res, e); }
-};
-
-// Copia fases/critérios/faixas-aplicáveis de um exame de origem pra um
-// exame de destino recém-criado — usado tanto pelo "+ Novo Exame" (copia
-// do mais recente) quanto por "Começar exame com base em roteiro padrão"
-// (copia especificamente do exame tipo='roteiro_padrao' da arte).
-const copiarRoteiro = async (origemExameId, destinoExameId) => {
-  const fasesOrigem = await buscarFasesDoExame(origemExameId);
-  for (const faseOrigem of fasesOrigem) {
-    const fase = await FaseExame.create({ exame_id: destinoExameId, nome: faseOrigem.nome, ordem: faseOrigem.ordem });
-    for (const criterioOrigem of faseOrigem.criterios) {
-      const criterio = await CriterioExame.create({
-        fase_exame_id: fase.id, nome: criterioOrigem.nome, ordem: criterioOrigem.ordem,
-      });
-      if (criterioOrigem.faixa_ids.length > 0) {
-        await CriterioExameFaixa.bulkCreate(
-          criterioOrigem.faixa_ids.map((faixa_id) => ({ criterio_exame_id: criterio.id, faixa_id }))
-        );
-      }
-    }
-  }
 };
 
 const ALFABETO_CODIGO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem I, O, 0, 1 (ambíguos)
@@ -130,6 +89,8 @@ const criar = async (req, res) => {
     const artes = await artesPermitidas(req.usuario);
     if (artes && !artes.has(arte_marcial_id)) throw new ErroRegra(403, 'Sem permissão para esta arte marcial');
     const gestao = lerGestao(req.body);
+    delete gestao.taxas_por_faixa; // só na edição, que confere a arte das faixas
+    if (!gestao.tipos_faixa) gestao.tipos_faixa = await tiposDoExameAnterior(req.usuario.escola_id, arte_marcial_id);
 
     const codigo = await gerarCodigoUnico();
     const exame = await Exame.create({
@@ -161,6 +122,8 @@ const comecarComRoteiroPadrao = async (req, res) => {
     const artes = await artesPermitidas(req.usuario);
     if (artes && !artes.has(arte_marcial_id)) throw new ErroRegra(403, 'Sem permissão para esta arte marcial');
     const gestao = lerGestao(req.body);
+    delete gestao.taxas_por_faixa; // só na edição, que confere a arte das faixas
+    if (!gestao.tipos_faixa) gestao.tipos_faixa = await tiposDoExameAnterior(req.usuario.escola_id, arte_marcial_id);
 
     const roteiroPadrao = await Exame.findOne({
       where: { arte_marcial_id, escola_id: req.usuario.escola_id, tipo: 'roteiro_padrao' },
@@ -598,7 +561,7 @@ const fichaParticipante = async (req, res) => {
     res.json({
       participante: {
         id: participante.id,
-        aluno: participante.Aluno,
+        aluno: participante.pessoa(),
         faixa_atual: participante.FaixaAtual,
         faixa_pretendida: participante.FaixaPretendida,
       },
@@ -634,7 +597,7 @@ const relatorio = async (req, res) => {
       const completo = avaliacoesFinalizadas.length === totalFases && totalFases > 0;
       linhas.push({
         participante_id: participante.id,
-        aluno: participante.Aluno,
+        aluno: participante.pessoa(),
         faixa_atual: participante.FaixaAtual,
         faixa_pretendida: participante.FaixaPretendida,
         fases_finalizadas: avaliacoesFinalizadas.length,

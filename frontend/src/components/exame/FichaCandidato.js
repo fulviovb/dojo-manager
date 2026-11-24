@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Faixa, Selo, Campo, btnVerde, btnCinza, btnLink, btnPrimario, estiloInput } from './ui';
+import { Faixa, Selo, FormExterno, Campo, btnVerde, btnCinza, btnLink, btnPrimario, estiloInput } from './ui';
 import { moeda, formatData, SITUACAO, INSCRICAO, FORMAS, textoCarencia, textoCobranca, copiarTexto, saldoTotal } from '../../utils/gestaoExame';
 
 const secao = { borderTop: '1px solid #eee', padding: '14px 0' };
@@ -8,12 +8,12 @@ const h4 = { margin: '0 0 10px', fontSize: 14 };
 
 // Painel lateral do candidato. No celular ocupa a tela inteira (é no fim da
 // aula, no telefone, que o pagamento é registrado).
-export default function FichaCandidato({ exame, candidato: c, faixas, hoje, abrirPagamento, onFechar, onMudou }) {
+export default function FichaCandidato({ exame, candidato: c, faixas, hoje, admin, abrirPagamento, onFechar, onMudou }) {
   const base = `/exames/${exame.id}`;
   const formDe = () => ({ valor_taxa: c.taxa_propria ?? '', desconto: c.desconto || '', motivo_desconto: c.motivo_desconto || '', isento: c.isento });
   const pedidoDe = () => ({
     quer_comprar: c.quer_comprar, faixa_id: c.pedido?.faixa?.id || c.faixa_pretendida?.id || '',
-    tamanho: c.pedido?.tamanho || '', valor: c.pedido?.valor ?? exame.preco_faixa_padrao ?? '',
+    tamanho: c.pedido?.tamanho || '', tipo: c.pedido?.tipo || '', valor: c.pedido?.valor ?? (exame.tipos_faixa?.length ? '' : exame.preco_faixa_padrao) ?? '',
   });
   const pagamentoDe = (ref) => ({
     referente: ref, valor: c.financeiro[ref].saldo ? c.financeiro[ref].saldo.toFixed(2) : '', data: hoje, forma: 'pix', observacao: '', comprovante_url: '',
@@ -44,6 +44,7 @@ export default function FichaCandidato({ exame, candidato: c, faixas, hoje, abri
     finally { setSalvando(false); }
   };
 
+  const tipos = exame.tipos_faixa || [];
   const { taxa: ft, faixa: ff } = c.financeiro;
   const cancelado = exame.status === 'cancelado';
   const aberto = ['planejamento', 'em_andamento'].includes(exame.status);
@@ -62,7 +63,7 @@ export default function FichaCandidato({ exame, candidato: c, faixas, hoje, abri
             <div style={{ fontWeight: 700, fontSize: 17 }}>{c.aluno.nome}</div>
             <div style={{ fontSize: 13, margin: '4px 0' }}><Faixa faixa={c.faixa_atual} /> → <Faixa faixa={c.faixa_pretendida} /></div>
             <div style={{ fontSize: 12, color: '#666' }}>
-              {c.aluno.idade != null && `${c.aluno.idade} anos · `}{c.turma?.nome || 'Sem turma'} · carência {textoCarencia(c.carencia)}<br />
+              {c.aluno.idade != null && `${c.aluno.idade} anos · `}{c.externo ? `Externo${c.externo.origem ? ` (${c.externo.origem})` : ''}` : c.turma?.nome || 'Sem turma'} · carência {textoCarencia(c.carencia)}<br />
               Responsável: {c.responsavel}{c.aluno.telefone && ` · ${c.aluno.telefone}`}
             </div>
             <div style={{ marginTop: 6 }}><Selo cor={INSCRICAO[c.status_inscricao].cor}>{INSCRICAO[c.status_inscricao].label}</Selo></div>
@@ -73,6 +74,15 @@ export default function FichaCandidato({ exame, candidato: c, faixas, hoje, abri
           {erro && <p style={{ color: '#c62828', fontSize: 13, background: '#ffebee', padding: 8, borderRadius: 4 }}>{erro}</p>}
           {aviso && <p style={{ color: '#2e7d32', fontSize: 13, background: '#e8f5e9', padding: 8, borderRadius: 4 }}>{aviso}</p>}
         </div>
+
+        {c.externo && admin && !cancelado && (
+          <details style={{ margin: '10px 0', fontSize: 13 }}>
+            <summary style={{ cursor: 'pointer', color: '#1565c0', marginBottom: 8 }}>Editar dados do externo</summary>
+            <FormExterno faixas={faixas} rotulo="Salvar dados" salvando={salvando}
+              inicial={{ nome: c.aluno.nome, telefone: c.aluno.telefone, ...c.externo, faixa_atual_id: c.faixa_atual?.id, faixa_pretendida_id: c.faixa_pretendida?.id }}
+              onSalvar={(f) => executar(() => axios.put(`${base}/externos/${c.id}`, f), 'Dados salvos.')} />
+          </details>
+        )}
 
         <div style={{ ...secao, marginTop: 10 }}>
           <h4 style={h4}>Pagamentos</h4>
@@ -125,9 +135,16 @@ export default function FichaCandidato({ exame, candidato: c, faixas, hoje, abri
               {[['sim', 'Sim'], ['nao', 'Não'], ['sem_resposta', 'Sem resposta']].map(([v, r]) => <button key={v} onClick={() => setPedido({ ...pedido, quer_comprar: v })} style={{ ...btnCinza, ...(pedido.quer_comprar === v ? { background: '#1e2a38', color: '#fff' } : {}) }}>{r}</button>)}
             </div>
             {pedido.quer_comprar === 'sim' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 10 }}>
                 <Campo rotulo="Cor"><select value={pedido.faixa_id} onChange={(e) => setPedido({ ...pedido, faixa_id: e.target.value })} style={estiloInput}>{faixas.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}</select></Campo>
                 <Campo rotulo="Tamanho *"><input maxLength={30} value={pedido.tamanho} onChange={(e) => setPedido({ ...pedido, tamanho: e.target.value })} style={estiloInput} /></Campo>
+                {(tipos.length > 0 || pedido.tipo) && (
+                  <Campo rotulo="Tipo *"><select value={pedido.tipo} onChange={(e) => { const t = tipos.find((x) => x.nome === e.target.value); setPedido({ ...pedido, tipo: e.target.value, valor: t ? t.preco : pedido.valor }); }} style={estiloInput}>
+                    <option value="">Selecione...</option>
+                    {tipos.map((t) => <option key={t.nome} value={t.nome}>{t.nome} ({moeda(t.preco)})</option>)}
+                    {pedido.tipo && !tipos.some((t) => t.nome === pedido.tipo) && <option value={pedido.tipo}>{pedido.tipo}</option>}
+                  </select></Campo>
+                )}
                 <Campo rotulo="Valor (R$) *"><input type="number" inputMode="decimal" min="0" step="0.01" value={pedido.valor} onChange={(e) => setPedido({ ...pedido, valor: e.target.value })} style={estiloInput} /></Campo>
               </div>
             )}
@@ -142,7 +159,7 @@ export default function FichaCandidato({ exame, candidato: c, faixas, hoje, abri
           <div style={secao}>
             <h4 style={h4}>Taxa</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-              <Campo rotulo="Taxa (R$)"><input type="number" inputMode="decimal" min="0" step="0.01" placeholder={`do exame: ${moeda(exame.taxa_padrao)}`} value={taxa.valor_taxa} onChange={(e) => setTaxa({ ...taxa, valor_taxa: e.target.value })} style={estiloInput} /></Campo>
+              <Campo rotulo="Taxa (R$)"><input type="number" inputMode="decimal" min="0" step="0.01" placeholder={`do exame: ${moeda(c.taxa_herdada)}`} value={taxa.valor_taxa} onChange={(e) => setTaxa({ ...taxa, valor_taxa: e.target.value })} style={estiloInput} /></Campo>
               <Campo rotulo="Desconto (R$)"><input type="number" inputMode="decimal" min="0" step="0.01" value={taxa.desconto} onChange={(e) => setTaxa({ ...taxa, desconto: e.target.value })} style={estiloInput} /></Campo>
             </div>
             <label style={{ fontSize: 13, display: 'block', marginBottom: 8 }}><input type="checkbox" checked={taxa.isento} onChange={(e) => setTaxa({ ...taxa, isento: e.target.checked })} /> Isento</label>
@@ -170,10 +187,11 @@ export default function FichaCandidato({ exame, candidato: c, faixas, hoje, abri
               {!c.pagamentos.length && !c.resultado && <button style={{ ...btnCinza, color: '#c62828' }} onClick={() => setConfirmar('remover')}>Remover da lista</button>}
             </div>
           )}
-          {c.status_inscricao === 'desistiu' && <p style={{ fontSize: 12, color: '#888' }}>Para voltar ao exame, inclua o aluno de novo em "Adicionar candidatos".</p>}
+          {c.status_inscricao === 'desistiu' && c.externo && aberto && <button style={btnCinza} disabled={salvando} onClick={() => executar(() => axios.patch(`${base}/candidatos/${c.id}`, { status_inscricao: 'indicado' }), 'Voltou ao exame.')}>Voltar ao exame</button>}
+          {c.status_inscricao === 'desistiu' && !c.externo && <p style={{ fontSize: 12, color: '#888' }}>Para voltar ao exame, inclua o aluno de novo em "Adicionar candidatos".</p>}
           {confirmar && (
             <div style={{ background: '#fff8e1', padding: 10, borderRadius: 6, marginTop: 10, fontSize: 13 }}>
-              {confirmar === 'desistir' ? 'Os pagamentos são mantidos e a indicação fica livre para o próximo exame.' : 'Use só para inclusão por engano. A indicação do aluno continua aberta.'}
+              {confirmar === 'desistir' ? `Os pagamentos são mantidos${c.externo ? '.' : ' e a indicação fica livre para o próximo exame.'}` : `Use só para inclusão por engano.${c.externo ? '' : ' A indicação do aluno continua aberta.'}`}
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 <button style={btnCinza} onClick={() => setConfirmar(null)}>Voltar</button>
                 <button style={{ ...btnPrimario, background: '#c62828' }} disabled={salvando} onClick={async () => {

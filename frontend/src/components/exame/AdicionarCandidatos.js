@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Modal, Faixa, btnVerde, btnCinza, btnLink, estiloInput } from './ui';
+import { Modal, Faixa, FormExterno, btnVerde, btnCinza, btnLink, estiloInput } from './ui';
 import { textoCarencia } from '../../utils/gestaoExame';
 
-const ABAS = [['indicados', 'Indicados'], ['turma', 'Por turma'], ['avulso', 'Avulso']];
+const ABAS = [['indicados', 'Indicados'], ['turma', 'Por turma'], ['avulso', 'Avulso'], ['externo', 'Externo']];
 
-export default function AdicionarCandidatos({ exameId, onFechar, onIncluido }) {
+export default function AdicionarCandidatos({ exameId, faixasArte, admin, onFechar, onIncluido }) {
   const [aba, setAba] = useState('indicados');
   const [turmas, setTurmas] = useState([]);
   const [turmaId, setTurmaId] = useState('');
@@ -21,6 +21,7 @@ export default function AdicionarCandidatos({ exameId, onFechar, onIncluido }) {
 
   useEffect(() => {
     let vivo = true;
+    if (aba === 'externo') { setCarregando(false); return undefined; }
     if (aba === 'turma' && !turmaId) {
       setAlunos([]);
       axios.get(`/exames/${exameId}/elegiveis`, { params: { origem: 'avulso' } }).then((r) => { if (vivo) setTurmas(r.data.turmas); })
@@ -67,18 +68,25 @@ export default function AdicionarCandidatos({ exameId, onFechar, onIncluido }) {
     } catch (ex) { setErro(ex.response?.data?.erro || 'Não foi possível incluir.'); } finally { setSalvando(false); }
   };
 
+  const incluirExterno = async (f) => {
+    setErro(''); setAviso(''); setSalvando(true);
+    try { await axios.post(`/exames/${exameId}/externos`, f); await onIncluido(); setAviso(`Incluído no exame: ${f.nome}.`); return true; }
+    catch (ex) { setErro(ex.response?.data?.erro || 'Não foi possível incluir.'); return false; }
+    finally { setSalvando(false); }
+  };
+
   return (
     <Modal titulo="Adicionar candidatos" onFechar={onFechar} largura={760} rodape={(
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 13, color: '#555' }}>{escolhidos.length} selecionado(s)</span>
+        <span style={{ fontSize: 13, color: '#555' }}>{aba !== 'externo' && `${escolhidos.length} selecionado(s)`}</span>
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={btnCinza} onClick={onFechar}>Fechar</button>
-          <button style={{ ...btnVerde, opacity: escolhidos.length ? 1 : 0.5 }} disabled={!escolhidos.length || salvando} onClick={incluir}>{salvando ? 'Incluindo...' : 'Incluir no exame'}</button>
+          {aba !== 'externo' && <button style={{ ...btnVerde, opacity: escolhidos.length ? 1 : 0.5 }} disabled={!escolhidos.length || salvando} onClick={incluir}>{salvando ? 'Incluindo...' : 'Incluir no exame'}</button>}
         </div>
       </div>
     )}>
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        {ABAS.map(([id, rotulo]) => <button key={id} onClick={() => trocarAba(id)} style={{ ...btnCinza, ...(aba === id ? { background: '#1e2a38', color: '#fff', border: '1px solid #1e2a38' } : {}) }}>{rotulo}</button>)}
+        {ABAS.filter(([id]) => id !== 'externo' || admin).map(([id, rotulo]) => <button key={id} onClick={() => trocarAba(id)} style={{ ...btnCinza, ...(aba === id ? { background: '#1e2a38', color: '#fff', border: '1px solid #1e2a38' } : {}) }}>{rotulo}</button>)}
       </div>
       {aba === 'turma' && (
         <select aria-label="Turma" value={turmaId} onChange={(e) => setTurmaId(e.target.value)} style={{ ...estiloInput, marginBottom: 10 }}>
@@ -87,11 +95,17 @@ export default function AdicionarCandidatos({ exameId, onFechar, onIncluido }) {
         </select>
       )}
       {aba === 'avulso' && <input autoFocus placeholder="Nome do aluno (mínimo 2 letras)" value={busca} onChange={(e) => setBusca(e.target.value)} style={{ ...estiloInput, marginBottom: 10 }} />}
-      {aba !== 'indicados' && <p style={{ fontSize: 12, color: '#888', margin: '0 0 8px' }}>Quem ainda não foi indicado é indicado automaticamente ao entrar.</p>}
+      {(aba === 'turma' || aba === 'avulso') && <p style={{ fontSize: 12, color: '#888', margin: '0 0 8px' }}>Quem ainda não foi indicado é indicado automaticamente ao entrar.</p>}
       {erro && <p style={{ color: '#c62828', fontSize: 13 }}>{erro}</p>}
       {aviso && <p style={{ color: '#2e7d32', fontSize: 13 }}>{aviso}</p>}
+      {aba === 'externo' && (
+        <>
+          <p style={{ fontSize: 12, color: '#888' }}>Para quem não tem cadastro na escola. O resultado fica só no exame, sem gerar graduação.</p>
+          <FormExterno faixas={faixasArte} onSalvar={incluirExterno} rotulo="Incluir externo" salvando={salvando} />
+        </>
+      )}
       {carregando && !alunos.length && <p style={{ color: '#888', fontSize: 13 }}>Carregando...</p>}
-      {!carregando && !alunos.length && (aba === 'indicados' || (aba === 'turma' && turmaId) || busca.length > 1) && <p style={{ color: '#888', fontSize: 13 }}>Nenhum aluno encontrado.</p>}
+      {!carregando && !alunos.length && (aba === 'indicados' || (aba === 'turma' && turmaId) || (aba === 'avulso' && busca.length > 1)) && <p style={{ color: '#888', fontSize: 13 }}>Nenhum aluno encontrado.</p>}
       {livres.length > 1 && (
         <div style={{ marginBottom: 6 }}>
           <button style={btnLink()} onClick={() => setMarcados(new Set(livres.map((a) => a.id)))}>Marcar todos</button>

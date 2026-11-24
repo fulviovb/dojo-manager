@@ -8,6 +8,8 @@ const ExamePedidoFaixa = sequelize.define('ExamePedidoFaixa', {
   quer_comprar: { type: DataTypes.ENUM('sim', 'nao', 'sem_resposta'), allowNull: false, defaultValue: 'sem_resposta' },
   faixa_id: { type: DataTypes.UUID },
   tamanho: { type: DataTypes.STRING(30) },
+  // nome do tipo (Exame.tipos_faixa) no momento do pedido
+  tipo: { type: DataTypes.STRING(60) },
   valor: { type: DataTypes.DECIMAL(10, 2) },
   entregue: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   entregue_em: { type: DataTypes.DATEONLY },

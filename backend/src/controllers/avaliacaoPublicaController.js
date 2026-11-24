@@ -56,7 +56,7 @@ const minhasAvaliacoes = async (req, res) => {
       status: a.status,
       nota: a.nota,
       fase: a.FaseExame,
-      aluno: a.ExameParticipante.Aluno,
+      aluno: a.ExameParticipante.pessoa(),
       faixa_pretendida: a.ExameParticipante.FaixaPretendida,
     })));
   } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno' }); }
@@ -88,7 +88,7 @@ const detalharAvaliacao = async (req, res) => {
       id: avaliacao.id,
       status: avaliacao.status,
       fase: { id: avaliacao.FaseExame.id, nome: avaliacao.FaseExame.nome },
-      aluno: avaliacao.ExameParticipante.Aluno,
+      aluno: avaliacao.ExameParticipante.pessoa(),
       faixa_pretendida: avaliacao.ExameParticipante.FaixaPretendida,
       criterios: avaliacao.FaseExame.CriterioExames
         .sort((a, b) => a.ordem - b.ordem)

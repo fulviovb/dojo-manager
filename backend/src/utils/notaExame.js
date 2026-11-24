@@ -31,7 +31,8 @@ function calcularNotaFase(criterios, respostasPorCriterio, faixaPretendidaId) {
 
 function calcularNotaFinal(notasDeFase) {
   if (notasDeFase.length === 0) return null;
-  const soma = notasDeFase.reduce((acc, n) => acc + n, 0);
+  // Number: nota vinda do banco (DECIMAL) chega como texto
+  const soma = notasDeFase.reduce((acc, n) => acc + Number(n), 0);
   return Math.round((soma / notasDeFase.length) * 100) / 100;
 }
 

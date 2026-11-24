@@ -3,6 +3,9 @@
 const cent = (v) => Math.round(Number(v || 0) * 100);
 const real = (c) => c / 100;
 
+// Taxa da faixa pretendida; sem preço próprio, a taxa padrão do exame
+const taxaHerdada = (participante, exame) => exame.taxas_por_faixa?.[participante.faixa_pretendida_id] ?? exame.taxa_padrao;
+
 const situacaoDe = ({ devido, pago, prazo, hoje }) => {
   if (pago >= devido) return 'pago';
   if (prazo && hoje > prazo) return 'atrasado';
@@ -20,7 +23,7 @@ function resumoFinanceiro(participante, exame, hoje) {
   const validos = (participante.Pagamentos || []).filter((p) => !p.estornado_em);
   const somar = (ref) => validos.filter((p) => p.referente === ref).reduce((s, p) => s + cent(p.valor), 0);
 
-  const bruto = cent(participante.valor_taxa ?? exame.taxa_padrao);
+  const bruto = cent(participante.valor_taxa ?? taxaHerdada(participante, exame));
   const devidoTaxa = participante.isento ? 0 : Math.max(0, bruto - cent(participante.desconto));
   const pagoTaxa = somar('taxa');
   let sitTaxa;
@@ -68,4 +71,4 @@ function totaisDoExame(linhas) {
   return t;
 }
 
-module.exports = { resumoFinanceiro, totaisDoExame, cent, real };
+module.exports = { resumoFinanceiro, totaisDoExame, taxaHerdada, cent, real };

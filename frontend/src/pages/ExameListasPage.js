@@ -34,11 +34,11 @@ function conteudo(tipo, d, filtros) {
   }
   if (tipo === 'faixas') {
     const g = consolidarFaixas(candidatos);
-    return <Tabela colunas={['Cor', 'Tamanho', 'Quantidade', 'Total']} linhas={g.map((x) => [<Faixa faixa={x.faixa} />, x.tamanho, x.quantidade, moeda(x.total)])}
-      rodape={['Total', '', g.reduce((s, x) => s + x.quantidade, 0), moeda(g.reduce((s, x) => s + x.total, 0))]} />;
+    return <Tabela colunas={['Cor', 'Tamanho', 'Tipo', 'Quantidade', 'Total']} linhas={g.map((x) => [<Faixa faixa={x.faixa} />, x.tamanho, x.tipo || '—', x.quantidade, moeda(x.total)])}
+      rodape={['Total', '', '', g.reduce((s, x) => s + x.quantidade, 0), moeda(g.reduce((s, x) => s + x.total, 0))]} />;
   }
   return <Tabela colunas={['#', 'Aluno', 'Turma', 'Atual → pretendida', 'Carência', 'Taxa', 'Pago', 'Situação', 'Faixa', 'Inscrição']}
-    linhas={filtrar(candidatos, filtros).map((c, i) => [i + 1, c.aluno.nome, c.turma?.nome || '—', <><Faixa faixa={c.faixa_atual} /> → <Faixa faixa={c.faixa_pretendida} /></>, textoCarencia(c.carencia), moeda(c.financeiro.taxa.devido), moeda(c.financeiro.taxa.pago), SITUACAO[c.financeiro.taxa.situacao].label, textoPedido(c), INSCRICAO[c.status_inscricao].label])} />;
+    linhas={filtrar(candidatos, filtros).map((c, i) => [i + 1, c.aluno.nome, c.externo ? `Externo${c.externo.origem ? ` (${c.externo.origem})` : ''}` : c.turma?.nome || '—', <><Faixa faixa={c.faixa_atual} /> → <Faixa faixa={c.faixa_pretendida} /></>, textoCarencia(c.carencia), moeda(c.financeiro.taxa.devido), moeda(c.financeiro.taxa.pago), SITUACAO[c.financeiro.taxa.situacao].label, textoPedido(c), INSCRICAO[c.status_inscricao].label])} />;
 }
 
 // Impressões da Gestão do Exame (nova aba, sem sidebar — mesmo padrão de

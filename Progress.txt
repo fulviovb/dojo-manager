@@ -1798,8 +1798,22 @@ Legenda: [ ] pendente | [~] em andamento | [x] concluído | [-] bloqueado
     desistente sai do previsto/pendente; data_proximo_exame segue manual.
     Testado em cópia isolada do banco: 122 checagens de API (inclui
     concorrência e permissões) + Chrome headless (desktop e celular).
-    Fora do escopo, ainda pendentes: Branca/Cinza fora do roteiro, nota NaN na
-    ficha individual, nota não exibida no histórico do aluno, PIN revogado.
+    Fora do escopo, ainda pendentes: nota não exibida no histórico do aluno, PIN revogado.
+
+[x] Gestão do Exame, complementos (24/11/2026): taxa por faixa pretendida
+    (Exame.taxas_por_faixa, JSON; ordem: taxa individual > faixa > padrão);
+    tipos de faixa genéricos por exame (Exame.tipos_faixa [{nome, preco}],
+    copiados do exame anterior da arte; o pedido grava o nome em
+    ExamePedidoFaixa.tipo e consolida por cor × tamanho × tipo); candidato
+    externo sem cadastro (ExameParticipante.aluno_id nulo + externo_*; só
+    admin; aprovado fica no exame, não gera graduação — exceção à RN-01);
+    ligar "Usa avaliação" em exame sem roteiro copia o Roteiro Padrão.
+    Corrigido: nota final da ficha individual (DECIMAL somado como texto) e
+    Branca/Cinza incluída nos 26 critérios da Cinza no Roteiro Padrão (exame
+    "teste" não alterado). Migração:
+    backend/src/scripts/2026-11-exame-precos-externos.js. Jiu-jitsu segue
+    manual ("+ Graduação") por decisão do Fulvio; sem recibo.
+    Testado em cópia isolada: 122 + 87 checagens de API e Chrome headless.
 
 === NOTAS ===
 - Handoff: ~/escola-manager-discovery/handoffs/2026-05-19-escola-artes-marciais/handoff.md

@@ -38,6 +38,8 @@ router.post('/:id/candidatos', autenticar, staff, gestao.incluirCandidatos);
 router.patch('/:id/candidatos', autenticar, staff, gestao.atualizarEmMassa);
 router.patch('/:id/candidatos/:pid', autenticar, staff, gestao.atualizarCandidato);
 router.delete('/:id/candidatos/:pid', autenticar, staff, gestao.removerCandidato);
+router.post('/:id/externos', autenticar, staff, gestao.incluirExterno);
+router.put('/:id/externos/:pid', autenticar, staff, gestao.atualizarExterno);
 router.post('/:id/pagamentos', autenticar, staff, gestao.registrarPagamento);
 router.post('/:id/pagamentos/lote', autenticar, staff, gestao.pagarEmMassa);
 router.delete('/:id/pagamentos/:pagamento_id', autenticar, staff, gestao.estornarPagamento);
